@@ -1,0 +1,3 @@
+class BaseParticle extends Object{
+
+};

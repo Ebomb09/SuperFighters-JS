@@ -1,0 +1,10 @@
+class Object{
+
+	constructor() {
+		
+	}
+
+	update(){
+
+	}
+};
