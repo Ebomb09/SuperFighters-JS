@@ -24,7 +24,7 @@ export default class MenuDispatcher extends Array{
 				menu.touchMarker(selection);
 
 			// Close current menu
-			if(sf.input.key["Escape"])
+			if(sf.input.key.pressed["Escape"])
 				this.pop();
 		}
 

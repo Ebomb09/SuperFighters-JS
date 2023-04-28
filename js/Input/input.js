@@ -41,7 +41,7 @@ export function poll(){
 		sf.input.key.pressed[button] = false;
 	});
 
-	Object.keys(sf.input.key.pressed).forEach((button) => {
-		sf.input.key.pressed[button] = false;
+	Object.keys(sf.input.key.released).forEach((button) => {
+		sf.input.key.released[button] = false;
 	});
 }

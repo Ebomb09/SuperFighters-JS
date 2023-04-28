@@ -1,13 +1,14 @@
-import BaseMenu from "./base_menu"
+import BaseMenu from "./base_menu";
+import Game from "../Game/game";
 
 export default class MainMenu extends BaseMenu{
 
-	constructor(x, y){
+	constructor(){
 		super();
 
 		this.markers.push({
-			x: x,
-			y: y,
+			x: 0,
+			y: 0,
 			w: 150,
 			h: 30,
 
@@ -17,7 +18,7 @@ export default class MainMenu extends BaseMenu{
 			text: "Play",
 
 			onTouch: () => {
-				console.log("TEST");
+				sf.game = new Game();
 			}
 		});
 	}
