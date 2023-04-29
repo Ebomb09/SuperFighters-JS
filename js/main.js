@@ -1,4 +1,4 @@
-import * as globals from "./sf";
+import sf from "./sf";
 import * as input from "./Input/input";
 
 import MenuDispatcher from "./Menu/menu_dispatcher";
@@ -6,19 +6,18 @@ import MainMenu from "./Menu/main_menu";
 import Game from "./Game/game"
 
 function main(){
-	globals.init();
-	input.init();
-
 	sf.canvas.width = 1024;
 	sf.canvas.height = 768;
-
-	sf.menuDispatcher = new MenuDispatcher();
-	sf.menuDispatcher.push(new MainMenu());
+	sf.ctx.imageSmoothingEnabled = false;
+	
+	sf.menuDispatcher = new MenuDispatcher;
+	sf.menuDispatcher.addMenu(new MainMenu);
 
 	sfLoop();
 }
 
 function sfLoop(){
+
 
 	// Time calculations
 	let timeNow = Date.now();

@@ -1,68 +1,66 @@
 import sf from "../sf";
-import Game from "../Game/game";
 import BaseMenu from "./base_menu";
-import SetupMenu from "./setup_menu";
+import Game from "../Game/game";
 
-export default class MainMenu extends BaseMenu{
+export default class SetupMenu extends BaseMenu{
 
 	constructor(){
 		super();
 
 		this.addMarker({
-			x: 0,
+			x: 200,
 			y: 0,
 			w: 150,
 			h: 30,
 
-			text: "Play",
+			text: "Graphic Quality",
 			textSize: 20,
 
 			onTouch: () => {
-				sf.game = new Game();
-				sf.menuDispatcher.clear();
-			}
+
+			}			
 		});
 
 		this.addMarker({
-			x: 0,
+			x: 200,
 			y: 30,
 			w: 150,
 			h: 30,
 
-			text: "Editor",
+			text: "Effect Quality",
 			textSize: 20,
 
 			onTouch: () => {
 
-			}
+			}			
 		});
 
 		this.addMarker({
-			x: 0,
+			x: 200,
 			y: 60,
 			w: 150,
 			h: 30,
 
-			text: "Tutorial",
+			text: "Sound Volume",
 			textSize: 20,
 
 			onTouch: () => {
 
-			}
+			}			
 		});
 
 		this.addMarker({
-			x: 0,
+			x: 200,
 			y: 90,
 			w: 150,
 			h: 30,
 
-			text: "Set up",
+			text: "Edit Controls",
 			textSize: 20,
 
 			onTouch: () => {
-				sf.menuDispatcher.push(new SetupMenu);
-			}
+
+			}			
 		});
 	}
 };

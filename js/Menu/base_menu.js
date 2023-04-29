@@ -18,4 +18,8 @@ export default class BaseMenu{
 				this.markers[index].onTouch();
 		}
 	}
+
+	addMarker(marker){
+		this.markers.push(marker);
+	}
 };

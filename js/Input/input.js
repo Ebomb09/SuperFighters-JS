@@ -1,30 +1,37 @@
-export function init(){
+import sf from "../sf";
 
-	addEventListener("keydown", (event) => {
-		sf.input.key.held[event.code] = true;
-		sf.input.key.pressed[event.code] = true;
-	});
+addEventListener("keydown", (event) => {
 
-	addEventListener("keyup", (event) => {
-		sf.input.key.held[event.code] = false;
-		sf.input.key.released[event.code] = true;
-	});
+	if(event.repeat)
+		return;
 
-	addEventListener("mousedown", (event) => {
-		sf.input.mouse.held[event.button] = true;
-		sf.input.mouse.pressed[event.button] = true;
-	});
+	sf.input.key.held[event.code] = true;
+	sf.input.key.pressed[event.code] = true;
+});
 
-	addEventListener("mouseup", (event) => {
-		sf.input.mouse.held[event.button] = false;
-		sf.input.mouse.released[event.button] = true;
-	});
+addEventListener("keyup", (event) => {
 
-	sf.canvas.addEventListener("mousemove", (event) => {
-		sf.input.mouse.x = event.offsetX;
-		sf.input.mouse.y = event.offsetY;
-	});
-}
+	if(event.repeat)
+		return;
+
+	sf.input.key.held[event.code] = false;
+	sf.input.key.released[event.code] = true;
+});
+
+addEventListener("mousedown", (event) => {
+	sf.input.mouse.held[event.button] = true;
+	sf.input.mouse.pressed[event.button] = true;
+});
+
+addEventListener("mouseup", (event) => {
+	sf.input.mouse.held[event.button] = false;
+	sf.input.mouse.released[event.button] = true;
+});
+
+sf.canvas.addEventListener("mousemove", (event) => {
+	sf.input.mouse.x = event.offsetX;
+	sf.input.mouse.y = event.offsetY;
+});
 
 export function poll(){
 

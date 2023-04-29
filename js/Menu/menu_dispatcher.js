@@ -1,3 +1,4 @@
+import sf from "../sf";
 import BaseMenu from "./base_menu";
 
 function inRect(pos, rect){
@@ -40,33 +41,51 @@ export default class MenuDispatcher extends Array{
 				if(marker.visible === undefined || marker.visible){
 
 					// Fill background of button
-					if(marker.fill !== undefined){
-						sf.ctx.fillStyle = marker.fill;
-						sf.ctx.fillRect(marker.x, marker.y, marker.w, marker.h);
-					}
+					sf.ctx.fillStyle = "white";
+					sf.ctx.fillRect(marker.x-1, marker.y-1, marker.w+2, marker.h+2);
+
+					sf.ctx.fillStyle = "black";
+					sf.ctx.fillRect(marker.x, marker.y, marker.w, marker.h);
 
 					// Create text on top of button
 					if(marker.text !== undefined){
 
 						// Change context font
-						if(marker.font !== undefined)
-							sf.ctx.font = marker.font;
+						if(marker.textSize !== undefined)
+							sf.ctx.font = `${marker.textSize}px Arial`;
 
 						sf.canvas.style.font = sf.ctx.font;
 
 						// Calculate text height
+						let textWidth = sf.ctx.measureText(marker.text).width;
 						let textHeight = parseInt(getComputedStyle(sf.canvas).fontSize, 0);
 
+						if(textWidth > marker.w)
+							textWidth = marker.w;
+
 						// Check if cursor touching
-						if(inRect(sf.input.mouse, marker))
+						if(menu == this[this.length-1] && inRect(sf.input.mouse, marker))
 							sf.ctx.fillStyle = "yellow";
 						else
-							sf.ctx.fillStyle = "black";
+							sf.ctx.fillStyle = "white";
 
-						sf.ctx.fillText(marker.text, marker.x, marker.y + textHeight, marker.w);
+						sf.ctx.fillText(
+							marker.text, 
+							marker.x + marker.w / 2 - textWidth / 2, 
+							marker.y + textHeight, 
+							marker.w
+							);
 					}
 				}
 			});
 		});
+	}
+
+	clear() {
+		this.splice(0, this.length);
+	}
+
+	addMenu(menu){
+		this.push(menu);
 	}
 };
