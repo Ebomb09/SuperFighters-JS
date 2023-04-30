@@ -44,30 +44,63 @@ export default class BaseObject{
 		// Alias to Matter Body
 		this.position = this.body.position;
 		this.velocity = this.body.velocity;
-		this.id = this.body.id;
 
+		// Game specific attributes
+		this.id = this.body.id;
 		this.customId = "";
+		this.facingDirection = 1;
+		this.health = -1;
+
+		if(object.health !== undefined)
+			this.health = object.health;
+
+		this.action = {
+			state: "none",
+			done: false,
+			entropy: 0,
+			delay: 0,
+			delayMax: 0
+		};
 	}
 
 	update(){}
 
-	draw(){
+	draw(options){
+		if(options === undefined) options = {};
+
 		sf.ctx.save();
 
-		sf.ctx.translate(this.body.position.x, this.body.position.y);
-		sf.ctx.rotate(this.body.angle);
+		// Transform Image
+		sf.ctx.translate(this.position.x, this.position.y);
+
+		// Rotate according to bodies rotation
+		if(options.angle === undefined)
+			sf.ctx.rotate(this.body.angle);
+		else 
+			sf.ctx.rotate(options.angle);
+
+		sf.ctx.scale(this.facingDirection, 1);
+
+		// Offset from origin of body to start tiling, default top-left corner
+		if(options.offset === undefined)
+			sf.ctx.translate(-this.width / 2, -this.height / 2);
+		else
+			sf.ctx.translate(options.offset.x, options.offset.y);
 
 		for(let w = 0; w < this.tiling.width; w ++){
 			for(let h = 0; h < this.tiling.height; h ++){
 
 				sf.ctx.drawImage(
+					// Source
 					this.image, 
 					this.frameIndex.x * this.frame.width,
 					this.frameIndex.y * this.frame.height,
 					this.frame.width,
 					this.frame.height,
-					-this.width/2 + this.frame.width * w, 
-					-this.height/2 + this.frame.height * h,
+
+					// Destination
+					w * this.frame.width,
+					h * this.frame.width,
 					this.frame.width,
 					this.frame.height
 					);				
@@ -75,6 +108,50 @@ export default class BaseObject{
 		}
 
 		sf.ctx.restore();
+	}
+
+	checkState(state){
+		return this.action.state.includes(state);
+	}
+
+	setState(state, delay){
+		this.action.state = state;
+		this.action.done = false;
+		this.action.entropy = Math.random();
+
+		if(delay === undefined)
+			delay = 0;
+
+		this.action.delay = delay;
+		this.action.delayMax = delay;
+	}
+
+	getStateEntropy(){
+		return this.action.entropy;
+	}
+
+	delayTimeStamp(){
+		return this.action.delayMax - this.action.delay;
+	}
+
+	delayStep(){
+		
+		if(this.action.delay > 0){
+			this.action.delay -= sf.game.delta;
+
+			if(this.action.delay < 0)
+				this.action.delay = 0;
+		}		
+	}
+
+	dealDamage(damage){
+
+		if(this.health != -1){
+			this.health -= damage;
+
+			if(this.health < 0)
+				sf.game.kill(this);
+		}
 	}
 
 	getPenetrationAngle(collision){

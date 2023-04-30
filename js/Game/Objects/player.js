@@ -5,12 +5,14 @@ const State = {
 	None: 			"none",
 	Jumping: 		"jumping",
 	Grounded: 		"grounded",
+	Damaged: 		"damaged", 
+	Stun: 			"grounded_damaged_stun", 
+	Recovering: 	"grounded_damaged_recovering",
+	FreeFalling: 	"free_falling",
 	Walking: 		"grounded_walking", 
 	Running: 		"grounded_running", 
 	Crouching: 		"grounded_crouching", 
 	Rolling: 		"grounded_rolling", 
-	FreeFalling: 	"free_falling",
-	Recovering: 	"recovering",
 	Attacking: 		"attacking", 
 	Punching: 		"grounded_attacking_punching",
 	Punching1: 		"grounded_attacking_punching1",
@@ -26,30 +28,17 @@ export default class Player extends BaseObject{
 	constructor(x, y){
 		super(sf.data.objects.player, x, y, {inertia: Infinity, friction: 0, width: 8, height: 19});
 		this.team = 0;
-		this.facingDirection = 1;
-
-		this.action = {
-			state: State.Grounded,
-			done: false,
-			delay: 0,
-			delayMax: 0
-		};
 	}
 
 	update(){
 
 		// State Control
-		if(this.action.delay > 0){
-			this.action.delay -= sf.game.delta;
-
-			if(this.action.delay < 0)
-				this.action.delay = 0;
-		}
+		this.delayStep();
 
 		// Check player is on ground
 		if(this.onGround()){
 
-			// Check previously free falling
+			// Check if previously free falling
 			if(this.checkState(State.FreeFalling))
 				this.setState(State.Recovering, 500);
 
@@ -63,23 +52,31 @@ export default class Player extends BaseObject{
 				if(this.checkState(State.Punching1) || this.checkState(State.Punching2)){
 					sf.game.createForce(
 						this, 
-						Matter.Vector.create(
-							this.position.x + this.width/2 * this.facingDirection, 
-							this.position.y
-							),
-						5,
-						0.002);
+						{
+							x: this.position.x + this.width/2 * this.facingDirection, 
+							y: this.position.y,
+							radius: 5
+						},
+						{
+							x: 0.001 * this.facingDirection, 
+							y: 0,
+							damage: 7
+						});
 
 				// Punch Combo 3
 				}else{
 					sf.game.createForce(
 						this, 
-						Matter.Vector.create(
-							this.position.x + this.width/2 * this.facingDirection, 
-							this.position.y
-							),
-						5,
-						0.004);
+						{
+							x: this.position.x + this.width/2 * this.facingDirection, 
+							y: this.position.y,
+							radius: 5
+						},
+						{
+							x: 0.001 * this.facingDirection, 
+							y: -0.001,
+							damage: 15
+						});
 				}
 			}
 
@@ -89,60 +86,46 @@ export default class Player extends BaseObject{
 
 			// Check if any actions are done then reset to grounded
 			if(this.action.delay == 0)
-				this.action.state = State.Grounded;
-
-			Matter.Body.setVelocity(this.body, {x: 0, y: 0 });
+				this.setState(State.Grounded);
 
 		}else{
 
-			if(this.checkState(State.Grounded))
-				this.action.state = State.Jumping;
+			if(Math.abs(this.velocity.y) > 6 || this.checkState(State.Stun))
+				this.setState(State.FreeFalling);
 
-			if(Matter.Vector.magnitude(this.velocity) > 10)
-				this.action.state = State.FreeFalling;
+			if(this.checkState(State.Grounded))
+				this.setState(State.Jumping);
 		}
 
+		if(this.checkState(State.Grounded))
+			Matter.Body.setVelocity(this.body, {x: 0, y: 0 });
+
 		// Check inputs
-		if(sf.input.key.held["ArrowDown"])
-			this.moveDown();
+		if(this.customId == "TEST"){
+			if(sf.input.key.held["ArrowDown"])
+				this.moveDown();
 
-		if(sf.input.key.held["ArrowUp"])
-			this.moveUp();
+			if(sf.input.key.held["ArrowUp"])
+				this.moveUp();
 
-		if(sf.input.key.held["ArrowRight"])
-			this.moveRight();
+			if(sf.input.key.held["ArrowRight"])
+				this.moveRight();
 
-		if(sf.input.key.held["ArrowLeft"])
-			this.moveLeft();
+			if(sf.input.key.held["ArrowLeft"])
+				this.moveLeft();
 
-		if(sf.input.key.pressed["KeyS"])
-			this.kick();
-		
-		if(sf.input.key.pressed["KeyA"])
-			this.punch();
-	}
-
-	checkState(state){
-		return this.action.state.includes(state);
-	}
-
-	setState(state, delay){
-		this.action.state = state;
-		this.action.done = false;
-
-		if(delay === undefined)
-			delay = 0;
-
-		this.action.delay = delay;
-		this.action.delayMax = delay;
-	}
-
-	delayTimeStamp(){
-		return this.action.delayMax - this.action.delay;
+			if(sf.input.key.pressed["KeyS"])
+				this.kick();
+			
+			if(sf.input.key.pressed["KeyA"])
+				this.punch();
+		}
 	}
 
 	draw(){
+		let angle = 0;
 
+		// Get animation from state
 		switch(this.action.state){
 
 			case State.Grounded:
@@ -178,6 +161,18 @@ export default class Player extends BaseObject{
 					],
 					this.delayTimeStamp()
 					);
+				break;
+
+			case State.Stun:
+
+				if(this.getStateEntropy() < 0.5)
+					this.frameIndex = {x: 0, y: 3};
+				else
+					this.frameIndex = {x: 1, y: 3};
+				break;
+
+			case State.Knockdown:
+				this.frameIndex = {x: 7, y: 1};
 				break;
 
 			case State.Jumping:
@@ -241,33 +236,47 @@ export default class Player extends BaseObject{
 				break;
 
 			case State.FreeFalling:
-				this.setAnimationFrame(
-					[
-						{x: 5, y: 1, delay: 100},
-						{x: 6, y: 1, delay: 100}
-					]
-					);
+
+				if(this.getStateEntropy() < 0.5)
+					this.setAnimationFrame(
+						[
+							{x: 5, y: 1, delay: 100},
+							{x: 6, y: 1, delay: 100}
+						]
+						);
+				else
+					this.frameIndex = {x: 7, y: 1};
+
+				angle = ((Date.now() / 2) % 360) * Math.PI / 180;
 				break;
 		}
 
-		sf.ctx.save();
+		super.draw(
+			{
+				offset: {
+					x: -this.frame.width / 2, 
+					y: this.height / 2 - this.frame.height
+				},
+				angle: angle
+			});
+	}
 
-		sf.ctx.translate(this.position.x, this.position.y);
-		sf.ctx.scale(this.facingDirection, 1);
+	dealDamage(damage){
 
-		sf.ctx.drawImage(
-			this.image,
-			this.frameIndex.x * this.frame.width,
-			this.frameIndex.y * this.frame.height,
-			this.frame.width,
-			this.frame.height,
-			-this.frame.width/2,
-			this.height/2 - this.frame.height,
-			this.frame.width,
-			this.frame.height
-			);
+		// If still trying to get up prevent damage
+		if(this.checkState(State.Recovering))
+			return;
 
-		sf.ctx.restore();
+		super.dealDamage(damage);
+
+		// Lower damage cause slight stun
+		if(damage < 10){
+			this.setState(State.Stun, 150);
+
+		// Larger damage knock over
+		}else{
+			this.setState(State.FreeFalling);
+		}
 	}
 
 	moveRight(){
@@ -321,56 +330,72 @@ export default class Player extends BaseObject{
 
 	punch(){
 
-		if(
-			(this.checkState(State.Grounded) && !this.checkState(State.Attacking)) ||
-			(this.checkState(State.Punching1) && this.delayTimeStamp() > 100) ||
-			(this.checkState(State.Punching2) && this.delayTimeStamp() > 100) ||
-			(this.checkState(State.Jumping) && !this.checkState(State.Attacking))
-		){
+		if(this.checkState(State.Damaged))
+			return;
 
-			if(this.action.state == State.Grounded)
-				this.setState(State.Punching1, 250);
+		if(this.checkState(State.Grounded) && !this.checkState(State.Attacking)){
+			this.setState(State.Punching1, 250);
 
-			else if(this.action.state == State.Punching1)
-				this.setState(State.Punching2, 250);
+		}else if(this.checkState(State.Jumping) && !this.checkState(State.Attacking)){
+			this.setState(State.JumpPunching);
 
-			else if(this.action.state == State.Punching2)
-				this.setState(State.Punching3, 300);
+			sf.game.createForce(
+				this, 
+				{
+					x: this.position.x + this.width/2 * this.facingDirection, 
+					y: this.position.y,
+					radius: 3
+				},
+				{
+					x: 0.001 * this.facingDirection, 
+					y: 0,
+					damage: 5
+				});
 
-			// Like kicking frame 1
-			else if(this.action.state == State.Jumping){
-				this.setState(State.JumpPunching);
+		}else if(this.checkState(State.Punching1) && this.delayTimeStamp() > 100){
+			this.setState(State.Punching2, 250);
 
-				sf.game.createForce(
-					this, 
-					Matter.Vector.create(
-						this.position.x + this.width/2 * this.facingDirection, 
-						this.position.y
-						),
-					5,
-					0.002);
-			}
+		}else if(this.checkState(State.Punching2) && this.delayTimeStamp() > 100){
+			this.setState(State.Punching3, 300);
 		}
 	}
 
 	kick(){
 
-		if((this.checkState(State.Grounded) || this.checkState(State.Jumping)) && !this.checkState(State.Attacking)){
+		if(this.checkState(State.Damaged))
+			return;
 
-			if(this.action.state == State.Grounded)
-				this.setState(State.Kicking, 100);
-
-			if(this.action.state == State.Jumping)
-				this.setState(State.JumpKicking);
+		if(this.checkState(State.Grounded) && !this.checkState(State.Attacking)){
+			this.setState(State.Kicking, 100);
 
 			sf.game.createForce(
 				this, 
-				Matter.Vector.create(
-					this.position.x + this.width/2 * this.facingDirection, 
-					this.position.y + this.height/2
-					),
-				5,
-				0.002);
+				{
+					x: this.position.x + this.width/2 * this.facingDirection, 
+					y: this.position.y + this.height/2,
+					radius: 5
+				},
+				{
+					x: 0.001 * this.facingDirection, 
+					y: -0.0001,
+					damage: 1
+				});
+
+		}else if(this.checkState(State.Jumping) && !this.checkState(State.Attacking)){
+			this.setState(State.JumpKicking);
+
+			sf.game.createForce(
+				this, 
+				{
+					x: this.position.x + this.width/2 * this.facingDirection, 
+					y: this.position.y + this.height/2,
+					radius: 5
+				},
+				{
+					x: 0.001 * this.facingDirection, 
+					y: -0.001,
+					damage: 1
+				});
 		}
 	}
 };

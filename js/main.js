@@ -6,8 +6,8 @@ import MainMenu from "./Menu/main_menu";
 import Game from "./Game/game"
 
 function main(){
-	sf.canvas.width = 1024;
-	sf.canvas.height = 768;
+	sf.canvas.width = 800;
+	sf.canvas.height = 600;
 	sf.ctx.imageSmoothingEnabled = false;
 	
 	sf.menuDispatcher = new MenuDispatcher;

@@ -29,11 +29,14 @@ export default class Game{
 		// Create some test objects
 		this.createObject(sf.data.objects["floor"], 200, 100, {tiling: {width: 5, height: 1}, angle: -0.5} );
 		this.createObject(sf.data.objects["floor"], 200, 50, {tiling: {width: 5, height: 1}, angle: 0.5} );
-		this.createObject(sf.data.objects["floor"], 70, 120, {tiling: {width: 8, height: 1}} );
-		this.createObject(sf.data.objects["crate"], 85, 60);
+		this.createObject(sf.data.objects["floor"], 70, 120, {tiling: {width: 8, height: 2}} );
+		this.createObject(sf.data.objects["crate"], 85, 60, {frictionStatic: 50});
 		this.createObject(sf.data.objects["crate"], 85, 70);
 
 		this.createObject(sf.data.objects["player"], 100, 50);		
+
+		var ply = this.createObject(sf.data.objects["player"], 90, 50);	
+		ply.customId = "TEST";
 	}
 
 	startCollision(event){
@@ -42,8 +45,16 @@ export default class Game{
 			let objA = this.getObjectById(pair.bodyA.id);
 			let objB = this.getObjectById(pair.bodyB.id);
 
-			objA.collisions.push(pair.collision);
-			objB.collisions.push(pair.collision);
+			// Calculate damage as the difference of colliding velocities
+			let damageVector = Matter.Vector.sub(pair.bodyA.velocity, pair.bodyB.velocity);
+			let damage = Math.round(Math.abs(Matter.Vector.magnitude(damageVector)));
+
+			// Threshold damage to 6, around freefall state
+			if(damage < 6)
+				damage = 0;
+
+			if(objA != null){ objA.collisions.push(pair.collision); if(damage > 0) objA.dealDamage(damage); }
+			if(objB != null){ objB.collisions.push(pair.collision); if(damage > 0) objB.dealDamage(damage); }
 		});
 	}
 
@@ -53,8 +64,8 @@ export default class Game{
 			let objA = this.getObjectById(pair.bodyA.id);
 			let objB = this.getObjectById(pair.bodyB.id);
 
-			objA.collisions.splice(objA.collisions.indexOf(pair.collision), 1);
-			objB.collisions.splice(objB.collisions.indexOf(pair.collision), 1);
+			if(objA != null) objA.collisions.splice(objA.collisions.indexOf(pair.collision), 1);
+			if(objB != null) objB.collisions.splice(objB.collisions.indexOf(pair.collision), 1);
 		});
 	}
 
@@ -92,7 +103,7 @@ export default class Game{
 			obj.update();
 			obj.draw();
 		});
-		
+
 		Matter.Engine.update(this.engine, ms);
 
 		sf.ctx.restore();
@@ -129,12 +140,14 @@ export default class Game{
 
 		Matter.Composite.add(this.world, obj.body);
 		this.objects.push(obj);
+
+		return obj;
 	}
 
-	createForce(src, position, radius, force){
+	createForce(src, circle, force){
 
 		// Collision check body
-		let body = Matter.Bodies.circle(position.x, position.y, radius);
+		let body = Matter.Bodies.circle(circle.x, circle.y, circle.radius);
 		
 		let collisions = Matter.Query.collides(body, Matter.Composite.allBodies(this.world));
 
@@ -145,11 +158,20 @@ export default class Game{
 			if(src != obj){
 				Matter.Body.applyForce(
 					obj.body, 
-					position, 
-					Matter.Vector.mult(collision.normal, force)
+					body.position, 
+					force
 					);
+
+				obj.dealDamage(force.damage);
 			}
 		});
+	}
+
+	kill(object){
+		let index = this.objects.indexOf(object);
+
+		this.objects.splice(index, 1);
+		Matter.Composite.remove(this.world, object.body);
 	}
 
 	getObjectById(id){
