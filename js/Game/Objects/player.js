@@ -25,8 +25,9 @@ const State = {
 
 export default class Player extends BaseObject{
 
-	constructor(x, y){
-		super(sf.data.objects.player, x, y, {inertia: Infinity, friction: 0, width: 8, height: 19});
+	constructor(...params){
+		super(...params, {width: 8, height: 19, matter: {inertia: Infinity, friction: 0}});
+
 		this.team = 0;
 	}
 
@@ -102,6 +103,7 @@ export default class Player extends BaseObject{
 
 		// Check inputs
 		if(this.customId == "TEST"){
+
 			if(sf.input.key.held["ArrowDown"])
 				this.moveDown();
 
@@ -150,7 +152,7 @@ export default class Player extends BaseObject{
 				break;
 
 			case State.Crouching:
-				this.frameIndex = {x: 0, y: 1};
+				this.frame.index = {x: 0, y: 1};
 				break;
 
 			case State.Rolling:
@@ -166,17 +168,17 @@ export default class Player extends BaseObject{
 			case State.Stun:
 
 				if(this.getStateEntropy() < 0.5)
-					this.frameIndex = {x: 0, y: 3};
+					this.frame.index = {x: 0, y: 3};
 				else
-					this.frameIndex = {x: 1, y: 3};
+					this.frame.index = {x: 1, y: 3};
 				break;
 
 			case State.Knockdown:
-				this.frameIndex = {x: 7, y: 1};
+				this.frame.index = {x: 7, y: 1};
 				break;
 
 			case State.Jumping:
-				this.frameIndex = {x: 4, y: 1};
+				this.frame.index = {x: 4, y: 1};
 				break;
 
 			case State.Recovering:
@@ -190,7 +192,7 @@ export default class Player extends BaseObject{
 				break;
 
 			case State.Kicking:
-				this.frameIndex = {x: 0, y: 2};
+				this.frame.index = {x: 0, y: 2};
 				break;
 
 			case State.Punching1:
@@ -224,15 +226,15 @@ export default class Player extends BaseObject{
 				break;
 
 			case State.JumpPunching:
-				this.frameIndex = {x: 8, y: 2};
+				this.frame.index = {x: 8, y: 2};
 				break;
 
 			case State.Kicking:
-				this.frameIndex = {x: 0, y: 2};
+				this.frame.index = {x: 0, y: 2};
 				break;
 
 			case State.JumpKicking:
-				this.frameIndex = {x: 7, y: 2};
+				this.frame.index = {x: 7, y: 2};
 				break;
 
 			case State.FreeFalling:
@@ -245,7 +247,7 @@ export default class Player extends BaseObject{
 						]
 						);
 				else
-					this.frameIndex = {x: 7, y: 1};
+					this.frame.index = {x: 7, y: 1};
 
 				angle = ((Date.now() / 2) % 360) * Math.PI / 180;
 				break;
@@ -407,7 +409,7 @@ export default class Player extends BaseObject{
 const obj = sf.data.objects;
 
 let added = [
-	obj.player = { image: sf.data.loadImage("images/player.png"), frames: [24, 16]}
+	obj.player = { image: sf.data.loadImage("images/player.png"), frameCount: {x: 24, y: 16}}
 
 ].forEach((item) => {
 	item.type = Player;

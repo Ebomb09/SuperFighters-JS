@@ -2,7 +2,7 @@ import sf from "../sf";
 
 export default class Game{
 
-	constructor(){
+	constructor(map){
 
 		// Init physics world
 		this.engine = Matter.Engine.create();
@@ -22,21 +22,68 @@ export default class Game{
 			select: null
 		};
 
-		this.loadMap();
+		this.loadMap(map);
 	}
 
-	loadMap(map){
-		// Create some test objects
-		this.createObject(sf.data.objects["floor"], 200, 100, {tiling: {width: 5, height: 1}, angle: -0.5} );
-		this.createObject(sf.data.objects["floor"], 200, 50, {tiling: {width: 5, height: 1}, angle: 0.5} );
-		this.createObject(sf.data.objects["floor"], 70, 120, {tiling: {width: 8, height: 2}} );
-		this.createObject(sf.data.objects["crate"], 85, 60, {frictionStatic: 50});
-		this.createObject(sf.data.objects["crate"], 85, 70);
+	saveMap(){
+		let map = {
+			objects: []
+		};
 
-		this.createObject(sf.data.objects["player"], 100, 50);		
+		this.objects.forEach((obj) => {
 
-		var ply = this.createObject(sf.data.objects["player"], 90, 50);	
-		ply.customId = "TEST";
+			let keys = Object.keys(sf.data.objects);
+			let values = Object.values(sf.data.objects);
+
+			map.objects.push({
+				parentKey: keys[values.indexOf(obj.parent)],
+
+				// Descriptors
+				x: obj.position.x,
+				y: obj.position.y,
+				facingDirection: obj.facingDirection,
+				customId: obj.customId,
+
+				// Rendering
+				frameIndex: obj.frame.index,
+				tiling: obj.tiling,
+
+				// Physics specifics
+				matter: {
+					angle: obj.body.angle,
+					isStatic: obj.body.isStatic
+				}
+			});
+		});
+
+		return JSON.stringify(map);
+	}
+
+	loadMap(buffer){
+
+		// Unload all current objects
+		Matter.Composite.clear(this.world);
+		this.objects = [];
+
+		if(buffer == "test"){
+			// Create some test objects
+			this.createObject(sf.data.objects["floor"], {x: 200, y: 100, tiling: {width: 5, height: 1}, matter: {angle: -0.5}});
+			this.createObject(sf.data.objects["floor"], {x: 200, y: 50, tiling: {width: 5, height: 1}, matter: {angle: 0.5}});
+			this.createObject(sf.data.objects["floor"], {x: 70, y: 120, tiling: {width: 8, height: 2}});
+			this.createObject(sf.data.objects["crate"], {x: 85, y: 60});
+			this.createObject(sf.data.objects["crate"], {x: 85, y: 70});
+
+			this.createObject(sf.data.objects["player"], {x: 100, y: 50});		
+
+			this.createObject(sf.data.objects["player"], {x: 90, y: 50, customId: "TEST"});	
+
+		}else{
+			let map = JSON.parse(buffer);
+
+			map.objects.forEach((obj) => {
+				this.createObject(sf.data.objects[obj.parentKey], obj);
+			});
+		}
 	}
 
 	startCollision(event){
@@ -50,11 +97,13 @@ export default class Game{
 			let damage = Math.round(Math.abs(Matter.Vector.magnitude(damageVector)));
 
 			// Threshold damage to 6, around freefall state
-			if(damage < 6)
-				damage = 0;
+			if(damage >= 6){
+				if(objA) objA.dealDamage(damage); 
+				if(objB) objB.dealDamage(damage);
+			}
 
-			if(objA != null){ objA.collisions.push(pair.collision); if(damage > 0) objA.dealDamage(damage); }
-			if(objB != null){ objB.collisions.push(pair.collision); if(damage > 0) objB.dealDamage(damage); }
+			if(objA) objA.addCollision(objB, pair.collision);
+			if(objB) objB.addCollision(objA, pair.collision);
 		});
 	}
 
@@ -64,8 +113,8 @@ export default class Game{
 			let objA = this.getObjectById(pair.bodyA.id);
 			let objB = this.getObjectById(pair.bodyB.id);
 
-			if(objA != null) objA.collisions.splice(objA.collisions.indexOf(pair.collision), 1);
-			if(objB != null) objB.collisions.splice(objB.collisions.indexOf(pair.collision), 1);
+			if(objA) objA.removeCollision(objB);
+			if(objB) objB.removeCollision(objA);
 		});
 	}
 
@@ -128,15 +177,9 @@ export default class Game{
 		});
 	}
 
-	createObject(objDef, ...params){
+	createObject(parent, ...params){
 
-		// BaseObject expects the definition to get the default image
-		if(objDef.type.name == "BaseObject")
-			var obj = new objDef.type(objDef, ...params);
-		
-		// Extending classes will have their own constructors
-		else
-			var obj = new objDef.type(...params);
+		var obj = new parent.type(parent, ...params, {parent: parent});
 
 		Matter.Composite.add(this.world, obj.body);
 		this.objects.push(obj);

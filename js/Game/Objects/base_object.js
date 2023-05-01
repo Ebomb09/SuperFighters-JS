@@ -2,58 +2,68 @@ import sf from "../../sf";
 
 export default class BaseObject{
 
-	constructor(object, x, y, options){
+	constructor(...params){
 
-		if(options === undefined)
-			options = {};
+		// Combine the parameters
+		let options = {};
 
-		this.image = object.image;
+		params.forEach((param) => {
+
+			Object.keys(param).forEach((key) => {
+
+				if(options[key] === undefined)
+					options[key] = {};
+
+				if(key == "matter")
+					options[key] = Object.assign(options[key], param[key])
+				else
+					options[key] = param[key];
+			});
+		});
+
+		// Set objects parent
+		this.parent = options.parent;
 
 		// Find how many sub-images or frames are present
-		this.frameCount = {x: 1, y: 1};
-		this.frameIndex = {x: 0, y: 0};
+		this.image = options.image;
 
-		if(object.frames !== undefined){
-			this.frameCount.x = object.frames[0];
-			this.frameCount.y = object.frames[1];
-		}
-		this.frame = {width: this.image.width / this.frameCount.x, height: this.image.height / this.frameCount.y};
+		this.frame = {
+			count: {
+				x: (options.frameCount) ? options.frameCount.x : 1,
+				y: (options.frameCount) ? options.frameCount.y : 1,
+			},
+			index: {
+				x: 0,
+				y: 0
+			},
+		};
+		this.frame.width = this.image.width / this.frame.count.x;
+		this.frame.height = this.image.height / this.frame.count.y;
 
-		this.tiling = {width: 1, height: 1};
-
-		if(options.tiling !== undefined)
-			this.tiling = options.tiling;
+		this.tiling = {
+			width: (options.tiling) ? options.tiling.width : 1, 
+			height: (options.tiling) ? options.tiling.height : 1
+		};
 
 		// Determine the object size based on the source image and number of tiling
-		if(options.width === undefined && options.height === undefined){
-			this.width = this.frame.width * this.tiling.width;
-			this.height = this.frame.height * this.tiling.height;
-
-		}else{
-			this.width = options.width;
-			this.height = options.height;
-		}
+		this.width = (options.width) ? options.width : this.frame.width * this.tiling.width;
+		this.height = (options.height) ? options.height : this.frame.height * this.tiling.height;
 
 		// Create the physics body
-		if(object.static !== undefined)
-			options.isStatic = object.static;
-
-		this.body = Matter.Bodies.rectangle(x, y, this.width, this.height, options);
+		this.body = Matter.Bodies.rectangle(options.x, options.y, this.width, this.height, options.matter);
 		this.collisions = [];
 
 		// Alias to Matter Body
-		this.position = this.body.position;
-		this.velocity = this.body.velocity;
+		this.position 			= this.body.position;
+		this.velocity 			= this.body.velocity;
 
 		// Game specific attributes
-		this.id = this.body.id;
-		this.customId = "";
-		this.facingDirection = 1;
-		this.health = -1;
+		this.id 				= this.body.id;
+		this.customId 			= (options.customId) ? options.customId : "";
+		this.facingDirection 	= (options.facingDirection) ? options.facingDirection : 1;
+		this.health 			= (options.health) ? options.health : -1;
 
-		if(object.health !== undefined)
-			this.health = object.health;
-
+		// State control of object
 		this.action = {
 			state: "none",
 			done: false,
@@ -93,8 +103,8 @@ export default class BaseObject{
 				sf.ctx.drawImage(
 					// Source
 					this.image, 
-					this.frameIndex.x * this.frame.width,
-					this.frameIndex.y * this.frame.height,
+					this.frame.index.x * this.frame.width,
+					this.frame.index.y * this.frame.height,
 					this.frame.width,
 					this.frame.height,
 
@@ -144,6 +154,29 @@ export default class BaseObject{
 		}		
 	}
 
+	addCollision(src, collision){
+
+		this.collisions.push(
+		{
+			source: src,
+
+			// Store penetration vector from this -> object 
+			penetration: (collision.bodyB.id == this.id) ? collision.penetration : Matter.Vector.neg(collision.penetration)
+		}
+		);	
+	}
+
+	removeCollision(obj){
+
+		for(let i = 0; i < this.collisions.length; i ++){
+
+			if(this.collisions[i].source.id == obj.id){
+				this.collisions.splice(i, 1)
+				break;
+			}
+		}
+	}
+
 	dealDamage(damage){
 
 		if(this.health != -1){
@@ -154,37 +187,24 @@ export default class BaseObject{
 		}
 	}
 
-	getPenetrationAngle(collision){
+	getVectorAngle(vector){
 
-		if(collision != null){
-			let penVector = null;
+		// Find degree
+		let degree = Math.atan(Math.abs(vector.y) / Math.abs(vector.x)) * 180 / Math.PI;
 
-			// Check if collision is going this -> obj
-			if(collision.bodyB == this.body)
-				penVector = collision.penetration;
+		if(vector.x < 0){
 
-			// Reverse the vector if it is obj -> this
+			if(vector.y > 0)
+				degree = 180 + degree;
 			else
-				penVector = Matter.Vector.neg(collision.penetration);
-
-			// Find degree of collision from this -> obj
-			let degree = Math.atan(Math.abs(penVector.y) / Math.abs(penVector.x)) * 180 / Math.PI;
-
-			if(penVector.x < 0){
-
-				if(penVector.y > 0)
-					degree = 180 + degree;
-				else
-					degree = 180 - degree;
-			
-			}else{
-				if(penVector.y > 0)
-					degree = 360 - degree;
-			}
-
-			return degree;
+				degree = 180 - degree;
+		
+		}else{
+			if(vector.y > 0)
+				degree = 360 - degree;
 		}
-		return -1;
+
+		return degree;
 	}
 
 	onLeft(){
@@ -192,7 +212,7 @@ export default class BaseObject{
 		for(let i = 0; i < this.collisions.length; i ++){
 			let collision = this.collisions[i];
 
-			let penAngle = this.getPenetrationAngle(collision);
+			let penAngle = this.getVectorAngle(collision.penetration);
 
 			if(penAngle >= 135 && penAngle <= 225)
 				return true;
@@ -205,7 +225,7 @@ export default class BaseObject{
 		for(let i = 0; i < this.collisions.length; i ++){
 			let collision = this.collisions[i];
 
-			let penAngle = this.getPenetrationAngle(collision);
+			let penAngle = this.getVectorAngle(collision.penetration);
 
 			if((penAngle >= 0 && penAngle <= 45) || (penAngle >= 315 && penAngle <= 360))
 				return true;
@@ -218,7 +238,7 @@ export default class BaseObject{
 		for(let i = 0; i < this.collisions.length; i ++){
 			let collision = this.collisions[i];
 
-			let penAngle = this.getPenetrationAngle(collision);
+			let penAngle = this.getVectorAngle(collision.penetration);
 
 			if(penAngle >= 225 && penAngle <= 315)
 				return true;
@@ -245,7 +265,7 @@ export default class BaseObject{
 		for(let i = 0; i < frames.length; i ++){
 
 			if(accum <= time && time < accum + frames[i].delay)
-				this.frameIndex = frames[i];
+				this.frame.index = frames[i];
 
 			accum += frames[i].delay;
 		}
@@ -264,8 +284,8 @@ let added = [
 	obj.filecab			=	{ image: sf.data.loadImage("images/filecab.png") },
 	obj.barrel			=	{ image: sf.data.loadImage("images/barrel.png"), health: 100 },
 	obj.pool_table		=	{ image: sf.data.loadImage("images/pool_table.png") },
-	obj.floor			=	{ image: sf.data.loadImage("images/floor.png"), frames: [3, 1], static: true},
-	obj.wall			=	{ image: sf.data.loadImage("images/wall.png"), frames: [3, 1], static: true},
+	obj.floor			=	{ image: sf.data.loadImage("images/floor.png"), frameCount: {x: 3, y: 1}, matter: {isStatic: true}},
+	obj.wall			=	{ image: sf.data.loadImage("images/wall.png"), frameCount: {x: 3, y: 1}, matter: {isStatic: true}},
 
 ].forEach((item) => {
 	item.type = BaseObject;

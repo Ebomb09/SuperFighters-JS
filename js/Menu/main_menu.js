@@ -1,5 +1,6 @@
 import sf from "../sf";
 import Game from "../Game/game";
+import Editor from "../Game/editor";
 import BaseMenu from "./base_menu";
 import SetupMenu from "./setup_menu";
 
@@ -18,7 +19,7 @@ export default class MainMenu extends BaseMenu{
 			textSize: 20,
 
 			onTouch: () => {
-				sf.game = new Game();
+				sf.game = new Game("test");
 				sf.menuDispatcher.clear();
 			}
 		});
@@ -33,7 +34,8 @@ export default class MainMenu extends BaseMenu{
 			textSize: 20,
 
 			onTouch: () => {
-
+				sf.game = new Editor("test");
+				sf.menuDispatcher.clear();
 			}
 		});
 
