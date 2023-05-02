@@ -8,7 +8,7 @@
 <body>
 
 	<div id="sf">
-		<canvas id="sf-canvas">
+		<canvas id="sf-canvas" tabindex="1">
 		The canvas tag is not supported on your browser.
 		</canvas>
 		

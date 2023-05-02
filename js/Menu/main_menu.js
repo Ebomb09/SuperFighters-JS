@@ -19,8 +19,13 @@ export default class MainMenu extends BaseMenu{
 			textSize: 20,
 
 			onTouch: () => {
-				sf.game = new Game("test");
-				sf.menuDispatcher.clear();
+
+				fetch("maps/test.sfm").then((response) => {
+					return response.text();
+				}).then((data) => {
+					sf.game = new Game(data);
+					sf.menuDispatcher.clear();
+				});
 			}
 		});
 
@@ -34,7 +39,7 @@ export default class MainMenu extends BaseMenu{
 			textSize: 20,
 
 			onTouch: () => {
-				sf.game = new Editor("test");
+				sf.game = new Editor();
 				sf.menuDispatcher.clear();
 			}
 		});

@@ -1,6 +1,7 @@
 import sf from "../sf";
 
-addEventListener("keydown", (event) => {
+sf.canvas.addEventListener("keydown", (event) => {
+	event.preventDefault();
 
 	if(event.repeat)
 		return;
@@ -9,7 +10,8 @@ addEventListener("keydown", (event) => {
 	sf.input.key.pressed[event.code] = true;
 });
 
-addEventListener("keyup", (event) => {
+sf.canvas.addEventListener("keyup", (event) => {
+	event.preventDefault();
 
 	if(event.repeat)
 		return;
@@ -19,13 +21,16 @@ addEventListener("keyup", (event) => {
 });
 
 sf.canvas.addEventListener("mousedown", (event) => {
-	event.preventDefault();
+
+	// Stop middle mouse panning
+	if(event.button == 1)
+		event.preventDefault();
+
 	sf.input.mouse.held[event.button] = true;
 	sf.input.mouse.pressed[event.button] = true;
 });
 
 sf.canvas.addEventListener("mouseup", (event) => {
-	event.preventDefault();
 	sf.input.mouse.held[event.button] = false;
 	sf.input.mouse.released[event.button] = true;
 });
@@ -36,6 +41,7 @@ sf.canvas.addEventListener("mousemove", (event) => {
 });
 
 sf.canvas.addEventListener("wheel", (event) => {
+	event.preventDefault();
 	sf.input.mouse.scroll.x = event.deltaX;
 	sf.input.mouse.scroll.y = event.deltaY;
 });

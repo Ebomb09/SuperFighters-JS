@@ -56,6 +56,7 @@ export default class BaseObject{
 		// Alias to Matter Body
 		this.position 			= this.body.position;
 		this.velocity 			= this.body.velocity;
+		this.bounds 			= this.body.bounds;
 
 		// Game specific attributes
 		this.id 				= this.body.id;
@@ -193,6 +194,8 @@ export default class BaseObject{
 
 		Matter.Body.setAngle(body, this.body.angle);
 		this.body.vertices = body.vertices;
+		this.body.bounds.min = body.bounds.min;
+		this.body.bounds.max = body.bounds.max;
 	}
 
 	dealDamage(damage){

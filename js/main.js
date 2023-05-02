@@ -24,7 +24,8 @@ function sfLoop(){
 	let timeNow = Date.now();
 	let mspf = 1000 / sf.config.fps;
 
-	sf.ctx.clearRect(0, 0, sf.canvas.width, sf.canvas.height);
+	sf.ctx.fillStyle = "black";
+	sf.ctx.fillRect(0, 0, sf.canvas.width, sf.canvas.height);
 
 	if(sf.game !== null){
 		sf.game.update(mspf);

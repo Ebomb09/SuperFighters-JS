@@ -28,7 +28,8 @@ export default class Game{
 			select: null
 		};
 
-		this.loadMap(map);
+		if(map)
+			this.loadMap(map);
 	}
 
 	saveMap(){
@@ -71,25 +72,11 @@ export default class Game{
 		Matter.Composite.clear(this.world);
 		this.objects = [];
 
-		if(buffer == "test"){
-			// Create some test objects
-			this.createObject(sf.data.objects["floor"], {x: 200, y: 100, tiling: {width: 5, height: 1}, matter: {angle: -0.5}});
-			this.createObject(sf.data.objects["floor"], {x: 200, y: 50, tiling: {width: 5, height: 1}, matter: {angle: 0.5}});
-			this.createObject(sf.data.objects["floor"], {x: 70, y: 120, tiling: {width: 8, height: 2}});
-			this.createObject(sf.data.objects["crate"], {x: 85, y: 60});
-			this.createObject(sf.data.objects["crate"], {x: 85, y: 70});
+		let map = JSON.parse(buffer);
 
-			this.createObject(sf.data.objects["player"], {x: 100, y: 50});		
-
-			this.createObject(sf.data.objects["player"], {x: 90, y: 50, customId: "TEST"});	
-
-		}else{
-			let map = JSON.parse(buffer);
-
-			map.objects.forEach((obj) => {
-				this.createObject(sf.data.objects[obj.parentKey], obj);
-			});
-		}
+		map.objects.forEach((obj) => {
+			this.createObject(sf.data.objects[obj.parentKey], obj);
+		});
 	}
 
 	startCollision(event){

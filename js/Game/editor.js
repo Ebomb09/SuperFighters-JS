@@ -2,13 +2,15 @@ import sf from "../sf";
 import Game from "./game";
 
 const Mode = {
-	None: 	"none",
-	Select: "select",
-	Move: 	"move",
-	Rotate: "rotate",
-	Resize: "resize",
-	Pan: 	"pan", 
-	Zoom: 	"zoom"
+	None: 		"none",
+	Select: 	"select",
+	Move: 		"move",
+	Rotate: 	"rotate",
+	Resize: 	"resize",
+	ResizeX: 	"resize-x",
+	ResizeY: 	"resize-y",
+	Pan: 		"pan", 
+	Zoom: 		"zoom"
 };
 
 export default class Editor extends Game{
@@ -27,6 +29,7 @@ export default class Editor extends Game{
 
 		this.live = false;
 		this.mapCopy = "";
+		this.mapName = map;
 		this.cameraCopy = {};
 
 		sf.docs.innerHTML = "";
@@ -34,6 +37,37 @@ export default class Editor extends Game{
 		// Editor Control
 		let controls = document.createElement("div");
 
+		// Map name
+		const mapname = this.createInput("Map Name", this.mapName);
+		mapname.addEventListener("input", (event) => {
+			this.mapName = event.target.value;
+		});
+		controls.append(mapname, this.createSubDivider());
+
+		// Load map
+		const load = document.createElement("button");
+		load.append("📁 Load");
+		load.addEventListener("click", () => {
+			fetch("maps/"+prompt()+".sfm").then((response) => {
+				return response.text();
+			}).then((data) => {
+				this.loadMap(data);
+			});
+		});
+		controls.append(load);
+
+		// Save map
+		const save = document.createElement("button");
+		save.append("💾 Save");
+		save.addEventListener("click", () => {
+			let a = document.createElement("a");
+			a.href = "data:text/sf-map;charset=utf-8,"+encodeURIComponent(this.saveMap());
+			a.download = `${this.mapName}.sfm`;
+			a.click();
+		});
+		controls.append(save, this.createSubDivider());
+
+		// Play map
 		const play = document.createElement("button");
 		play.append("▶ Play");
 		play.addEventListener("click", () => {
@@ -48,7 +82,9 @@ export default class Editor extends Game{
 				this.live = true;
 			}
 		});
+		controls.append(play);
 
+		// Stop map
 		const stop = document.createElement("button");
 		stop.append("⏹ Stop");
 		stop.addEventListener("click", () => {
@@ -59,10 +95,10 @@ export default class Editor extends Game{
 				this.live = false;
 			}
 		});
+		controls.append(stop, this.createSubDivider());
 
+		// Editor grid clamp
 		const grid = this.createInput("clamp grid", this.selection.grid.x);
-		const angle = this.createInput("clamp angle", this.selection.grid.angle);
-
 		grid.addEventListener("input", (event) => {
 			let val = parseInt(event.target.value);
 
@@ -71,16 +107,17 @@ export default class Editor extends Game{
 				this.selection.grid.y = val;
 			}
 		});
+		controls.append(grid);
 
-
+		// Editor angle clamp
+		const angle = this.createInput("clamp angle", this.selection.grid.angle);
 		angle.addEventListener("input", (event) => {
 			let val = parseInt(event.target.value);
 
 			if(val > 0)
 				this.selection.grid.angle = val;
 		});
-
-		controls.append(grid, angle, this.createSubDivider(), stop, play);
+		controls.append(angle);
 
 		// Selection Control
 		this.selection.display = document.createElement("div");
@@ -156,14 +193,31 @@ export default class Editor extends Game{
 			// Check what objects are being interacted with
 			let mode = Mode.None;
 
-			// Left Click (Select, Move)
+			// Left Click (Select, Move, Resize)
 			if(sf.input.mouse.pressed[0]){
 				mode = Mode.Select;
 
 				touching.forEach((obj) => {
 
-					if(this.selection.objects.indexOf(obj) != -1)
+					if(this.selection.objects.indexOf(obj) != -1){
 						mode = Mode.Move;
+
+						// Check if in resize bounds
+						if(this.selection.objects.length == 1 && obj.constructor.name == "BaseObject"){
+
+							if(this.selection.start.y > obj.bounds.max.y - 2){
+								mode = Mode.ResizeY;
+							}
+
+							if(this.selection.start.x > obj.bounds.max.x - 2){
+
+								if(mode == Mode.ResizeY)
+									mode = Mode.Resize;
+								else
+									mode = Mode.ResizeX;
+							}
+						}
+					}
 				});
 
 			// Middle Click (PanCamera)
@@ -184,13 +238,15 @@ export default class Editor extends Game{
 			for(let i = 0; i < this.selection.objects.length; i ++){
 				let obj = this.selection.objects[i];
 
+				// Save state of top left corner
 				this.selection.objectsVar[i] = {
-					x: obj.position.x,
-					y: obj.position.y,
-					angle: obj.body.angle * 180 / Math.PI
+					x: obj.position.x - obj.width / 2,
+					y: obj.position.y - obj.height / 2,
+					angle: obj.body.angle * 180 / Math.PI,
+					w: obj.tiling.width,
+					h: obj.tiling.height
 				};
 			}
-
 			this.selection.mode = mode;
 		}
 
@@ -215,7 +271,8 @@ export default class Editor extends Game{
 					let useX = Math.round((sav.x + x) / this.selection.grid.x) * this.selection.grid.x;
 					let useY = Math.round((sav.y + y) / this.selection.grid.y) * this.selection.grid.y;
 
-					Matter.Body.setPosition(obj.body, {x: useX, y: useY});
+					// Set body position so top left corner is algined to grid
+					Matter.Body.setPosition(obj.body, {x: useX + obj.width / 2, y: useY + obj.height / 2});
 					Matter.Body.setVelocity(obj.body, {x: 0, y: 0});
 				}
 				break;
@@ -233,6 +290,33 @@ export default class Editor extends Game{
 					Matter.Body.setAngle(obj.body, useAngle);
 				}		
 				break;
+
+			case Mode.Resize:	
+			case Mode.ResizeX:
+				var w = this.selection.objectsVar[0].w;
+			case Mode.ResizeY:	
+				if(this.selection.mode == Mode.ResizeY || this.selection.mode == Mode.Resize)
+					var h = this.selection.objectsVar[0].h;
+
+				const obj = this.selection.objects[0];
+				const sav = this.selection.objectsVar[0];
+
+				if(w){
+					w += Math.round((this.getMousePosition().x - this.selection.start.x) / obj.frame.width);
+
+					if(w >= 1)
+						this.selection.objects[0].resetTiling(w, obj.tiling.height);	
+				}
+
+				if(h){
+					h += Math.round((this.getMousePosition().y - this.selection.start.y) / obj.frame.height);	
+
+					if(h >= 1)
+						this.selection.objects[0].resetTiling(obj.tiling.width, h);
+				}
+
+				Matter.Body.setPosition(obj.body, {x: this.selection.objectsVar[0].x + obj.width / 2, y: this.selection.objectsVar[0].y + obj.height / 2});	
+				break;
 		}
 
 		// Mode end
@@ -242,6 +326,11 @@ export default class Editor extends Game{
 
 				case Mode.Select:
 					this.selection.objects = this.getObjectsByAABB(this.getMousePosition(), this.selection.start);
+
+					// No drag box so get last element
+					if(this.selection.objects.length > 1)
+						if(this.getMousePosition().x == this.selection.start.x && this.getMousePosition().y == this.selection.start.y)
+							this.selection.objects = [this.selection.objects.at(-1)];
 					break;
 			}
 			this.updateDisplay();
@@ -266,6 +355,44 @@ export default class Editor extends Game{
 		sf.ctx.scale(this.camera.zoom, this.camera.zoom);
 		sf.ctx.translate(-this.camera.x, -this.camera.y);
 
+		// Draw grid
+		for(let i = 0; i < sf.canvas.width / this.camera.zoom; i += this.selection.grid.x){
+			let x = Math.round((this.camera.x + i) / this.selection.grid.x) * this.selection.grid.x;
+
+			sf.ctx.beginPath();
+			sf.ctx.moveTo(x, this.camera.y);
+			sf.ctx.lineTo(x, this.camera.y + sf.canvas.height);
+			sf.ctx.strokeStyle = "grey";
+			sf.ctx.lineWidth = 0.1;
+			sf.ctx.stroke();
+		}
+		for(let i = 0; i < sf.canvas.height / this.camera.zoom; i += this.selection.grid.y){
+			let y = Math.round((this.camera.y + i) / this.selection.grid.y) * this.selection.grid.y;
+
+			sf.ctx.beginPath();
+			sf.ctx.moveTo(this.camera.x, y);
+			sf.ctx.lineTo(this.camera.x + sf.canvas.width, y);
+			sf.ctx.strokeStyle = "grey";
+			sf.ctx.lineWidth = 0.1;
+			sf.ctx.stroke();
+		}
+
+		// Draw center lines
+		sf.ctx.beginPath();
+		sf.ctx.moveTo(0, this.camera.y);
+		sf.ctx.lineTo(0, this.camera.y + sf.canvas.height);
+		sf.ctx.strokeStyle = "blue";
+		sf.ctx.lineWidth = 0.5;
+		sf.ctx.stroke();	
+
+		sf.ctx.beginPath();
+		sf.ctx.moveTo(this.camera.x, 0);
+		sf.ctx.lineTo(this.camera.x + sf.canvas.width, 0);
+		sf.ctx.strokeStyle = "red";
+		sf.ctx.lineWidth = 0.5;
+		sf.ctx.stroke();	
+
+		// Draw objects
 		this.objects.forEach((obj) => {
 			obj.draw();
 		});
@@ -274,7 +401,7 @@ export default class Editor extends Game{
 		let bounds = [];
 
 		this.selection.objects.forEach((obj) => {
-			bounds.push(obj.body.bounds.min, obj.body.bounds.max);
+			bounds.push(obj.bounds.min, obj.bounds.max);
 
 			// Draw the selected bodies
 			sf.ctx.beginPath();
@@ -315,6 +442,31 @@ export default class Editor extends Game{
 				break;
 		}
 
+		// Draw the resizer boxes
+		if(this.selection.objects.length == 1 && this.selection.objects[0].constructor.name == "BaseObject"){
+			let obj = this.selection.objects[0];
+			let width = obj.bounds.max.x - obj.bounds.min.x;
+			let height = obj.bounds.max.y - obj.bounds.min.y;
+
+			sf.ctx.beginPath();
+			sf.ctx.rect(obj.bounds.min.x + width / 2 - 1, obj.bounds.min.y + height - 1, 2, 2);
+			sf.ctx.strokeStyle = "white";
+			sf.ctx.lineWidth = 0.5;
+			sf.ctx.stroke();
+
+			sf.ctx.beginPath();
+			sf.ctx.rect(obj.bounds.min.x + width - 1, obj.bounds.min.y + height / 2 - 1, 2, 2);
+			sf.ctx.strokeStyle = "white";
+			sf.ctx.lineWidth = 0.5;
+			sf.ctx.stroke();
+
+			sf.ctx.beginPath();
+			sf.ctx.rect(obj.bounds.min.x + width - 1, obj.bounds.min.y + height - 1, 2, 2);
+			sf.ctx.strokeStyle = "white";
+			sf.ctx.lineWidth = 0.5;
+			sf.ctx.stroke();
+		}
+
 		sf.ctx.restore();
 	}
 
@@ -340,15 +492,9 @@ export default class Editor extends Game{
 		}else if(this.selection.objects.length == 1){
 
 			const obj = this.selection.objects[0];
-			const x = this.createInput("x", obj.position.x);
-			const y = this.createInput("y", obj.position.y);
-			const w = this.createInput("width", obj.tiling.width);
-			const h = this.createInput("height", obj.tiling.height);
-			const angle = this.createInput("angle", obj.body.angle * 180 / Math.PI);
-			const id = this.createText(`id: ${obj.id}`);
-			const customId = this.createInput("customId", obj.customId);
-			const frames = document.createElement("div");
 
+			// X Position
+			const x = this.createInput("x", obj.position.x);
 			x.addEventListener("input", (event) => {
 				let x = parseInt(event.target.value);
 				let y = this.selection.objects[0].position.y;
@@ -356,7 +502,10 @@ export default class Editor extends Game{
 				if(!isNaN(x))
 					Matter.Body.setPosition(obj.body, {x: x, y: y});
 			});
+			this.selection.display.append(x);
 
+			// Y Position
+			const y = this.createInput("y", obj.position.y);
 			y.addEventListener("input", (event) => {
 				let x = obj.position.x;
 				let y = parseInt(event.target.value);
@@ -364,61 +513,82 @@ export default class Editor extends Game{
 				if(!isNaN(y))
 					Matter.Body.setPosition(obj.body, {x: x, y: y});
 			});
+			this.selection.display.append(y);
 
-			w.addEventListener("input", (event) => {
-				let w = parseInt(event.target.value);
+			// Width and Height
+			if(obj.constructor.name == "BaseObject"){
+				const w = this.createInput("width", obj.tiling.width);
+				w.addEventListener("input", (event) => {
+					let w = parseInt(event.target.value);
 
-				if(!isNaN(w))
-					obj.resetTiling(w, obj.tiling.height);
-			});
+					if(!isNaN(w))
+						obj.resetTiling(w, obj.tiling.height);
+				});
 
-			h.addEventListener("input", (event) => {
-				let h = parseInt(event.target.value);
 
-				if(!isNaN(h))
-					obj.resetTiling(obj.tiling.width, h);
-			});
+				const h = this.createInput("height", obj.tiling.height);
+				h.addEventListener("input", (event) => {
+					let h = parseInt(event.target.value);
 
+					if(!isNaN(h))
+						obj.resetTiling(obj.tiling.width, h);
+				});	
+
+				this.selection.display.append(w, h);
+			}
+
+			// Angle in degrees
+			const angle = this.createInput("angle", obj.body.angle * 180 / Math.PI);
 			angle.addEventListener("input", (event) => {
 				let angle = parseInt(event.target.value);
 
 				if(!isNaN(angle))
 					Matter.Body.setAngle(obj.body, angle * Math.PI / 180);
 			});	
+			this.selection.display.append(angle);
 
+			// Static
+			const isStatic = this.createCheckbox("static", obj.body.isStatic);
+			isStatic.addEventListener("input", (event) => {
+				Matter.Body.setStatic(obj.body, event.target.checked);
+			});	
+			this.selection.display.append(isStatic);
+			this.selection.display.append(this.createSubDivider());
+
+			// Body Id
+			const id = this.createText(`id: ${obj.id}`);
+			this.selection.display.append(id);
+
+			// Text custom Id
+			const customId = this.createInput("customId", obj.customId);
 			customId.addEventListener("input", (event) => {
 				obj.customId = event.target.value;
 			});		
+			this.selection.display.append(customId);
+			this.selection.display.append(this.createSubDivider());
 
-			for(let w = 0; w < obj.frame.count.x; w ++){
-				for(let h = 0; h < obj.frame.count.y; h ++){
-					const button = document.createElement("button");
-					button.className = "listing";
+			// Frame Index
+			if(obj.constructor.name == "BaseObject"){
+				const frames = document.createElement("div");
 
-					button.append(this.createImage(obj.parent, w, h));
-					button.append(`Frame {X: ${w}, Y: ${h}}`);
+				for(let w = 0; w < obj.frame.count.x; w ++){
+					for(let h = 0; h < obj.frame.count.y; h ++){
+						const button = document.createElement("button");
+						button.className = "listing";
 
-					button.addEventListener("click", () => {
-						obj.frame.index.x = w;
-						obj.frame.index.y = h;
-					});
+						button.append(this.createImage(obj.parent, w, h));
+						button.append(`Frame {X: ${w}, Y: ${h}}`);
 
-					frames.append(button);
+						button.addEventListener("click", () => {
+							obj.frame.index.x = w;
+							obj.frame.index.y = h;
+						});
+
+						frames.append(button);
+					}
 				}
+				this.selection.display.append(frames);
 			}
-
-			this.selection.display.append(
-				x, 
-				y,
-				w,
-				h,
-				angle,
-				this.createSubDivider(),
-				id,
-				customId,
-				this.createSubDivider(),
-				frames
-				);
 		}
 	}
 
@@ -462,6 +632,16 @@ export default class Editor extends Game{
 		input.value = value;
 
 		div.append(label, input);
+
+		return div;
+	}
+
+	createCheckbox(name, value){
+		const div = this.createInput(name);
+
+		const input = div.querySelector("input");
+		input.type = "checkbox";
+		input.checked = value;
 
 		return div;
 	}
