@@ -25,11 +25,14 @@ function sfLoop(){
 
 	sf.ctx.clearRect(0, 0, sf.canvas.width, sf.canvas.height);
 
-	if(sf.game !== null)
+	if(sf.game !== null){
 		sf.game.update(mspf);
+		sf.game.draw();
+	}
 
-	if(sf.menuDispatcher !== null)
+	if(sf.menuDispatcher !== null){
 		sf.menuDispatcher.update();
+	}
 
 	input.poll();
 

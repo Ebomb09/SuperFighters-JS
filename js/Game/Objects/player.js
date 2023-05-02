@@ -26,15 +26,13 @@ const State = {
 export default class Player extends BaseObject{
 
 	constructor(...params){
-		super(...params, {width: 8, height: 19, matter: {inertia: Infinity, friction: 0}});
+		super(...params, {width: 8, height: 19, matter: {inertia: Infinity, friction: 0, slop: 1}});
 
 		this.team = 0;
 	}
 
-	update(){
-
-		// State Control
-		this.delayStep();
+	update(ms){
+		super.update(ms);
 
 		// Check player is on ground
 		if(this.onGround()){
@@ -99,7 +97,7 @@ export default class Player extends BaseObject{
 		}
 
 		if(this.checkState(State.Grounded))
-			Matter.Body.setVelocity(this.body, {x: 0, y: 0 });
+			Matter.Body.setVelocity(this.body, {x: 0, y: 0});
 
 		// Check inputs
 		if(this.customId == "TEST"){

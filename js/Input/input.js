@@ -18,12 +18,12 @@ addEventListener("keyup", (event) => {
 	sf.input.key.released[event.code] = true;
 });
 
-addEventListener("mousedown", (event) => {
+sf.canvas.addEventListener("mousedown", (event) => {
 	sf.input.mouse.held[event.button] = true;
 	sf.input.mouse.pressed[event.button] = true;
 });
 
-addEventListener("mouseup", (event) => {
+sf.canvas.addEventListener("mouseup", (event) => {
 	sf.input.mouse.held[event.button] = false;
 	sf.input.mouse.released[event.button] = true;
 });
@@ -33,9 +33,21 @@ sf.canvas.addEventListener("mousemove", (event) => {
 	sf.input.mouse.y = event.offsetY;
 });
 
+sf.canvas.addEventListener("wheel", (event) => {
+	sf.input.mouse.scroll.x = event.deltaX;
+	sf.input.mouse.scroll.y = event.deltaY;
+});
+
+sf.canvas.addEventListener("contextmenu", (event) => {
+	event.preventDefault();
+});
+
 export function poll(){
 
 	// Reset status of the single frame press and release events
+	sf.input.mouse.scroll.x = 0;
+	sf.input.mouse.scroll.y = 0;
+
 	Object.keys(sf.input.mouse.pressed).forEach((button) => {
 		sf.input.mouse.pressed[button] = false;
 	});

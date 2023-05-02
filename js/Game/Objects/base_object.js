@@ -73,7 +73,9 @@ export default class BaseObject{
 		};
 	}
 
-	update(){}
+	update(ms){ 
+		this.delayStep(ms);
+	}
 
 	draw(options){
 		if(options === undefined) options = {};
@@ -144,10 +146,10 @@ export default class BaseObject{
 		return this.action.delayMax - this.action.delay;
 	}
 
-	delayStep(){
+	delayStep(ms){
 		
 		if(this.action.delay > 0){
-			this.action.delay -= sf.game.delta;
+			this.action.delay -= ms;
 
 			if(this.action.delay < 0)
 				this.action.delay = 0;
@@ -175,6 +177,22 @@ export default class BaseObject{
 				break;
 			}
 		}
+	}
+
+	resetTiling(w, h){
+		this.tiling.width = w;
+		this.tiling.height = h;
+		this.width = this.frame.width * this.tiling.width;
+		this.height = this.frame.height * this.tiling.height;
+
+		let body = Matter.Bodies.rectangle(
+			this.position.x, 
+			this.position.y, 
+			this.width, 
+			this.height);
+
+		Matter.Body.setAngle(body, this.body.angle);
+		this.body.vertices = body.vertices;
 	}
 
 	dealDamage(damage){

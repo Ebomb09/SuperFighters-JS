@@ -2,10 +2,12 @@
 <html>
 
 <head>
-
+	<link rel="stylesheet" href="css/index.css">
 </head>
 
 <body>
+
+	<div id="sf-docs"></div>
 
 	<canvas id="sf-canvas">
 	The canvas tag is not supported on your browser.

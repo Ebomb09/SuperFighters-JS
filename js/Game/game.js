@@ -7,7 +7,13 @@ export default class Game{
 		// Init physics world
 		this.engine = Matter.Engine.create();
 		this.world = this.engine.world;
-		this.delta = 0;
+
+		// Camera
+		this.camera = {
+			x: 0,
+			y: 0,
+			zoom: 1
+		};
 
 		// Collision Handlers
 		Matter.Events.on(this.engine, "collisionStart", this.startCollision.bind(this));
@@ -102,8 +108,10 @@ export default class Game{
 				if(objB) objB.dealDamage(damage);
 			}
 
-			if(objA) objA.addCollision(objB, pair.collision);
-			if(objB) objB.addCollision(objA, pair.collision);
+			if(objA && objB){
+				objA.addCollision(objB, pair.collision);
+				objB.addCollision(objA, pair.collision);
+			}
 		});
 	}
 
@@ -113,68 +121,41 @@ export default class Game{
 			let objA = this.getObjectById(pair.bodyA.id);
 			let objB = this.getObjectById(pair.bodyB.id);
 
-			if(objA) objA.removeCollision(objB);
-			if(objB) objB.removeCollision(objA);
+			if(objA && objB){
+				objA.removeCollision(objB);
+				objB.removeCollision(objA);
+			}
 		});
+	}
+
+	getMousePosition(){
+		return {
+			x: (sf.input.mouse.x / this.camera.zoom) + this.camera.x,
+			y: (sf.input.mouse.y / this.camera.zoom) + this.camera.y 
+		};
 	}
 
 	update(ms){	
-		sf.ctx.save();
-
-		this.delta = ms;
-
-		if(this.debug.mode){
-
-			// Draw Bodies
-			this.draw();
-
-			// Grab objects with mouse
-			if(sf.input.mouse.held[0]){
-
-				if(this.debug.select == null){
-					let grab = Matter.Query.point(Matter.Composite.allBodies(this.world), Matter.Vector.create(sf.input.mouse.x, sf.input.mouse.y));
-
-					if(grab.length > 0)
-						this.debug.select = grab[0];
-				}
-
-				if(this.debug.select != null){
-					let diff = Matter.Vector.sub(Matter.Vector.create(sf.input.mouse.x, sf.input.mouse.y), this.debug.select.position);
-					diff = Matter.Vector.div(diff, 4);
-					Matter.Body.setVelocity(this.debug.select, diff);
-				}
-			}else{
-				this.debug.select = null;
-			}
-		}
-
+		
 		this.objects.forEach((obj) => {
-			obj.update();
-			obj.draw();
+			obj.update(ms);
 		});
 
 		Matter.Engine.update(this.engine, ms);
-
-		sf.ctx.restore();
 	}
 
-	// Draw Polygonal Shape
+
 	draw(){
-		Matter.Composite.allBodies(this.world).forEach((body) => {
+		sf.ctx.save();
 
-			sf.ctx.beginPath();
+		sf.ctx.scale(this.camera.zoom, this.camera.zoom);
+		sf.ctx.translate(-this.camera.x, -this.camera.y);
 
-			let start = body.vertices.at(-1);
-			sf.ctx.moveTo(start.x, start.y);
-
-			for(let i = 0; i < body.vertices.length; i ++){
-				let end = body.vertices[i];
-				sf.ctx.lineTo(end.x, end.y);
-				sf.ctx.moveTo(end.x, end.y);
-			}
-
-			sf.ctx.stroke();
+		this.objects.forEach((obj) => {
+			obj.draw();
 		});
+
+		sf.ctx.restore();
 	}
 
 	createObject(parent, ...params){
@@ -213,6 +194,12 @@ export default class Game{
 	kill(object){
 		let index = this.objects.indexOf(object);
 
+		// Remove collisions to this object
+		this.objects.forEach((obj) => {
+			obj.removeCollision(object);
+		});
+
+		// Remove all references to the object
 		this.objects.splice(index, 1);
 		Matter.Composite.remove(this.world, object.body);
 	}
@@ -235,5 +222,16 @@ export default class Game{
 				return this.objects[i];
 		}
 		return null;		
+	}
+
+	getObjectsByAABB(...points){
+		let bounds = Matter.Bounds.create(points);
+		let bodies = Matter.Query.region(Matter.Composite.allBodies(this.world), bounds);
+		let objects = [];
+
+		bodies.forEach((body) => {
+			objects.push(this.getObjectById(body.id));
+		});
+		return objects;
 	}
 };

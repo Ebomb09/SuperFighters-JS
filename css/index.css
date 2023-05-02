@@ -1,0 +1,25 @@
+canvas#sf-canvas{
+	display: block;
+	margin: auto;
+	border: 1px solid black;
+}
+
+div#sf-docs{
+	border: 1px solid black;
+	width:500px;
+	background-color: white;
+	
+	position: fixed;
+	right: 0;
+	top: 0;
+}
+
+button.listing{
+	display: block;
+	width: 100%;
+	text-align: left;
+}
+
+button.listing > canvas{
+	float: right;
+}

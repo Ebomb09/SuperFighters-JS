@@ -13,10 +13,13 @@ function loadAudio(src){
 	return new Audio(src);
 }
 
+const docs = document.getElementById("sf-docs");
 const canvas = document.getElementById("sf-canvas");
 const ctx = canvas.getContext("2d");
 
 const sf = {
+
+	docs: docs,
 
 	canvas: canvas,
 	ctx: ctx,
@@ -37,7 +40,11 @@ const sf = {
 			y: 0,
 			held: {},
 			pressed: {},
-			released: {}
+			released: {},
+			scroll: {
+				x: 0,
+				y: 0
+			}
 		}
 	},
 
