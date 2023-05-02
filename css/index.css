@@ -1,17 +1,24 @@
-canvas#sf-canvas{
-	display: block;
+div#sf{
+	display: flex;
+	flex-direction: row;
+	width: fit-content;
 	margin: auto;
+}
+
+canvas#sf-canvas{
 	border: 1px solid black;
+	margin-right: 0.5em;
+	align-self: start;
+}
+
+div#sf-docs:empty{
+	display: none;
 }
 
 div#sf-docs{
 	border: 1px solid black;
-	width:500px;
 	background-color: white;
-	
-	position: fixed;
-	right: 0;
-	top: 0;
+	overflow-y: scroll;
 }
 
 button.listing{

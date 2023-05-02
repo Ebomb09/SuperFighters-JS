@@ -27,6 +27,7 @@ export default class Editor extends Game{
 
 		this.live = false;
 		this.mapCopy = "";
+		this.cameraCopy = {};
 
 		sf.docs.innerHTML = "";
 
@@ -34,21 +35,27 @@ export default class Editor extends Game{
 		let controls = document.createElement("div");
 
 		const play = document.createElement("button");
-		play.append("▶");
+		play.append("▶ Play");
 		play.addEventListener("click", () => {
 
 			if(!this.live){
 				this.mapCopy = this.saveMap();
+				this.cameraCopy = {
+					x: this.camera.x,
+					y: this.camera.y,
+					zoom: this.camera.zoom
+				};
 				this.live = true;
 			}
 		});
 
 		const stop = document.createElement("button");
-		stop.append("⏹");
+		stop.append("⏹ Stop");
 		stop.addEventListener("click", () => {
 
 			if(this.live){
 				this.loadMap(this.mapCopy);
+				this.camera = this.cameraCopy;
 				this.live = false;
 			}
 		});
@@ -85,11 +92,16 @@ export default class Editor extends Game{
 			const button = document.createElement("button");
 			button.className = "listing";
 
-			button.append(this.getImage(sf.data.objects[key]));
+			button.append(this.createImage(sf.data.objects[key]));
 			button.append(key);
 
 			button.addEventListener("click", () => {
-				this.createObject(sf.data.objects[key], {x: 20, y: 20});
+				this.createObject(
+					sf.data.objects[key], 
+					{
+						x: this.camera.x + sf.canvas.width / 2 / this.camera.zoom, 
+						y: this.camera.y + sf.canvas.height / 2 / this.camera.zoom, 
+					});
 			});
 
 			objects.append(button);
@@ -116,16 +128,24 @@ export default class Editor extends Game{
 
 	update(ms){
 
-		// Zoom camera
+		// Zoom Camera
 		if(sf.input.mouse.scroll.y < 0){
 			this.camera.zoom += 1;
-
 		}
 
 		if(sf.input.mouse.scroll.y > 0){
 
 			if(this.camera.zoom > 1)
-			this.camera.zoom -= 1;
+				this.camera.zoom -= 1;
+		}
+
+		// Delete Objects
+		if(sf.input.key.pressed["Delete"]){
+
+			this.selection.objects.forEach((obj) => {
+				this.kill(obj);
+			});
+			this.selection.objects = [];
 		}
 
 		// Mode starters
@@ -167,7 +187,7 @@ export default class Editor extends Game{
 				this.selection.objectsVar[i] = {
 					x: obj.position.x,
 					y: obj.position.y,
-					angle: obj.body.angle
+					angle: obj.body.angle * 180 / Math.PI
 				};
 			}
 
@@ -196,6 +216,7 @@ export default class Editor extends Game{
 					let useY = Math.round((sav.y + y) / this.selection.grid.y) * this.selection.grid.y;
 
 					Matter.Body.setPosition(obj.body, {x: useX, y: useY});
+					Matter.Body.setVelocity(obj.body, {x: 0, y: 0});
 				}
 				break;
 
@@ -234,6 +255,8 @@ export default class Editor extends Game{
 			});		
 
 			Matter.Engine.update(this.engine, ms);
+
+			this.updateCamera();
 		}
 	}
 
@@ -305,7 +328,7 @@ export default class Editor extends Game{
 				button.className = "listing";
 
 				button.append(obj.id);
-				button.append(this.getImage(obj.parent, obj.frame.index.x, obj.frame.index.y));
+				button.append(this.createImage(obj.parent, obj.frame.index.x, obj.frame.index.y));
 
 				button.addEventListener("click", () => {
 					this.selection.objects = [obj];
@@ -322,7 +345,9 @@ export default class Editor extends Game{
 			const w = this.createInput("width", obj.tiling.width);
 			const h = this.createInput("height", obj.tiling.height);
 			const angle = this.createInput("angle", obj.body.angle * 180 / Math.PI);
+			const id = this.createText(`id: ${obj.id}`);
 			const customId = this.createInput("customId", obj.customId);
+			const frames = document.createElement("div");
 
 			x.addEventListener("input", (event) => {
 				let x = parseInt(event.target.value);
@@ -365,6 +390,23 @@ export default class Editor extends Game{
 				obj.customId = event.target.value;
 			});		
 
+			for(let w = 0; w < obj.frame.count.x; w ++){
+				for(let h = 0; h < obj.frame.count.y; h ++){
+					const button = document.createElement("button");
+					button.className = "listing";
+
+					button.append(this.createImage(obj.parent, w, h));
+					button.append(`Frame {X: ${w}, Y: ${h}}`);
+
+					button.addEventListener("click", () => {
+						obj.frame.index.x = w;
+						obj.frame.index.y = h;
+					});
+
+					frames.append(button);
+				}
+			}
+
 			this.selection.display.append(
 				x, 
 				y,
@@ -372,7 +414,10 @@ export default class Editor extends Game{
 				h,
 				angle,
 				this.createSubDivider(),
-				customId
+				id,
+				customId,
+				this.createSubDivider(),
+				frames
 				);
 		}
 	}
@@ -387,6 +432,12 @@ export default class Editor extends Game{
 		return hr
 	}
 
+	createText(text){
+		let span = document.createElement("span");
+		span.innerText = text;
+		return span;
+	}
+
 	createTitle(text){
 		const title = document.createElement("h3");
 		title.innerText = text;
@@ -395,6 +446,11 @@ export default class Editor extends Game{
 
 	createInput(name, value){
 		const div = document.createElement("div");
+		div.style = `
+			display: flex;
+			flex-direction: row;
+			justify-content: space-between;
+		`;
 
 		const label = document.createElement("label");
 		label.for = name;
@@ -410,7 +466,7 @@ export default class Editor extends Game{
 		return div;
 	}
 
-	getImage(parent, x, y){
+	createImage(parent, x, y){
 
 		if(x === undefined){
 			x = 0;

@@ -142,8 +142,9 @@ export default class Game{
 		});
 
 		Matter.Engine.update(this.engine, ms);
-	}
 
+		this.updateCamera();
+	}
 
 	draw(){
 		sf.ctx.save();
@@ -156,6 +157,46 @@ export default class Game{
 		});
 
 		sf.ctx.restore();
+	}
+
+	updateCamera(){
+		let positions = [];
+
+		this.objects.forEach((obj) => {
+			if(obj.constructor.name == "Player")
+				positions.push(obj.position);
+		});
+
+		let bounds = Matter.Bounds.create(positions);
+		bounds.min.x -= 32;
+		bounds.min.y -= 64;
+		bounds.max.x += 32;
+		bounds.max.y += 64;
+
+		let width = bounds.max.x - bounds.min.x;
+		let height = bounds.max.y - bounds.min.y;
+
+		if(width > height)
+			var scale = sf.canvas.width / width;
+		else	
+			var scale = sf.canvas.height / height;
+
+		scale = Math.round(scale);
+
+		this.request_camera = {
+			x: (bounds.min.x + width / 2) - (sf.canvas.width / scale) / 2,
+			y: (bounds.min.y + height / 2) - (sf.canvas.height / scale) / 2,
+			zoom: scale
+		};
+
+		let diff = (this.request_camera.x - this.camera.x) / 25;
+		this.camera.x += diff;
+
+		diff = (this.request_camera.y - this.camera.y) / 25;
+		this.camera.y += diff;
+
+		diff = (this.request_camera.zoom - this.camera.zoom) / 25;
+		this.camera.zoom += diff;
 	}
 
 	createObject(parent, ...params){

@@ -8,6 +8,7 @@ import Game from "./Game/game"
 function main(){
 	sf.canvas.width = 800;
 	sf.canvas.height = 600;
+	sf.docs.style.height = "600px";
 	sf.ctx.imageSmoothingEnabled = false;
 	
 	sf.menuDispatcher = new MenuDispatcher;

@@ -7,11 +7,13 @@
 
 <body>
 
-	<div id="sf-docs"></div>
-
-	<canvas id="sf-canvas">
-	The canvas tag is not supported on your browser.
-	</canvas>
+	<div id="sf">
+		<canvas id="sf-canvas">
+		The canvas tag is not supported on your browser.
+		</canvas>
+		
+		<div id="sf-docs"></div>
+	</div>
 
 	<!-- API Scripts -->
 <?php

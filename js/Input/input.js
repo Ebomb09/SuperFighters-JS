@@ -19,11 +19,13 @@ addEventListener("keyup", (event) => {
 });
 
 sf.canvas.addEventListener("mousedown", (event) => {
+	event.preventDefault();
 	sf.input.mouse.held[event.button] = true;
 	sf.input.mouse.pressed[event.button] = true;
 });
 
 sf.canvas.addEventListener("mouseup", (event) => {
+	event.preventDefault();
 	sf.input.mouse.held[event.button] = false;
 	sf.input.mouse.released[event.button] = true;
 });
