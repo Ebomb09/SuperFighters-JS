@@ -20,6 +20,7 @@ export default class BaseObject{
 					options[key] = param[key];
 			});
 		});
+		this.options = options;
 
 		// Set objects parent
 		this.parent = options.parent;
@@ -33,8 +34,8 @@ export default class BaseObject{
 				y: (options.frameCount) ? options.frameCount.y : 1,
 			},
 			index: {
-				x: 0,
-				y: 0
+				x: (options.frameIndex) ? options.frameIndex.x : 0,
+				y: (options.frameIndex) ? options.frameIndex.y : 0
 			},
 		};
 		this.frame.width = this.image.width / this.frame.count.x;
@@ -45,13 +46,21 @@ export default class BaseObject{
 			height: (options.tiling) ? options.tiling.height : 1
 		};
 
+		this.resizable = (options.resizable !== undefined) ? options.resizable : true;
+
 		// Determine the object size based on the source image and number of tiling
 		this.width = (options.width) ? options.width : this.frame.width * this.tiling.width;
 		this.height = (options.height) ? options.height : this.frame.height * this.tiling.height;
 
 		// Create the physics body
-		this.body = Matter.Bodies.rectangle(options.x, options.y, this.width, this.height, options.matter);
+		if(options.shape == "circle")
+			this.body = Matter.Bodies.circle(options.x, options.y, this.height / 2, options.matter);
+		else
+			this.body = Matter.Bodies.rectangle(options.x, options.y, this.width, this.height, options.matter);
 		this.collisions = [];
+
+		if(options.category) this.body.collisionFilter.category = options.category;
+		if(options.mask) this.body.collisionFilter.mask = options.mask;
 
 		// Alias to Matter Body
 		this.position 			= this.body.position;
@@ -113,7 +122,7 @@ export default class BaseObject{
 
 					// Destination
 					w * this.frame.width,
-					h * this.frame.width,
+					h * this.frame.height,
 					this.frame.width,
 					this.frame.height
 					);				
@@ -121,6 +130,10 @@ export default class BaseObject{
 		}
 
 		sf.ctx.restore();
+	}
+
+	strictState(state){
+		return this.action.state == state;
 	}
 
 	checkState(state){
@@ -300,14 +313,38 @@ export default class BaseObject{
 const obj = sf.data.objects;
 
 let added = [
-	obj.crate 			=	{ image: sf.data.loadImage("images/crate.png"), health: 50},
-	obj.crate_hanging 	=	{ image: sf.data.loadImage("images/crate_hanging.png")},
-	obj.filecab			=	{ image: sf.data.loadImage("images/filecab.png") },
-	obj.barrel			=	{ image: sf.data.loadImage("images/barrel.png"), health: 100 },
-	obj.pool_table		=	{ image: sf.data.loadImage("images/pool_table.png") },
-	obj.floor			=	{ image: sf.data.loadImage("images/floor.png"), frameCount: {x: 3, y: 1}, matter: {isStatic: true}},
-	obj.wall			=	{ image: sf.data.loadImage("images/wall.png"), frameCount: {x: 3, y: 1}, matter: {isStatic: true}},
+
+	// Decorative Objects
+	obj.crate 			=	{ image: sf.data.loadImage("images/crate.png"), resizable: false, health: 50},
+	obj.crate_hanging 	=	{ image: sf.data.loadImage("images/crate_hanging.png"), resizable: false},
+	obj.barrel			=	{ image: sf.data.loadImage("images/barrel.png"), resizable: false, health: 100 },
+	obj.filecab			=	{ image: sf.data.loadImage("images/filecab.png"), resizable: false },
+	obj.computer_monitor=	{ image: sf.data.loadImage("images/computer_monitor.png"), resizable: false, health: 5 },
+	obj.computer_desktop=	{ image: sf.data.loadImage("images/computer_desktop.png"), resizable: false, health: 5 },
+	obj.target 			=	{ image: sf.data.loadImage("images/target.png"), resizable: false, health: 5, matter: {isStatic: true}},
+	obj.pool_table		=	{ image: sf.data.loadImage("images/pool_table.png"), resizable: false},
+	obj.air_duct		=	{ image: sf.data.loadImage("images/air_duct.png"), resizable: false, matter: {isStatic: true}},
+	obj.desk			=	{ image: sf.data.loadImage("images/desk.png"), frameCount: {x: 2, y: 1}, resizable: false},
+	obj.table			=	{ image: sf.data.loadImage("images/table.png"), resizable: false, health: 35},
+	obj.small_table		=	{ image: sf.data.loadImage("images/small_table.png"), resizable: false, health: 15},
+	obj.chair			=	{ image: sf.data.loadImage("images/chair.png"), resizable: false},
+	obj.table_chair		=	{ image: sf.data.loadImage("images/table_chair.png"), resizable: false},
+	obj.globe			=	{ image: sf.data.loadImage("images/globe.png"), resizable: false, shape: "circle"},
+	obj.beachball		=	{ image: sf.data.loadImage("images/beachball.png"), resizable: false, health: 25, shape: "circle"},
+	obj.paper			=	{ image: sf.data.loadImage("images/paper.png"), frameCount: {x: 2, y: 1}, resizable: false, health: 5},
+	obj.pipe			=	{ image: sf.data.loadImage("images/pipe.png"), resizable: false, shape: "circle"},
+
+	// Ground Objects
+	obj.dirt			= 	{ image: sf.data.loadImage("images/dirt.png"), matter: {isStatic: true}},
+
+	obj.concrete		=	{ image: sf.data.loadImage("images/concrete.png"), frameCount: {x: 3, y: 3}, matter: {isStatic: true}},
+	obj.brick			= 	{ image: sf.data.loadImage("images/brick.png"), frameCount: {x: 2, y: 1}, matter: {isStatic: true}},
+
+	obj.grider			= 	{ image: sf.data.loadImage("images/girder.png"), frameCount: {x: 3, y: 1}, matter: {isStatic: true}},
+	obj.metal			= 	{ image: sf.data.loadImage("images/metal.png"), frameCount: {x: 3, y: 1}, matter: {isStatic: true}},
 
 ].forEach((item) => {
 	item.type = BaseObject;
+	item.category = sf.filters.object;
+	item.mask = sf.filters.object | sf.filters.player | sf.filters.weapon | sf.filters.projectile;
 });

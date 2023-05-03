@@ -23,6 +23,7 @@ export default class Editor extends Game{
 			display: null,
 			objects: [],
 			objectsVar: [],
+			copy: [],
 			start: {x: 0, y: 0},
 			grid: {x: 8, y: 8, angle: 15}
 		};
@@ -48,7 +49,9 @@ export default class Editor extends Game{
 		const load = document.createElement("button");
 		load.append("📁 Load");
 		load.addEventListener("click", () => {
-			fetch("maps/"+prompt()+".sfm").then((response) => {
+			let name = prompt();
+
+			fetch("maps/"+name+".sfm").then((response) => {
 				return response.text();
 			}).then((data) => {
 				this.loadMap(data);
@@ -165,15 +168,33 @@ export default class Editor extends Game{
 
 	update(ms){
 
+		// Copy
+		if(sf.input.key.held["ControlLeft"] && sf.input.key.pressed["KeyC"]){
+			this.selection.copy = this.saveMap(this.selection.objects);
+		}
+
+		// Paste
+		if(sf.input.key.held["ControlLeft"] && sf.input.key.pressed["KeyV"]){
+			this.selection.objects = this.loadMap(this.selection.copy, true);
+			this.updateDisplay();
+		}
+
 		// Zoom Camera
 		if(sf.input.mouse.scroll.y < 0){
+			let pos = this.getMousePosition();
 			this.camera.zoom += 1;
+			this.camera.x += pos.x - this.getMousePosition().x;
+			this.camera.y += pos.y - this.getMousePosition().y;
 		}
 
 		if(sf.input.mouse.scroll.y > 0){
+			let pos = this.getMousePosition();
 
 			if(this.camera.zoom > 1)
 				this.camera.zoom -= 1;
+
+			this.camera.x += pos.x - this.getMousePosition().x;
+			this.camera.y += pos.y - this.getMousePosition().y;
 		}
 
 		// Delete Objects
@@ -183,12 +204,13 @@ export default class Editor extends Game{
 				this.kill(obj);
 			});
 			this.selection.objects = [];
+			this.updateDisplay();
 		}
 
 		// Mode starters
 		if(this.selection.mode == Mode.None){
 			this.selection.start = this.getMousePosition();
-			let touching = this.getObjectsByAABB(this.getMousePosition());
+			let touching = this.getObjectsByPoints(this.getMousePosition());
 
 			// Check what objects are being interacted with
 			let mode = Mode.None;
@@ -203,7 +225,7 @@ export default class Editor extends Game{
 						mode = Mode.Move;
 
 						// Check if in resize bounds
-						if(this.selection.objects.length == 1 && obj.constructor.name == "BaseObject"){
+						if(this.selection.objects.length == 1 && obj.resizable){
 
 							if(this.selection.start.y > obj.bounds.max.y - 2){
 								mode = Mode.ResizeY;
@@ -278,7 +300,7 @@ export default class Editor extends Game{
 				break;
 
 			case Mode.Rotate:
-				let angle = (this.getMousePosition().x - this.selection.start.x) + (this.getMousePosition().y - this.selection.start.y);
+				let angle = ((this.getMousePosition().x - this.selection.start.x) + (this.getMousePosition().y - this.selection.start.y)) * this.camera.zoom;
 
 				for(let i = 0; i < this.selection.objects.length; i ++){
 					const obj = this.selection.objects[i];
@@ -325,7 +347,7 @@ export default class Editor extends Game{
 			switch(this.selection.mode){
 
 				case Mode.Select:
-					this.selection.objects = this.getObjectsByAABB(this.getMousePosition(), this.selection.start);
+					this.selection.objects = this.getObjectsByPoints(this.getMousePosition(), this.selection.start);
 
 					// No drag box so get last element
 					if(this.selection.objects.length > 1)
@@ -443,7 +465,7 @@ export default class Editor extends Game{
 		}
 
 		// Draw the resizer boxes
-		if(this.selection.objects.length == 1 && this.selection.objects[0].constructor.name == "BaseObject"){
+		if(this.selection.objects.length == 1 && this.selection.objects[0].resizable){
 			let obj = this.selection.objects[0];
 			let width = obj.bounds.max.x - obj.bounds.min.x;
 			let height = obj.bounds.max.y - obj.bounds.min.y;
@@ -468,6 +490,11 @@ export default class Editor extends Game{
 		}
 
 		sf.ctx.restore();
+
+		// Draw Coordinates
+		sf.ctx.font = "13px sans-serif";
+		sf.ctx.fillStyle = "grey";
+		sf.ctx.fillText(`X: ${Math.round(this.camera.x)} Y: ${Math.round(this.camera.y)}, Zoom: ${Math.round(this.camera.zoom)}`, 0, sf.canvas.height);
 	}
 
 	updateDisplay(){
@@ -516,12 +543,12 @@ export default class Editor extends Game{
 			this.selection.display.append(y);
 
 			// Width and Height
-			if(obj.constructor.name == "BaseObject"){
+			if(obj.resizable){
 				const w = this.createInput("width", obj.tiling.width);
 				w.addEventListener("input", (event) => {
 					let w = parseInt(event.target.value);
 
-					if(!isNaN(w))
+					if(!isNaN(w) && w >= 1)
 						obj.resetTiling(w, obj.tiling.height);
 				});
 
@@ -530,7 +557,7 @@ export default class Editor extends Game{
 				h.addEventListener("input", (event) => {
 					let h = parseInt(event.target.value);
 
-					if(!isNaN(h))
+					if(!isNaN(h) && h >= 1)
 						obj.resetTiling(obj.tiling.width, h);
 				});	
 
@@ -571,17 +598,21 @@ export default class Editor extends Game{
 			if(obj.constructor.name == "BaseObject"){
 				const frames = document.createElement("div");
 
-				for(let w = 0; w < obj.frame.count.x; w ++){
-					for(let h = 0; h < obj.frame.count.y; h ++){
+				for(let h = 0; h < obj.frame.count.y; h ++){
+					for(let w = 0; w < obj.frame.count.x; w ++){
 						const button = document.createElement("button");
 						button.className = "listing";
 
 						button.append(this.createImage(obj.parent, w, h));
 						button.append(`Frame {X: ${w}, Y: ${h}}`);
 
+						if(obj.frame.index.x == w && obj.frame.index.y == h)
+							button.style = "text-shadow: 1px 1px 3px yellow;";
+
 						button.addEventListener("click", () => {
 							obj.frame.index.x = w;
 							obj.frame.index.y = h;
+							this.updateDisplay();
 						});
 
 						frames.append(button);

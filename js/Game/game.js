@@ -32,12 +32,15 @@ export default class Game{
 			this.loadMap(map);
 	}
 
-	saveMap(){
+	saveMap(objects){
+
+		if(objects === undefined) objects = this.objects;
+
 		let map = {
 			objects: []
 		};
 
-		this.objects.forEach((obj) => {
+		objects.forEach((obj) => {
 
 			let keys = Object.keys(sf.data.objects);
 			let values = Object.values(sf.data.objects);
@@ -66,17 +69,22 @@ export default class Game{
 		return JSON.stringify(map);
 	}
 
-	loadMap(buffer){
+	loadMap(buffer, add){
 
-		// Unload all current objects
-		Matter.Composite.clear(this.world);
-		this.objects = [];
-
+		// Clear all objects if you not request to add them
+		if(!add){
+			Matter.Composite.clear(this.world);
+			this.objects = [];
+		}
+		
 		let map = JSON.parse(buffer);
+		let objects = [];
 
 		map.objects.forEach((obj) => {
-			this.createObject(sf.data.objects[obj.parentKey], obj);
+			objects.push(this.createObject(sf.data.objects[obj.parentKey], obj));
 		});
+
+		return objects;
 	}
 
 	startCollision(event){
@@ -85,19 +93,19 @@ export default class Game{
 			let objA = this.getObjectById(pair.bodyA.id);
 			let objB = this.getObjectById(pair.bodyB.id);
 
+			if(objA && objB){
+				objA.addCollision(objB, pair.collision);
+				objB.addCollision(objA, pair.collision);
+			}
+
 			// Calculate damage as the difference of colliding velocities
 			let damageVector = Matter.Vector.sub(pair.bodyA.velocity, pair.bodyB.velocity);
 			let damage = Math.round(Math.abs(Matter.Vector.magnitude(damageVector)));
 
-			// Threshold damage to 6, around freefall state
+			// Threshold damage to 6, around freefall state			
 			if(damage >= 6){
 				if(objA) objA.dealDamage(damage); 
 				if(objB) objB.dealDamage(damage);
-			}
-
-			if(objA && objB){
-				objA.addCollision(objB, pair.collision);
-				objB.addCollision(objA, pair.collision);
 			}
 		});
 	}
@@ -252,8 +260,18 @@ export default class Game{
 		return null;		
 	}
 
-	getObjectsByAABB(...points){
+	getObjectsByPoints(...points){
 		let bounds = Matter.Bounds.create(points);
+		let bodies = Matter.Query.region(Matter.Composite.allBodies(this.world), bounds);
+		let objects = [];
+
+		bodies.forEach((body) => {
+			objects.push(this.getObjectById(body.id));
+		});
+		return objects;
+	}
+
+	getObjectsByAABB(bounds){
 		let bodies = Matter.Query.region(Matter.Composite.allBodies(this.world), bounds);
 		let objects = [];
 

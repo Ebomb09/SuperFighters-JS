@@ -59,7 +59,14 @@ const sf = {
 		materials: {},
 		sounds: {},
 		objects: {}
-	}
+	},
+
+	filters: {
+		object: 		1 << 0,
+		player: 		1 << 1,
+		weapon: 		1 << 2,
+		projectile: 	1 << 3,
+	},
 };
 
 export default sf;
