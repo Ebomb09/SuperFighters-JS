@@ -1,6 +1,11 @@
 import sf from "../sf";
 import BaseMenu from "./base_menu";
 
+const sounds = {
+	accept: sf.data.loadAudio("sounds/accept_02.mp3"),
+	cancel: sf.data.loadAudio("sounds/cancel_02.mp3")
+};
+
 export default class MenuDispatcher extends Array{
 
 	update(){
@@ -12,10 +17,14 @@ export default class MenuDispatcher extends Array{
 			menu.update();
 
 			// Send mouse hover position
-			menu.hover(sf.input.mouse.x, sf.input.mouse.y, sf.input.mouse.pressed[0]);
-
-			if(sf.input.key.pressed["Space"] || sf.input.key.pressed["Enter"])
-				menu.select();
+			if(menu.hover(sf.input.mouse.x, sf.input.mouse.y, sf.input.mouse.pressed[0]))
+				sf.data.playAudio(sounds.accept);
+			
+			if(sf.input.key.pressed["Space"] || sf.input.key.pressed["Enter"]){
+				
+				if(menu.select())
+					sf.data.playAudio(sounds.accept);
+			}
 
 			if(sf.input.key.pressed["ArrowUp"])
 				menu.up();
@@ -30,8 +39,10 @@ export default class MenuDispatcher extends Array{
 				menu.right();
 
 			// Close current menu
-			if(sf.input.key.pressed["Escape"])
+			if(sf.input.key.pressed["Escape"]){
+				sf.data.playAudio(sounds.cancel);
 				this.pop();
+			}
 		}
 	}
 

@@ -22,6 +22,7 @@ const State = {
 	Kicking: 		"grounded_attacking_kicking",
 	JumpKicking: 	"jumping_attacking_kicking",
 	Aiming: 		"grounded_aiming", 
+	Drawing: 		"grounded_drawing",
 	Shooting: 		"grounded_aiming_shooting"
 };
 
@@ -30,6 +31,15 @@ const Inventory = {
 	Gun: 		1, 
 	Throwable: 	2,
 	Powerup: 	3
+};
+
+const sounds = {
+	punch: [
+		sf.data.loadAudio("sounds/svisch4.mp3"),
+		sf.data.loadAudio("sounds/svisch6.mp3"),
+		],
+	roll: sf.data.loadAudio("sounds/roll.mp3"),
+	jump: sf.data.loadAudio("sounds/jump_00.mp3")
 };
 
 export default class Player extends BaseObject{
@@ -219,6 +229,7 @@ export default class Player extends BaseObject{
 				angle = ((Date.now() / 2) % 360) * Math.PI / 180;
 				break;
 
+			case State.Drawing:
 			case State.Aiming:
 				this.frame.index = {x: 0, y: 4};
 				break;
@@ -234,22 +245,63 @@ export default class Player extends BaseObject{
 			});
 
 		// Draw upper torso when aiming
-		if(this.checkState(State.Aiming)){
+		if(this.checkState(State.Aiming) || this.checkState(State.Drawing)){
 			sf.ctx.save();
 
-			let recoil = 0;
-			if(this.checkState(State.Shooting)){
-				recoil = Math.sin(this.delayTimestamp() / this.state.delayMax * Math.PI);
+			// Get the recoil
+			if(this.checkState(State.Shooting))
+				var recoil = Math.sin(this.delayTimestamp() / this.state.delayMax * Math.PI);
+			else	
+				var recoil = 0;
+
+			// Get equiped weapon
+			const weapon = this.inventory[this.equiped];
+
+			// Set torso frame
+			if(this.checkState(State.Aiming)){
+				var torso = {
+					index: {
+						x: 1, 
+						y: 5					
+					},
+					x: -this.frame.width/2 - recoil, 
+					y: this.height / 2 - this.frame.height,
+					angle: 0
+				};
+				var gun = { 
+					x: this.frame.width - weapon.frame.width / 1.5, 
+					y: this.frame.height/2 - weapon.frame.height/2,
+					angle: 0
+				};
+
+			}else{
+				var torso = {
+					index: {
+						x: 0, 
+						y: 5,
+					},
+					x: -this.frame.width/2 - recoil, 
+					y: this.height / 2 - this.frame.height,
+					angle: 0
+				};
+				var gun = {
+					x: this.frame.width - weapon.frame.width / 1.5, 
+					y: this.frame.height/2 - weapon.frame.height/2 + this.frame.width /4,
+					angle: -Math.PI / 2
+				};
+
 			}
 
 			// Transform Image
 			sf.ctx.translate(this.position.x - this.facingDirection, this.position.y - 1);
 			sf.ctx.rotate(this.getCrosshairAngle());
 			sf.ctx.scale(1, this.facingDirection);
-			sf.ctx.translate(-this.frame.width/2 - recoil, this.height / 2 - this.frame.height);
 
 			// Draw weapon held
-			const weapon = this.inventory[this.equiped];
+			sf.ctx.save();
+			sf.ctx.rotate(gun.angle);
+			sf.ctx.translate(torso.x, torso.y);
+			sf.ctx.translate(gun.x, gun.y);
 
 			sf.ctx.drawImage(
 				weapon.image,
@@ -257,22 +309,30 @@ export default class Player extends BaseObject{
 				0,
 				weapon.frame.width,
 				weapon.frame.height,
-				this.frame.width - weapon.frame.width / 1.5,
-				this.frame.height/2 - weapon.frame.height/2,
+				0,
+				0,
 				weapon.frame.width,
 				weapon.frame.height);
 
+			sf.ctx.restore();
+
 			// Draw upper torso
+			sf.ctx.save();
+			sf.ctx.rotate(torso.angle);
+			sf.ctx.translate(torso.x, torso.y);
+
 			sf.ctx.drawImage(
 				this.image,
-				this.frame.width * 1,
-				this.frame.height * 5,
+				this.frame.width * torso.index.x,
+				this.frame.height * torso.index.y,
 				this.frame.width,
 				this.frame.height,
 				0,
 				0,
 				this.frame.width,
 				this.frame.height);
+			sf.ctx.restore();
+
 			sf.ctx.restore();
 		}
 	}
@@ -323,6 +383,7 @@ export default class Player extends BaseObject{
 
 			if(this.checkState(State.Crouching)){
 				this.setState(State.Rolling, 300);
+				sf.data.playAudio(sounds.roll);
 
 			}else if(!this.checkState(State.Rolling)){
 				Matter.Body.setPosition(this.body, 
@@ -344,6 +405,7 @@ export default class Player extends BaseObject{
 	
 			if(this.checkState(State.Crouching)){
 				this.setState(State.Rolling, 300);
+				sf.data.playAudio(sounds.roll);
 
 			}else if(!this.checkState(State.Rolling)){
 				Matter.Body.setPosition(this.body, 
@@ -360,7 +422,7 @@ export default class Player extends BaseObject{
 
 	moveUp(){
 
-		if(this.checkState(State.Attacking) || this.checkState(State.Recovering))
+		if(!this.delayDone() && !this.checkState(State.Aiming))
 			return;
 
 		// Aiming up
@@ -377,12 +439,13 @@ export default class Player extends BaseObject{
 					x: this.body.velocity.x, 
 					y: -4 
 				});
+			sf.data.playAudio(sounds.jump);
 		}
 	}
 
 	moveDown(){
 
-		if(this.checkState(State.Attacking) || this.checkState(State.Recovering))
+		if(!this.delayDone() && !this.checkState(State.Aiming))
 			return;
 
 		// Aiming down
@@ -419,7 +482,7 @@ export default class Player extends BaseObject{
 
 	attack(){
 
-		if(this.checkState(State.Damaged) || this.checkState(State.Recovering))
+		if(!this.delayDone() && !this.checkState(State.Attacking))
 			return;
 
 		// Try to fire gun
@@ -437,7 +500,7 @@ export default class Player extends BaseObject{
 					[{
 						delay: recoilTime,
 						action: () => { 
-							this.setState(State.Aiming, 100); 
+							this.setState(State.Aiming); 
 						}
 					}]);
 			}
@@ -464,6 +527,7 @@ export default class Player extends BaseObject{
 								x: this.body.position.x + this.facingDirection * 1.5, 
 								y: this.body.position.y 
 							});
+						sf.data.playAudio(sounds.punch);
 					}
 				}]);
 
@@ -489,6 +553,7 @@ export default class Player extends BaseObject{
 								x: this.body.position.x + this.facingDirection * 1.5, 
 								y: this.body.position.y 
 							});
+						sf.data.playAudio(sounds.punch);
 					}
 				}]);
 
@@ -514,6 +579,7 @@ export default class Player extends BaseObject{
 								x: this.body.position.x + this.facingDirection * 1.5, 
 								y: this.body.position.y 
 							});
+						sf.data.playAudio(sounds.punch);
 					}
 				}]);
 
@@ -532,12 +598,13 @@ export default class Player extends BaseObject{
 					y: 0,
 					damage: 5
 				});
+			sf.data.playAudio(sounds.punch);
 		}
 	}
 
 	secondaryAttack(){
 
-		if(this.checkState(State.Damaged) || this.checkState(State.Recovering))
+		if(!this.delayDone() && !this.checkState(State.Attacking))
 			return;
 
 		// Try to throw gun
@@ -566,6 +633,7 @@ export default class Player extends BaseObject{
 					y: -0.0001,
 					damage: 1
 				});
+			sf.data.playAudio(sounds.punch);
 
 		// Jump kicking
 		}else if(this.checkState(State.Jumping) && !this.checkState(State.Attacking)){
@@ -582,6 +650,7 @@ export default class Player extends BaseObject{
 					y: -0.001,
 					damage: 1
 				});
+			sf.data.playAudio(sounds.punch);
 		}
 	}
 
@@ -600,18 +669,19 @@ export default class Player extends BaseObject{
 
 	aim(){
 
-		if(this.checkState(State.Damaged) || this.checkState(State.Attacking) || this.checkState(State.Rolling) || this.checkState(State.Recovering))
+		if(!this.delayDone())
 			return;
 
 		if(this.checkState(State.Grounded) && this.inventory[this.equiped] != null){
 
-			// Not previously aiming then reset crosshair angle
-			if(!this.checkState(State.Aiming))
+			// Not previously aiming then reset crosshair angled
+			if(!this.checkLastState(State.Aiming) && !this.checkState(State.Drawing) && !this.checkLastState(State.Drawing)){
 				this.crosshair.angle = 0;
+				this.setState(State.Drawing, this.inventory[this.equiped].pullout());
 
-			// If not shooting reset aiming state
-			if(!this.checkState(State.Shooting))
-				this.setState(State.Aiming, 100);	
+			}else if(this.checkLastState(State.Aiming) || this.checkLastState(State.Drawing)){
+				this.setState(State.Aiming);	
+			}
 		}
 	}
 };

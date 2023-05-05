@@ -71,23 +71,30 @@ export default class BaseMenu{
 	}
 
 	hover(x, y, touch){
+		let touched = false;
 
 		this.markers.forEach((marker) => {
 
 			if(inRect({x: x, y: y}, marker)){
 				this.cursor = marker;
 
-				if(touch)
+				if(touch){
 					this.select();
+					touched = true;
+				}
 			}
 		});
+		return touched;
 	}
 
 	select(){
 		const marker = this.cursor;
 
-		if(marker && marker.onSelect)
+		if(marker && marker.onSelect){
 			marker.onSelect(marker);
+			return true;
+		}
+		return false;
 	}
 
 	right(){

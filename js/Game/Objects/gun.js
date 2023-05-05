@@ -6,11 +6,8 @@ export default class Gun extends BaseObject{
 	constructor(...params){
 		super(...params);
 
-		// Get Integral Weapon from the parent
-		this.type = this.parent.gun.type;
-		this.damage = this.parent.gun.damage;
-		this.speed = this.parent.gun.speed;
-		this.timing = this.parent.gun.timing;
+		// Alias the parent gun settings
+		this.gun = this.parent.gun;
 
 		// Ammo can be set
 		this.ammo = this.options.gun.ammo;
@@ -25,6 +22,11 @@ export default class Gun extends BaseObject{
 		return this;
 	}
 
+	pullout(){
+		sf.data.playAudio(this.gun.drawSound);
+		return 100;
+	}
+
 	shoot(){
 
 		if(this.ammo > 0){
@@ -37,16 +39,18 @@ export default class Gun extends BaseObject{
 				{
 					x: position.x, 
 					y: position.y, 
-					damage: this.damage, 
-					speed: this.speed,
+					damage: this.gun.damage, 
+					speed: this.gun.speed,
 					matter:{
 						angle: angle
 					}
 				});
-			return this.timing;
+
+			sf.data.playAudio(this.gun.firingSound);
+			return this.gun.timing;
 		}
 
-		// Empty
+		sf.data.playAudio(this.gun.emptySound);
 		return 150;
 	}
 };
@@ -57,7 +61,18 @@ export default class Gun extends BaseObject{
 const obj = sf.data.objects;
 
 let added = [
-	obj.magnum = { image: sf.data.loadImage("images/weapons/magnum.png"), gun: {ammo: 6, damage: 20, speed: 15, timing: 400}}
+	obj.magnum = { 
+		image: sf.data.loadImage("images/weapons/magnum.png"),
+		gun: {
+			ammo: 6, 
+			damage: 20, 
+			speed: 15, 
+			timing: 400, 
+			firingSound: sf.data.loadAudio("sounds/magnum.mp3"),
+			emptySound: sf.data.loadAudio("sounds/outofammo_light.mp3"),
+			drawSound: sf.data.loadAudio("sounds/aim_small.mp3")
+		}
+	}
 
 ].forEach((item) => {
 	item.type = Gun;

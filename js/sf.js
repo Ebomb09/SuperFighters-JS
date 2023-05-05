@@ -13,6 +13,22 @@ function loadAudio(src){
 	return new Audio(src);
 }
 
+function playAudio(audio){
+
+	if(!audio)
+		return;
+
+	// If array of sounds randomly pick one
+	if(audio.constructor.name == "Array")
+		audio = audio[Math.round(Math.random() * (audio.length - 1))];
+
+	// Create a clone to buffer multiple copies
+	let copy = audio.cloneNode();
+	copy.play();
+	
+	return copy;
+}
+
 const docs = document.getElementById("sf-docs");
 const canvas = document.getElementById("sf-canvas");
 const ctx = canvas.getContext("2d");
@@ -80,6 +96,7 @@ const sf = {
 	data: {
 		loadImage: loadImage,
 		loadAudio: loadAudio,
+		playAudio: playAudio,
 
 		materials: {},
 		sounds: {},
