@@ -46,8 +46,6 @@ export default class BaseObject{
 			height: (options.tiling) ? options.tiling.height : 1
 		};
 
-		this.resizable = (options.resizable !== undefined) ? options.resizable : true;
-
 		// Determine the object size based on the source image and number of tiling
 		this.width = (options.width) ? options.width : this.frame.width * this.tiling.width;
 		this.height = (options.height) ? options.height : this.frame.height * this.tiling.height;
@@ -194,12 +192,16 @@ export default class BaseObject{
 		this.state.name = state;
 		this.state.entropy = Math.random();
 		this.state.delay = (delay) ? delay : 0;
-		this.state.delayMax = delay;
+		this.state.delayMax = this.state.delay;
 		this.state.callbacks = callbacks;
 	}
 
 	getStateEntropy(){
 		return this.state.entropy;
+	}
+
+	delayDone(){
+		return this.delayTimestamp() == this.state.delayMax;
 	}
 
 	delayTimestamp(){
@@ -215,17 +217,22 @@ export default class BaseObject{
 			// Run callback once timestamp is met
 			if(this.state.callbacks){
 				const timestamp = this.delayTimestamp();
+				const callbacks = this.state.callbacks;
 
-				for(let i = 0; i < this.state.callbacks.length; i ++){
+				for(let i = 0; i < callbacks.length; i ++){
 
 					// Once fullfilled run and delete callback
-					if(timestamp >= this.state.callbacks[i].delay){
-						this.state.callbacks[i].action();
-						this.state.callbacks.splice(i, 1);
+					if(timestamp >= callbacks[i].delay){
+						callbacks[i].action();
+						callbacks.splice(i, 1);
 					}
 				}
 			}
 		}		
+	}
+
+	getType(){
+		return this.constructor.name;
 	}
 
 	addCollision(source, collision){
@@ -398,37 +405,37 @@ const obj = sf.data.objects;
 let added = [
 
 	// Decorative Objects
-	obj.crate 			=	{ image: sf.data.loadImage("images/crate.png"), resizable: false, health: 50},
-	obj.crate_hanging 	=	{ image: sf.data.loadImage("images/crate_hanging.png"), resizable: false},
-	obj.barrel			=	{ image: sf.data.loadImage("images/barrel.png"), resizable: false, health: 100 },
-	obj.filecab			=	{ image: sf.data.loadImage("images/filecab.png"), resizable: false },
-	obj.computer_monitor=	{ image: sf.data.loadImage("images/computer_monitor.png"), resizable: false, health: 5 },
-	obj.computer_desktop=	{ image: sf.data.loadImage("images/computer_desktop.png"), resizable: false, health: 5 },
-	obj.target 			=	{ image: sf.data.loadImage("images/target.png"), resizable: false, health: 5, matter: {isStatic: true}},
-	obj.pool_table		=	{ image: sf.data.loadImage("images/pool_table.png"), resizable: false},
-	obj.air_duct		=	{ image: sf.data.loadImage("images/air_duct.png"), resizable: false, matter: {isStatic: true}},
-	obj.desk			=	{ image: sf.data.loadImage("images/desk.png"), frameCount: {x: 2, y: 1}, resizable: false},
-	obj.table			=	{ image: sf.data.loadImage("images/table.png"), resizable: false, health: 35},
-	obj.small_table		=	{ image: sf.data.loadImage("images/small_table.png"), resizable: false, health: 15},
-	obj.chair			=	{ image: sf.data.loadImage("images/chair.png"), resizable: false},
-	obj.table_chair		=	{ image: sf.data.loadImage("images/table_chair.png"), resizable: false},
-	obj.globe			=	{ image: sf.data.loadImage("images/globe.png"), resizable: false, shape: "circle"},
-	obj.beachball		=	{ image: sf.data.loadImage("images/beachball.png"), resizable: false, health: 25, shape: "circle"},
-	obj.paper			=	{ image: sf.data.loadImage("images/paper.png"), frameCount: {x: 2, y: 1}, resizable: false, health: 5},
-	obj.pipe			=	{ image: sf.data.loadImage("images/pipe.png"), resizable: false, shape: "circle"},
+	obj.crate 			=	{ image: sf.data.loadImage("images/crate.png"), health: 50},
+	obj.crate_hanging 	=	{ image: sf.data.loadImage("images/crate_hanging.png") },
+	obj.barrel			=	{ image: sf.data.loadImage("images/barrel.png"), health: 100 },
+	obj.filecab			=	{ image: sf.data.loadImage("images/filecab.png")},
+	obj.computer_monitor=	{ image: sf.data.loadImage("images/computer_monitor.png"), health: 5 },
+	obj.computer_desktop=	{ image: sf.data.loadImage("images/computer_desktop.png"), health: 5 },
+	obj.target 			=	{ image: sf.data.loadImage("images/target.png"), health: 5, matter: {isStatic: true}},
+	obj.pool_table		=	{ image: sf.data.loadImage("images/pool_table.png")},
+	obj.air_duct		=	{ image: sf.data.loadImage("images/air_duct.png"), matter: {isStatic: true}},
+	obj.desk			=	{ image: sf.data.loadImage("images/desk.png"), frameCount: {x: 2, y: 1}},
+	obj.table			=	{ image: sf.data.loadImage("images/table.png"), health: 35},
+	obj.small_table		=	{ image: sf.data.loadImage("images/small_table.png"), health: 15},
+	obj.chair			=	{ image: sf.data.loadImage("images/chair.png")},
+	obj.table_chair		=	{ image: sf.data.loadImage("images/table_chair.png")},
+	obj.globe			=	{ image: sf.data.loadImage("images/globe.png"), shape: "circle"},
+	obj.beachball		=	{ image: sf.data.loadImage("images/beachball.png"), health: 25, shape: "circle"},
+	obj.paper			=	{ image: sf.data.loadImage("images/paper.png"), frameCount: {x: 2, y: 1}, health: 5},
+	obj.pipe			=	{ image: sf.data.loadImage("images/pipe.png"), shape: "circle"},
 
 	// Ground Objects
-	obj.dirt			= 	{ image: sf.data.loadImage("images/dirt.png"), matter: {isStatic: true}},
-	obj.concrete		=	{ image: sf.data.loadImage("images/concrete.png"), frameCount: {x: 3, y: 3}, matter: {isStatic: true}},
-	obj.concrete_slopeR	=	{ image: sf.data.loadImage("images/concrete_slopeR.png"), shape: "tl-br", matter: {isStatic: true}},
-	obj.concrete_slopeL =	{ image: sf.data.loadImage("images/concrete_slopeL.png"), shape: "tr-bl", matter: {isStatic: true}},
-	obj.brick			= 	{ image: sf.data.loadImage("images/brick.png"), frameCount: {x: 2, y: 1}, matter: {isStatic: true}},
-	obj.block			= 	{ image: sf.data.loadImage("images/block.png"), matter: {isStatic: true}},
-	obj.grider			= 	{ image: sf.data.loadImage("images/girder.png"), frameCount: {x: 3, y: 1}, matter: {isStatic: true}},
-	obj.metal			= 	{ image: sf.data.loadImage("images/metal.png"), frameCount: {x: 3, y: 1}, matter: {isStatic: true}},
+	obj.dirt			= 	{ image: sf.data.loadImage("images/dirt.png"), resizable: true, matter: {isStatic: true}},
+	obj.concrete		=	{ image: sf.data.loadImage("images/concrete.png"), frameCount: {x: 3, y: 3}, resizable: true, matter: {isStatic: true}},
+	obj.concrete_slopeR	=	{ image: sf.data.loadImage("images/concrete_slopeR.png"), shape: "tl-br", resizable: true, matter: {isStatic: true}},
+	obj.concrete_slopeL =	{ image: sf.data.loadImage("images/concrete_slopeL.png"), shape: "tr-bl", resizable: true, matter: {isStatic: true}},
+	obj.brick			= 	{ image: sf.data.loadImage("images/brick.png"), frameCount: {x: 2, y: 1}, resizable: true, matter: {isStatic: true}},
+	obj.block			= 	{ image: sf.data.loadImage("images/block.png"), resizable: true, matter: {isStatic: true}},
+	obj.grider			= 	{ image: sf.data.loadImage("images/girder.png"), frameCount: {x: 3, y: 1}, resizable: true, matter: {isStatic: true}},
+	obj.metal			= 	{ image: sf.data.loadImage("images/metal.png"), frameCount: {x: 3, y: 1}, resizable: true, matter: {isStatic: true}},
 
 ].forEach((item) => {
 	item.type = BaseObject;
 	item.category = sf.filters.object;
-	item.mask = sf.filters.object | sf.filters.player | sf.filters.weapon | sf.filters.projectile;
+	item.mask = sf.filters.object | sf.filters.player | sf.filters.weapon | sf.filters.projectile | sf.filters.platform;
 });

@@ -45,7 +45,7 @@ export default class Projectile extends BaseObject{
 const obj = sf.data.objects;
 
 let added = [
-	obj.projectile = { image: sf.data.loadImage("images/projectile.png"), resizable: false}
+	obj.projectile = { image: sf.data.loadImage("images/projectile.png")}
 
 ].forEach((item) => {
 	item.type = Projectile;

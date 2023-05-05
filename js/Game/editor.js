@@ -141,8 +141,8 @@ export default class Editor extends Game{
 				this.createObject(
 					sf.data.objects[key], 
 					{
-						x: this.camera.x + sf.canvas.width / 2 / this.camera.zoom, 
-						y: this.camera.y + sf.canvas.height / 2 / this.camera.zoom, 
+						x: this.camera.x, 
+						y: this.camera.y, 
 					});
 			});
 
@@ -162,10 +162,6 @@ export default class Editor extends Game{
 			this.createTitle("Objects"),
 			objects
 			);
-	}
-
-	deconstructor(){
-		sf.html.innerHTML = "";
 	}
 
 	update(ms){
@@ -227,7 +223,7 @@ export default class Editor extends Game{
 						mode = Mode.Move;
 
 						// Check if in resize bounds
-						if(this.selection.objects.length == 1 && obj.resizable){
+						if(this.selection.objects.length == 1 && obj.parent.resizable){
 
 							if(this.selection.start.y > obj.bounds.max.y - 2){
 								mode = Mode.ResizeY;
@@ -369,26 +365,28 @@ export default class Editor extends Game{
 	draw(){
 		sf.ctx.save();
 
+		const realCamera = this.getCameraRealPosition();
+
 		sf.ctx.scale(this.camera.zoom, this.camera.zoom);
-		sf.ctx.translate(-this.camera.x, -this.camera.y);
+		sf.ctx.translate(-realCamera.x, -realCamera.y);
 
 		// Draw grid
 		for(let i = 0; i < sf.canvas.width / this.camera.zoom; i += this.selection.grid.x){
-			let x = Math.round((this.camera.x + i) / this.selection.grid.x) * this.selection.grid.x;
+			let x = Math.round((realCamera.x + i) / this.selection.grid.x) * this.selection.grid.x;
 
 			sf.ctx.beginPath();
-			sf.ctx.moveTo(x, this.camera.y);
-			sf.ctx.lineTo(x, this.camera.y + sf.canvas.height);
+			sf.ctx.moveTo(x, realCamera.y);
+			sf.ctx.lineTo(x, realCamera.y + sf.canvas.height);
 			sf.ctx.strokeStyle = "grey";
 			sf.ctx.lineWidth = 0.1;
 			sf.ctx.stroke();
 		}
 		for(let i = 0; i < sf.canvas.height / this.camera.zoom; i += this.selection.grid.y){
-			let y = Math.round((this.camera.y + i) / this.selection.grid.y) * this.selection.grid.y;
+			let y = Math.round((realCamera.y + i) / this.selection.grid.y) * this.selection.grid.y;
 
 			sf.ctx.beginPath();
-			sf.ctx.moveTo(this.camera.x, y);
-			sf.ctx.lineTo(this.camera.x + sf.canvas.width, y);
+			sf.ctx.moveTo(realCamera.x, y);
+			sf.ctx.lineTo(realCamera.x + sf.canvas.width, y);
 			sf.ctx.strokeStyle = "grey";
 			sf.ctx.lineWidth = 0.1;
 			sf.ctx.stroke();
@@ -396,15 +394,15 @@ export default class Editor extends Game{
 
 		// Draw center lines
 		sf.ctx.beginPath();
-		sf.ctx.moveTo(0, this.camera.y);
-		sf.ctx.lineTo(0, this.camera.y + sf.canvas.height);
+		sf.ctx.moveTo(0, realCamera.y);
+		sf.ctx.lineTo(0, realCamera.y + sf.canvas.height);
 		sf.ctx.strokeStyle = "blue";
 		sf.ctx.lineWidth = 0.5;
 		sf.ctx.stroke();	
 
 		sf.ctx.beginPath();
-		sf.ctx.moveTo(this.camera.x, 0);
-		sf.ctx.lineTo(this.camera.x + sf.canvas.width, 0);
+		sf.ctx.moveTo(realCamera.x, 0);
+		sf.ctx.lineTo(realCamera.x + sf.canvas.width, 0);
 		sf.ctx.strokeStyle = "red";
 		sf.ctx.lineWidth = 0.5;
 		sf.ctx.stroke();	
@@ -460,7 +458,7 @@ export default class Editor extends Game{
 		}
 
 		// Draw the resizer boxes
-		if(this.selection.objects.length == 1 && this.selection.objects[0].resizable){
+		if(this.selection.objects.length == 1 && this.selection.objects[0].parent.resizable){
 			let obj = this.selection.objects[0];
 			let width = obj.bounds.max.x - obj.bounds.min.x;
 			let height = obj.bounds.max.y - obj.bounds.min.y;
@@ -538,7 +536,7 @@ export default class Editor extends Game{
 			this.selection.display.append(y);
 
 			// Width and Height
-			if(obj.resizable){
+			if(obj.parent.resizable){
 				const w = this.createInput("width", obj.tiling.width);
 				w.addEventListener("input", (event) => {
 					let w = parseInt(event.target.value);
@@ -590,7 +588,7 @@ export default class Editor extends Game{
 			this.selection.display.append(this.createSubDivider());
 
 			// Frame Index
-			if(obj.constructor.name == "BaseObject"){
+			if(!obj.parent.animated){
 				const frames = document.createElement("div");
 
 				for(let h = 0; h < obj.frame.count.y; h ++){

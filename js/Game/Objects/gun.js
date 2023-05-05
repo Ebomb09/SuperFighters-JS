@@ -57,10 +57,10 @@ export default class Gun extends BaseObject{
 const obj = sf.data.objects;
 
 let added = [
-	obj.magnum = { image: sf.data.loadImage("images/magnum.png"), resizable: false, gun: {ammo: 6, damage: 20, speed: 15, timing: 200}}
+	obj.magnum = { image: sf.data.loadImage("images/weapons/magnum.png"), gun: {ammo: 6, damage: 20, speed: 15, timing: 400}}
 
 ].forEach((item) => {
 	item.type = Gun;
 	item.category = sf.filters.weapon;
-	item.mask = sf.filters.object;
+	item.mask = sf.filters.object | sf.filters.platform;
 });

@@ -199,8 +199,8 @@ export default class Game{
 
 	getMousePosition(){
 		return {
-			x: (sf.input.mouse.x / this.camera.zoom) + this.camera.x,
-			y: (sf.input.mouse.y / this.camera.zoom) + this.camera.y 
+			x: (sf.input.mouse.x / this.camera.zoom) + this.getCameraRealPosition().x,
+			y: (sf.input.mouse.y / this.camera.zoom) + this.getCameraRealPosition().y 
 		};
 	}
 
@@ -221,8 +221,8 @@ export default class Game{
 		sf.ctx.save();
 
 		sf.ctx.scale(this.camera.zoom, this.camera.zoom);
-		sf.ctx.translate(-this.camera.x, -this.camera.y);
-
+		sf.ctx.translate(-this.getCameraRealPosition().x, -this.getCameraRealPosition().y);
+		
 		this.objects.forEach((obj) => {
 			obj.draw();
 		});
@@ -253,21 +253,22 @@ export default class Game{
 
 		scale = Math.round(scale);
 
-		const camera = {
-			x: this.camera.x + (sf.canvas.width / 2) / this.camera.zoom,
-			y: this.camera.y + (sf.canvas.height / 2) / this.camera.zoom,
-			zoom: this.camera.zoom		
-		};
-
 		const request = {
 			x: bounds.min.x + width / 2,
 			y: bounds.min.y + height / 2,
 			zoom: scale
 		};
 
-		this.camera.x 		+= (request.x - camera.x) / 25;
-		this.camera.y 		+= (request.y - camera.y) / 25;
-		this.camera.zoom 	+= (request.zoom - camera.zoom) / 25;
+		this.camera.x 		+= (request.x - this.camera.x) / 25;
+		this.camera.y 		+= (request.y - this.camera.y) / 25;
+		this.camera.zoom 	+= (request.zoom - this.camera.zoom) / 25;
+	}
+
+	getCameraRealPosition(){
+		return {
+			x: this.camera.x - (sf.canvas.width / 2) / this.camera.zoom,
+			y: this.camera.y - (sf.canvas.height / 2) / this.camera.zoom
+		};
 	}
 
 	createObject(parent, ...params){
@@ -366,5 +367,9 @@ export default class Game{
 			objects.push(this.getObjectById(body.id));
 		});
 		return objects;
+	}
+
+	getPlayers(){
+		return this.getObjectsByParent(sf.data.objects.player);
 	}
 };

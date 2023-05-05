@@ -93,6 +93,7 @@ const sf = {
 		projectile: 	1 << 3,
 		marker: 		1 << 4, 
 		background: 	1 << 5, 
+		platform: 		1 << 6
 	},
 };
 

@@ -35,7 +35,7 @@ const Inventory = {
 export default class Player extends BaseObject{
 
 	constructor(...params){
-		super(...params, {width: 8, height: 19, matter: {inertia: Infinity, friction: 0, slop: 1}});
+		super(...params, {width: 8, height: 19, matter: {inertia: Infinity, friction: 0, slop: 0.5}});
 
 		this.team = 0;
 
@@ -47,6 +47,14 @@ export default class Player extends BaseObject{
 		this.crosshair = {
 			angle: 		0
 		};
+
+		// Track last time for specific actions
+		this.last = {
+			crouch: 0
+		};
+
+		// Collision Group for platforms
+		this.body.collisionFilter.group = this.id;
 	}
 
 	update(ms){
@@ -68,7 +76,7 @@ export default class Player extends BaseObject{
 					});
 
 			// Check if any actions are done then reset to grounded
-			if(this.state.delay == 0)
+			if(this.delayDone())
 				this.setState(State.Grounded);
 
 		}else{
@@ -109,10 +117,10 @@ export default class Player extends BaseObject{
 			case State.Walking:
 				this.setAnimationFrame(
 					[
-						{x: 3, y: 0, delay: 200},
-						{x: 4, y: 0, delay: 200},
-						{x: 5, y: 0, delay: 200},
-						{x: 4, y: 0, delay: 200}
+						{x: 3, y: 0, delay: 150},
+						{x: 4, y: 0, delay: 150},
+						{x: 5, y: 0, delay: 150},
+						{x: 4, y: 0, delay: 150}
 					]);
 				break;
 
@@ -229,11 +237,16 @@ export default class Player extends BaseObject{
 		if(this.checkState(State.Aiming)){
 			sf.ctx.save();
 
+			let recoil = 0;
+			if(this.checkState(State.Shooting)){
+				recoil = Math.sin(this.delayTimestamp() / this.state.delayMax * Math.PI);
+			}
+
 			// Transform Image
 			sf.ctx.translate(this.position.x - this.facingDirection, this.position.y - 1);
 			sf.ctx.rotate(this.getCrosshairAngle());
 			sf.ctx.scale(1, this.facingDirection);
-			sf.ctx.translate(-this.frame.width/2, this.height / 2 - this.frame.height);
+			sf.ctx.translate(-this.frame.width/2 - recoil, this.height / 2 - this.frame.height);
 
 			// Draw weapon held
 			const weapon = this.inventory[this.equiped];
@@ -314,7 +327,7 @@ export default class Player extends BaseObject{
 			}else if(!this.checkState(State.Rolling)){
 				Matter.Body.setPosition(this.body, 
 					{
-						x: this.body.position.x + 1.5, 
+						x: this.body.position.x + 1, 
 						y: this.body.position.y 
 					});
 
@@ -335,8 +348,8 @@ export default class Player extends BaseObject{
 			}else if(!this.checkState(State.Rolling)){
 				Matter.Body.setPosition(this.body, 
 					{
-						x: this.body.position.x - 1.5, 
-						y: this.body.position.y 
+						x: this.body.position.x - 1, 
+						y: this.body.position.y
 					});
 
 				if(this.checkState(State.Grounded))
@@ -347,6 +360,9 @@ export default class Player extends BaseObject{
 
 	moveUp(){
 
+		if(this.checkState(State.Attacking) || this.checkState(State.Recovering))
+			return;
+
 		// Aiming up
 		if(this.checkState(State.Aiming)){
 
@@ -354,7 +370,7 @@ export default class Player extends BaseObject{
 				this.crosshair.angle -= 5;
 
 		// Jumping
-		}else if(this.checkState(State.Grounded) && !this.checkState(State.Attacking)){
+		}else if(this.checkState(State.Grounded)){
 			this.setState(State.Jumping);
 			Matter.Body.setVelocity(this.body, 
 				{
@@ -366,6 +382,9 @@ export default class Player extends BaseObject{
 
 	moveDown(){
 
+		if(this.checkState(State.Attacking) || this.checkState(State.Recovering))
+			return;
+
 		// Aiming down
 		if(this.checkState(State.Aiming)){
 
@@ -373,14 +392,34 @@ export default class Player extends BaseObject{
 				this.crosshair.angle += 5;
 
 		// Crouching
-		}else if(this.checkState(State.Grounded) && !this.checkState(State.Rolling) && !this.checkState(State.Attacking)){
-			this.setState(State.Crouching);
+		}else if(this.checkState(State.Grounded) && !this.checkState(State.Rolling)){
+
+			// Not previously crouching
+			if(!this.checkState(State.Crouching)){
+
+				if((Date.now() - this.last.crouch) < 250){
+					Matter.Body.setPosition(this.body, {x: this.position.x, y: this.position.y + 2});
+
+					// Update the collisionGroups of the platforms
+					this.collisions.forEach((collision) => {
+
+						if(collision.source.getType() == "Platform")
+							collision.source.update();
+					});
+				}
+				
+				this.last.crouch = Date.now();
+			}
+
+			// Make sure not dropping
+			if(!this.checkState(State.Dropping))
+				this.setState(State.Crouching, 50);
 		}
 	}
 
 	attack(){
 
-		if(this.checkState(State.Damaged))
+		if(this.checkState(State.Damaged) || this.checkState(State.Recovering))
 			return;
 
 		// Try to fire gun
@@ -392,7 +431,15 @@ export default class Player extends BaseObject{
 			// Fire gun and set delay to recoil timing
 			if(this.inventory[Inventory.Gun] != null){
 				this.equiped = Inventory.Gun;
-				this.setState(State.Shooting, this.inventory[Inventory.Gun].shoot());
+
+				const recoilTime = this.inventory[Inventory.Gun].shoot();
+				this.setState(State.Shooting, recoilTime,
+					[{
+						delay: recoilTime,
+						action: () => { 
+							this.setState(State.Aiming, 100); 
+						}
+					}]);
 			}
 
 		// Punch Combo 1
@@ -490,7 +537,7 @@ export default class Player extends BaseObject{
 
 	secondaryAttack(){
 
-		if(this.checkState(State.Damaged))
+		if(this.checkState(State.Damaged) || this.checkState(State.Recovering))
 			return;
 
 		// Try to throw gun
@@ -545,7 +592,7 @@ export default class Player extends BaseObject{
 
 			sf.game.getObjectsByAABB(this.bounds).forEach((obj) => {
 
-				if(obj.constructor.name == "Gun")
+				if(obj.getType() == "Gun")
 					this.inventory[Inventory.Gun] = obj.pickup(this);
 			});
 		}
@@ -553,15 +600,18 @@ export default class Player extends BaseObject{
 
 	aim(){
 
-		if(this.checkState(State.Damaged))
+		if(this.checkState(State.Damaged) || this.checkState(State.Attacking) || this.checkState(State.Rolling) || this.checkState(State.Recovering))
 			return;
 
-		if(this.checkState(State.Grounded) && !this.checkState(State.Attacking) && !this.checkState(State.Rolling) && this.inventory[this.equiped] != null){
+		if(this.checkState(State.Grounded) && this.inventory[this.equiped] != null){
 
+			// Not previously aiming then reset crosshair angle
 			if(!this.checkState(State.Aiming))
 				this.crosshair.angle = 0;
 
-			this.setState(State.Aiming, 20);	
+			// If not shooting reset aiming state
+			if(!this.checkState(State.Shooting))
+				this.setState(State.Aiming, 100);	
 		}
 	}
 };
@@ -573,10 +623,11 @@ export default class Player extends BaseObject{
 const obj = sf.data.objects;
 
 let added = [
-	obj.player 			=	{ image: sf.data.loadImage("images/player.png"), frameCount: {x: 24, y: 16}, resizable: false},
+	obj.player 			=	{ image: sf.data.loadImage("images/player.png"), frameCount: {x: 24, y: 16} },
 
 ].forEach((item) => {
 	item.type = Player;
+	item.animated = true;
 
 	item.category = sf.filters.player;
 	item.mask = sf.filters.object | sf.filters.projectile;

@@ -10,7 +10,7 @@ export default class Background extends BaseObject{
 
 
 /*
-	Create data definitions for all Marker objects
+	Create data definitions for all Background objects
 */
 const obj = sf.data.objects;
 
@@ -19,6 +19,7 @@ let added = [
 
 ].forEach((item) => {
 	item.type = Background;
+	item.resizable = true;
 	item.matter = {isStatic: true, inertia: Infinity};
 	item.category = sf.filters.background;
 });
