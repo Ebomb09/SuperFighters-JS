@@ -39,9 +39,14 @@ export default class Player extends BaseObject{
 
 		this.team = 0;
 
-		this.inventory = [];
+		// Held Weapons
+		this.inventory = [null, null, null, null];
 		this.equiped = Inventory.Gun;
-		this.aimAngle = 0;
+
+		// Aiming Properties
+		this.crosshair = {
+			angle: 		0
+		};
 	}
 
 	update(ms){
@@ -54,98 +59,43 @@ export default class Player extends BaseObject{
 			if(this.checkState(State.FreeFalling))
 				this.setState(State.Recovering, 500);
 
-			// Check attack delay
-			if(this.checkState(State.Punching) && this.delayTimeStamp() > 100 && !this.action.done){
-				this.action.done = true;
-
-				Matter.Body.setPosition(this.body, {x: this.body.position.x + 1.5 * this.facingDirection, y: this.body.position.y })
-
-				// Punch Combo 1/2
-				if(this.checkState(State.Punching1) || this.checkState(State.Punching2)){
-					sf.game.createForce(
-						this, 
-						{
-							x: this.position.x + this.width/2 * this.facingDirection, 
-							y: this.position.y,
-							radius: 5
-						},
-						{
-							x: 0.001 * this.facingDirection, 
-							y: 0,
-							damage: 7
-						});
-
-				// Punch Combo 3
-				}else{
-					sf.game.createForce(
-						this, 
-						{
-							x: this.position.x + this.width/2 * this.facingDirection, 
-							y: this.position.y,
-							radius: 5
-						},
-						{
-							x: 0.001 * this.facingDirection, 
-							y: -0.001,
-							damage: 15
-						});
-				}
-			}
-
 			// Check Rolling
 			if(this.checkState(State.Rolling))
-				Matter.Body.setPosition(this.body, {x: this.body.position.x + this.facingDirection * 1.5, y: this.body.position.y });
+				Matter.Body.setPosition(this.body, 
+					{
+						x: this.body.position.x + this.facingDirection * 1, 
+						y: this.body.position.y 
+					});
 
 			// Check if any actions are done then reset to grounded
-			if(this.action.delay == 0)
+			if(this.state.delay == 0)
 				this.setState(State.Grounded);
 
 		}else{
 
+			// If reached high enough velocity enable freefall
 			if(Math.abs(this.velocity.y) > 6 || this.checkState(State.Stun))
 				this.setState(State.FreeFalling);
 
+			// Displaced from off ground then set to jumping
 			if(this.checkState(State.Grounded))
 				this.setState(State.Jumping);
 		}
 
+		// Stop velocity changes
 		if(this.checkState(State.Grounded))
-			Matter.Body.setVelocity(this.body, {x: 0, y: 0});
-
-		// Check inputs
-		if(this.customId == "TEST"){
-
-			if(sf.input.key.held["KeyD"])
-				this.aim();
-
-			if(sf.input.key.held["ArrowDown"])
-				this.moveDown();
-
-			if(sf.input.key.held["ArrowUp"])
-				this.moveUp();
-
-			if(sf.input.key.held["ArrowRight"])
-				this.moveRight();
-
-			if(sf.input.key.held["ArrowLeft"])
-				this.moveLeft();
-
-			if(sf.input.key.pressed["KeyS"])
-				this.secondaryAttack();
-			
-			if(sf.input.key.pressed["KeyA"])
-				this.attack();
-
-			if(sf.input.key.pressed["KeyF"])
-				this.interact();
-		}
+			Matter.Body.setVelocity(this.body, 
+				{
+					x: 0, 
+					y: 0
+				});
 	}
 
 	draw(){
 		let angle = 0;
 
 		// Get animation from state
-		switch(this.action.state){
+		switch(this.state.name){
 
 			case State.Grounded:
 				this.setAnimationFrame(
@@ -153,8 +103,7 @@ export default class Player extends BaseObject{
 						{x: 0, y: 0, delay: 200},
 						{x: 1, y: 0, delay: 200},
 						{x: 2, y: 0, delay: 200}
-					]
-					);
+					]);
 				break; 
 
 			case State.Walking:
@@ -164,8 +113,7 @@ export default class Player extends BaseObject{
 						{x: 4, y: 0, delay: 200},
 						{x: 5, y: 0, delay: 200},
 						{x: 4, y: 0, delay: 200}
-					]
-					);
+					]);
 				break;
 
 			case State.Crouching:
@@ -175,11 +123,10 @@ export default class Player extends BaseObject{
 			case State.Rolling:
 				this.setAnimationFrame(
 					[
-						{x: 1, y: 1, delay: 200},
-						{x: 2, y: 1, delay: 200},
+						{x: 1, y: 1, delay: 150},
+						{x: 2, y: 1, delay: 150},
 					],
-					this.delayTimeStamp()
-					);
+					this.delayTimestamp());
 				break;
 
 			case State.Stun:
@@ -204,8 +151,7 @@ export default class Player extends BaseObject{
 						{x: 6, y: 3, delay: 250},
 						{x: 8, y: 1, delay: 250}
 					],
-					this.delayTimeStamp()
-					);
+					this.delayTimestamp());
 				break;
 
 			case State.Kicking:
@@ -215,31 +161,28 @@ export default class Player extends BaseObject{
 			case State.Punching1:
 				this.setAnimationFrame(
 					[
-						{x: 1, y: 2, delay: 100},
-						{x: 2, y: 2, delay: 150}
+						{x: 1, y: 2, delay: 150},
+						{x: 2, y: 2, delay: 200}
 					],
-					this.delayTimeStamp()
-					);
+					this.delayTimestamp());
 				break;
 
 			case State.Punching2:
 				this.setAnimationFrame(
 					[
-						{x: 3, y: 2, delay: 100},
-						{x: 4, y: 2, delay: 150}
+						{x: 3, y: 2, delay: 150},
+						{x: 4, y: 2, delay: 200}
 					],
-					this.delayTimeStamp()
-					);
+					this.delayTimestamp());
 				break;
 
 			case State.Punching3:
 				this.setAnimationFrame(
 					[
-						{x: 5, y: 2, delay: 100},
-						{x: 6, y: 2, delay: 200}
+						{x: 5, y: 2, delay: 150},
+						{x: 6, y: 2, delay: 300}
 					],
-					this.delayTimeStamp()
-					);
+					this.delayTimestamp());
 				break;
 
 			case State.JumpPunching:
@@ -261,8 +204,7 @@ export default class Player extends BaseObject{
 						[
 							{x: 5, y: 1, delay: 100},
 							{x: 6, y: 1, delay: 100}
-						]
-						);
+						]);
 				else
 					this.frame.index = {x: 7, y: 1};
 
@@ -288,8 +230,8 @@ export default class Player extends BaseObject{
 			sf.ctx.save();
 
 			// Transform Image
-			sf.ctx.translate(this.position.x, this.position.y);
-			sf.ctx.rotate(this.getAimAngle() * Math.PI / 180);
+			sf.ctx.translate(this.position.x - this.facingDirection, this.position.y - 1);
+			sf.ctx.rotate(this.getCrosshairAngle());
 			sf.ctx.scale(1, this.facingDirection);
 			sf.ctx.translate(-this.frame.width/2, this.height / 2 - this.frame.height);
 
@@ -305,8 +247,7 @@ export default class Player extends BaseObject{
 				this.frame.width - weapon.frame.width / 1.5,
 				this.frame.height/2 - weapon.frame.height/2,
 				weapon.frame.width,
-				weapon.frame.height
-				);
+				weapon.frame.height);
 
 			// Draw upper torso
 			sf.ctx.drawImage(
@@ -318,17 +259,29 @@ export default class Player extends BaseObject{
 				0,
 				0,
 				this.frame.width,
-				this.frame.height
-				);
+				this.frame.height);
 			sf.ctx.restore();
 		}
 	}
 
-	getAimAngle(){
+	getCrosshairAngle(){
 		if(this.facingDirection == 1)
-			return this.aimAngle;
+			return (this.crosshair.angle) * (Math.PI / 180);
 		else
-			return 180 - this.aimAngle;
+			return (180 - this.crosshair.angle) * (Math.PI / 180);
+	}
+
+	getCrosshairPosition(){
+		const angle = this.getCrosshairAngle();
+		const position = {x: this.position.x - this.facingDirection, y: this.position.y - 1};
+
+		position.x += Math.cos(angle) * (this.frame.width / 2 + 4);
+		position.y += Math.sin(angle) * (this.frame.width / 2 + 4);
+
+		position.x += Math.cos(angle - Math.PI / 2) * (this.facingDirection * 4);
+		position.y += Math.sin(angle - Math.PI / 2) * (this.facingDirection * 4);
+
+		return position;
 	}
 
 	dealDamage(damage){
@@ -341,25 +294,29 @@ export default class Player extends BaseObject{
 
 		// Lower damage cause slight stun
 		if(damage < 10){
-			this.setState(State.Stun, 150);
+
+			if(!this.checkState(State.FreeFalling))
+				this.setState(State.Stun, 150);
 
 		// Larger damage knock over
-		}else{
+		}else
 			this.setState(State.FreeFalling);
-		}
 	}
 
 	moveRight(){
+		this.facingDirection = 1;
 
-		if(!this.onRight() && (this.checkState(State.Jumping) || (this.checkState(State.Grounded) && !this.checkState(State.Attacking)) ) ){
-			this.facingDirection = 1;
-			this.aimAngle = 0;
+		if(!this.onRight() && (this.checkState(State.Jumping) || this.strictState(State.Grounded) || this.strictState(State.Crouching))){
 
 			if(this.checkState(State.Crouching)){
-				this.setState(State.Rolling, 400);
+				this.setState(State.Rolling, 300);
 
 			}else if(!this.checkState(State.Rolling)){
-				Matter.Body.setPosition(this.body, {x: this.body.position.x + 1.5, y: this.body.position.y });
+				Matter.Body.setPosition(this.body, 
+					{
+						x: this.body.position.x + 1.5, 
+						y: this.body.position.y 
+					});
 
 				if(this.checkState(State.Grounded))
 					this.setState(State.Walking);
@@ -368,16 +325,19 @@ export default class Player extends BaseObject{
 	}
 
 	moveLeft(){
+		this.facingDirection = -1;
 
-		if(!this.onLeft() && (this.checkState(State.Jumping) || (this.checkState(State.Grounded) && !this.checkState(State.Attacking)) ) ){
-			this.facingDirection = -1;
-			this.aimAngle = 0;
-
+		if(!this.onLeft() && (this.checkState(State.Jumping) || this.strictState(State.Grounded) || this.strictState(State.Crouching))){
+	
 			if(this.checkState(State.Crouching)){
-				this.setState(State.Rolling, 400);
+				this.setState(State.Rolling, 300);
 
 			}else if(!this.checkState(State.Rolling)){
-				Matter.Body.setPosition(this.body, {x: this.body.position.x - 1.5, y: this.body.position.y });
+				Matter.Body.setPosition(this.body, 
+					{
+						x: this.body.position.x - 1.5, 
+						y: this.body.position.y 
+					});
 
 				if(this.checkState(State.Grounded))
 					this.setState(State.Walking);
@@ -387,24 +347,32 @@ export default class Player extends BaseObject{
 
 	moveUp(){
 
+		// Aiming up
 		if(this.checkState(State.Aiming)){
 
-			if(this.aimAngle > -90)
-				this.aimAngle -= 5;
+			if(this.crosshair.angle > -90)
+				this.crosshair.angle -= 5;
 
+		// Jumping
 		}else if(this.checkState(State.Grounded) && !this.checkState(State.Attacking)){
 			this.setState(State.Jumping);
-			Matter.Body.setVelocity(this.body, {x: this.body.velocity.x, y: -4 });
+			Matter.Body.setVelocity(this.body, 
+				{
+					x: this.body.velocity.x, 
+					y: -4 
+				});
 		}
 	}
 
 	moveDown(){
 
+		// Aiming down
 		if(this.checkState(State.Aiming)){
 
-			if(this.aimAngle < 90)
-				this.aimAngle += 5;
+			if(this.crosshair.angle < 90)
+				this.crosshair.angle += 5;
 
+		// Crouching
 		}else if(this.checkState(State.Grounded) && !this.checkState(State.Rolling) && !this.checkState(State.Attacking)){
 			this.setState(State.Crouching);
 		}
@@ -415,34 +383,98 @@ export default class Player extends BaseObject{
 		if(this.checkState(State.Damaged))
 			return;
 
-		// Fire gun or throwable
+		// Try to fire gun
 		if(this.checkState(State.Aiming)){
 
 			if(!this.strictState(State.Aiming))
 				return;
 
-			// Crosshair position
-			let x = this.position.x + Math.cos(this.getAimAngle() * Math.PI / 180) * 15;
-			let y = this.position.y + Math.sin(this.getAimAngle() * Math.PI / 180) * 15;
-
-			if(this.equiped == Inventory.Gun){
-				let delay = this.inventory[Inventory.Gun].shoot(x, y, this.getAimAngle());
-				this.setState(State.Shooting, delay);
-
-			}else if(this.equiped == Inventory.Throwable){
-
+			// Fire gun and set delay to recoil timing
+			if(this.inventory[Inventory.Gun] != null){
+				this.equiped = Inventory.Gun;
+				this.setState(State.Shooting, this.inventory[Inventory.Gun].shoot());
 			}
 
 		// Punch Combo 1
 		}else if(this.checkState(State.Grounded) && !this.checkState(State.Attacking)){
-			this.setState(State.Punching1, 250);
+			this.setState(State.Punching1, 350, 
+				[{
+					delay: 150,
+					action: () => {
+						sf.game.createForce(this, 
+							{
+								x: this.position.x + this.width/2 * this.facingDirection, 
+								y: this.position.y,
+								radius: 5
+							},
+							{
+								x: 0.001 * this.facingDirection, 
+								y: 0,
+								damage: 7
+							});
+						Matter.Body.setPosition(this.body, 
+							{
+								x: this.body.position.x + this.facingDirection * 1.5, 
+								y: this.body.position.y 
+							});
+					}
+				}]);
+
+		// Punch Combo 2
+		}else if(this.checkState(State.Punching1) && this.delayTimestamp() > 150){
+			this.setState(State.Punching2, 350, 
+				[{
+					delay: 150,
+					action: () => {
+						sf.game.createForce(this, 
+							{
+								x: this.position.x + this.width/2 * this.facingDirection, 
+								y: this.position.y,
+								radius: 5
+							},
+							{
+								x: 0.001 * this.facingDirection, 
+								y: 0,
+								damage: 7
+							});
+						Matter.Body.setPosition(this.body, 
+							{
+								x: this.body.position.x + this.facingDirection * 1.5, 
+								y: this.body.position.y 
+							});
+					}
+				}]);
+
+		// Punch Combo 3
+		}else if(this.checkState(State.Punching2) && this.delayTimestamp() > 150){
+			this.setState(State.Punching3, 400, 
+				[{
+					delay: 100,
+					action: () => {
+						sf.game.createForce(this, 
+							{
+								x: this.position.x + this.width/2 * this.facingDirection, 
+								y: this.position.y,
+								radius: 5
+							},
+							{
+								x: 0.001 * this.facingDirection, 
+								y: -0.001,
+								damage: 7
+							});
+						Matter.Body.setPosition(this.body, 
+							{
+								x: this.body.position.x + this.facingDirection * 1.5, 
+								y: this.body.position.y 
+							});
+					}
+				}]);
 
 		// Jump Punching
 		}else if(this.checkState(State.Jumping) && !this.checkState(State.Attacking)){
 			this.setState(State.JumpPunching);
 
-			sf.game.createForce(
-				this, 
+			sf.game.createForce(this, 
 				{
 					x: this.position.x + this.width/2 * this.facingDirection, 
 					y: this.position.y,
@@ -453,14 +485,6 @@ export default class Player extends BaseObject{
 					y: 0,
 					damage: 5
 				});
-
-		// Punch Combo 2
-		}else if(this.checkState(State.Punching1) && this.delayTimeStamp() > 100){
-			this.setState(State.Punching2, 250);
-
-		// Punch Combo 3
-		}else if(this.checkState(State.Punching2) && this.delayTimeStamp() > 100){
-			this.setState(State.Punching3, 300);
 		}
 	}
 
@@ -469,11 +493,22 @@ export default class Player extends BaseObject{
 		if(this.checkState(State.Damaged))
 			return;
 
-		if(this.checkState(State.Grounded) && !this.checkState(State.Attacking)){
+		// Try to throw gun
+		if(this.checkState(State.Aiming)){
+
+			if(!this.strictState(State.Aiming))
+				return;
+
+			if(this.inventory[Inventory.Throwable] != null){
+				this.equiped = Inventory.Throwable;
+				this.setState(State.Shooting, this.inventory[Inventory.Throwable].throw());
+			}
+
+		// Kicking
+		}else if(this.checkState(State.Grounded) && !this.checkState(State.Attacking)){
 			this.setState(State.Kicking, 100);
 
-			sf.game.createForce(
-				this, 
+			sf.game.createForce(this, 
 				{
 					x: this.position.x + this.width/2 * this.facingDirection, 
 					y: this.position.y + this.height/2,
@@ -485,11 +520,11 @@ export default class Player extends BaseObject{
 					damage: 1
 				});
 
+		// Jump kicking
 		}else if(this.checkState(State.Jumping) && !this.checkState(State.Attacking)){
 			this.setState(State.JumpKicking);
 
-			sf.game.createForce(
-				this, 
+			sf.game.createForce(this, 
 				{
 					x: this.position.x + this.width/2 * this.facingDirection, 
 					y: this.position.y + this.height/2,
@@ -505,12 +540,13 @@ export default class Player extends BaseObject{
 
 	interact(){
 
+		// Pickup weapons
 		if(this.checkState(State.Grounded)){
 
 			sf.game.getObjectsByAABB(this.bounds).forEach((obj) => {
 
-				if(obj.constructor.name == "Weapon")
-					this.inventory[obj.getType()] = obj.pickup();
+				if(obj.constructor.name == "Gun")
+					this.inventory[Inventory.Gun] = obj.pickup(this);
 			});
 		}
 	}
@@ -520,8 +556,12 @@ export default class Player extends BaseObject{
 		if(this.checkState(State.Damaged))
 			return;
 
-		if(this.strictState(State.Grounded) && this.inventory[this.equiped] != null){
-			this.setState(State.Aiming);	
+		if(this.checkState(State.Grounded) && !this.checkState(State.Attacking) && !this.checkState(State.Rolling) && this.inventory[this.equiped] != null){
+
+			if(!this.checkState(State.Aiming))
+				this.crosshair.angle = 0;
+
+			this.setState(State.Aiming, 20);	
 		}
 	}
 };
@@ -533,11 +573,11 @@ export default class Player extends BaseObject{
 const obj = sf.data.objects;
 
 let added = [
-	obj.player = { image: sf.data.loadImage("images/player.png"), frameCount: {x: 24, y: 16}, resizable: false}
+	obj.player 			=	{ image: sf.data.loadImage("images/player.png"), frameCount: {x: 24, y: 16}, resizable: false},
 
 ].forEach((item) => {
 	item.type = Player;
 
 	item.category = sf.filters.player;
-	item.mask = sf.filters.object;
+	item.mask = sf.filters.object | sf.filters.projectile;
 });

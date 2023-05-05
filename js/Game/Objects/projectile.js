@@ -4,37 +4,38 @@ import BaseObject from "./base_object";
 export default class Projectile extends BaseObject{
 
 	constructor(...params){
-		super(...params, {width: 2, height: 2, matter: {inertia: Infinity}});
+		super(...params, {disableGravity: true, width: 8, height: 1});
 
 		this.damage = this.options.damage;
 		this.speed = this.options.speed;
-		this.angle = this.options.angle * Math.PI / 180;
+		this.angle = this.options.matter.angle;
 
 		Matter.Body.setAngle(this.body, this.angle);
 	}
 
 	draw(){
-		super.draw({
-			offset: {
-				x: -this.frame.width/2,
-				y: -this.frame.height/2
-			}
-		});
+		super.draw(
+			{
+				offset: {
+					x: -this.frame.width/2,
+					y: -this.frame.height/2
+				}
+			});
 	}
 
-	addCollision(src, collision){
+	addCollision(source, collision){
+		source.dealDamage(this.damage);
 		sf.game.kill(this);
 	}
 
 	update(ms){
 		super.update(ms);
 
-		let velocity = Matter.Vector.create(
-			Math.cos(this.angle) * this.speed,
-			Math.sin(this.angle) * this.speed
-			);
-
-		Matter.Body.setVelocity(this.body, velocity);
+		Matter.Body.setVelocity(this.body,
+			{
+				x: Math.cos(this.angle) * this.speed,
+				y: Math.sin(this.angle) * this.speed
+			});
 	}
 };
 
@@ -48,4 +49,6 @@ let added = [
 
 ].forEach((item) => {
 	item.type = Projectile;
+	item.category = sf.filters.projectile;
+	item.mask = sf.filters.object | sf.filters.player;
 });

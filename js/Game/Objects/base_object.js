@@ -53,12 +53,47 @@ export default class BaseObject{
 		this.height = (options.height) ? options.height : this.frame.height * this.tiling.height;
 
 		// Create the physics body
-		if(options.shape == "circle")
+		if(options.shape == "circle"){
 			this.body = Matter.Bodies.circle(options.x, options.y, this.height / 2, options.matter);
-		else
+
+		}else if(options.shape == "tl-br"){
+			options.matter.position = {
+				x: options.x,
+				y: options.y
+			};
+
+			options.matter.vertices = [
+				{x: this.frame.width, y: this.frame.height / 2},
+				{x: this.frame.width, y: this.frame.height},
+				{x: 0, y: this.frame.height / 2},
+				{x: 0, y: 0}
+				];
+
+			this.body = Matter.Body.create(options.matter);
+
+		}else if(options.shape == "tr-bl"){
+			options.matter.position = {
+				x: options.x,
+				y: options.y
+			};
+
+			options.matter.vertices = [
+				{x: this.frame.width, y: 0},
+				{x: this.frame.width, y: this.frame.height / 2},
+				{x: 0, y: this.frame.height},
+				{x: 0, y: this.frame.height / 2}
+				];
+
+			this.body = Matter.Body.create(options.matter);
+
+		}else{
 			this.body = Matter.Bodies.rectangle(options.x, options.y, this.width, this.height, options.matter);
+		}
 		this.collisions = [];
 
+		if(options.disableGravity) this.disableGravity = options.disableGravity;
+
+		// Collision filter is it and mask is what
 		if(options.category) this.body.collisionFilter.category = options.category;
 		if(options.mask) this.body.collisionFilter.mask = options.mask;
 
@@ -74,21 +109,36 @@ export default class BaseObject{
 		this.health 			= (options.health) ? options.health : -1;
 
 		// State control of object
-		this.action = {
-			state: "none",
-			done: false,
+		this.state = {
+			name: "none",
 			entropy: 0,
 			delay: 0,
-			delayMax: 0
+			delayMax: 0,
+			callbacks: []
 		};
 	}
 
 	update(ms){ 
 		this.delayStep(ms);
+
+		if(this.disableGravity)
+			return;
+
+		const gravity = sf.game.gravity;
+
+		Matter.Body.applyForce(this.body, this.body.position, 
+			{
+				x: gravity.x * this.body.mass,
+				y: gravity.y * this.body.mass
+        	});
 	}
 
 	draw(options){
-		if(options === undefined) options = {};
+
+		if(this.disableDrawing)
+			return;
+
+		if(!options) options = {};
 
 		sf.ctx.save();
 
@@ -133,53 +183,86 @@ export default class BaseObject{
 	}
 
 	strictState(state){
-		return this.action.state == state;
+		return this.state.name == state;
 	}
 
 	checkState(state){
-		return this.action.state.includes(state);
+		return this.state.name.includes(state);
 	}
 
-	setState(state, delay){
-		this.action.state = state;
-		this.action.done = false;
-		this.action.entropy = Math.random();
-
-		if(delay === undefined)
-			delay = 0;
-
-		this.action.delay = delay;
-		this.action.delayMax = delay;
+	setState(state, delay, callbacks){
+		this.state.name = state;
+		this.state.entropy = Math.random();
+		this.state.delay = (delay) ? delay : 0;
+		this.state.delayMax = delay;
+		this.state.callbacks = callbacks;
 	}
 
 	getStateEntropy(){
-		return this.action.entropy;
+		return this.state.entropy;
 	}
 
-	delayTimeStamp(){
-		return this.action.delayMax - this.action.delay;
+	delayTimestamp(){
+		return this.state.delayMax - this.state.delay;
 	}
 
 	delayStep(ms){
 		
-		if(this.action.delay > 0){
-			this.action.delay -= ms;
+		if(this.state.delay > 0){
+			this.state.delay -= ms;
+			this.state.delay = (this.state.delay < 0) ? 0 : this.state.delay;
 
-			if(this.action.delay < 0)
-				this.action.delay = 0;
+			// Run callback once timestamp is met
+			if(this.state.callbacks){
+				const timestamp = this.delayTimestamp();
+
+				for(let i = 0; i < this.state.callbacks.length; i ++){
+
+					// Once fullfilled run and delete callback
+					if(timestamp >= this.state.callbacks[i].delay){
+						this.state.callbacks[i].action();
+						this.state.callbacks.splice(i, 1);
+					}
+				}
+			}
 		}		
 	}
 
-	addCollision(src, collision){
+	addCollision(source, collision){
 
 		this.collisions.push(
-		{
-			source: src,
+			{
+				source: source,
 
-			// Store penetration vector from this -> object 
-			penetration: (collision.bodyB.id == this.id) ? collision.penetration : Matter.Vector.neg(collision.penetration)
+				// Store penetration vector from this -> object 
+				penetration: (collision.bodyB.id == this.id) ? collision.penetration : Matter.Vector.neg(collision.penetration)
+			});	
+
+		// All force went back into this
+		if(source.body.mass == Infinity){
+			return;
+		}	
+
+		// This is an unmoving object, force returns to source
+		if(this.body.mass == Infinity){
+			var forceVector = {
+				x: source.velocity.x * source.body.mass,
+				y: source.velocity.y * source.body.mass,
+			};
+
+		// Difference of forces
+		}else{
+			var forceVector = {
+				x: this.velocity.x * this.body.mass - source.velocity.x * source.body.mass,
+				y: this.velocity.y * this.body.mass - source.velocity.y * source.body.mass,
+			};
 		}
-		);	
+
+		let damage = Math.round(6 * Math.sqrt(Math.pow(forceVector.x, 2) + Math.pow(forceVector.y, 2)));		
+
+		// Threshold damage to 6, around freefall state			
+		if(damage >= 6)
+			source.dealDamage(damage);
 	}
 
 	removeCollision(obj){
@@ -289,10 +372,10 @@ export default class BaseObject{
 		});
 
 		// Get current time in the animation
-		if(timestamp === undefined)
-			var time = Date.now() % loop;
-		else
+		if(timestamp)
 			var time = timestamp % loop;
+		else
+			var time = Date.now() % loop;
 
 		// Set the frame index to the animation frame
 		let accum = 0;
@@ -336,10 +419,11 @@ let added = [
 
 	// Ground Objects
 	obj.dirt			= 	{ image: sf.data.loadImage("images/dirt.png"), matter: {isStatic: true}},
-
 	obj.concrete		=	{ image: sf.data.loadImage("images/concrete.png"), frameCount: {x: 3, y: 3}, matter: {isStatic: true}},
+	obj.concrete_slopeR	=	{ image: sf.data.loadImage("images/concrete_slopeR.png"), shape: "tl-br", matter: {isStatic: true}},
+	obj.concrete_slopeL =	{ image: sf.data.loadImage("images/concrete_slopeL.png"), shape: "tr-bl", matter: {isStatic: true}},
 	obj.brick			= 	{ image: sf.data.loadImage("images/brick.png"), frameCount: {x: 2, y: 1}, matter: {isStatic: true}},
-
+	obj.block			= 	{ image: sf.data.loadImage("images/block.png"), matter: {isStatic: true}},
 	obj.grider			= 	{ image: sf.data.loadImage("images/girder.png"), frameCount: {x: 3, y: 1}, matter: {isStatic: true}},
 	obj.metal			= 	{ image: sf.data.loadImage("images/metal.png"), frameCount: {x: 3, y: 1}, matter: {isStatic: true}},
 

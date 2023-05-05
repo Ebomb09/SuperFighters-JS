@@ -16,7 +16,7 @@ const Mode = {
 export default class Editor extends Game{
 
 	constructor(map){
-		super(map);
+		super(map, {local_players: 1});
 
 		this.selection = {
 			mode: Mode.None,
@@ -32,6 +32,7 @@ export default class Editor extends Game{
 		this.mapCopy = "";
 		this.mapName = map;
 		this.cameraCopy = {};
+		this.debug = true;
 
 		sf.docs.innerHTML = "";
 
@@ -82,6 +83,7 @@ export default class Editor extends Game{
 					y: this.camera.y,
 					zoom: this.camera.zoom
 				};
+				this.createPlayers();
 				this.live = true;
 			}
 		});
@@ -359,16 +361,9 @@ export default class Editor extends Game{
 			this.selection.mode = Mode.None;
 		}
 
-		// Process the games test loop if live
-		if(this.live){
-			this.objects.forEach((obj) => {
-				obj.update(ms);
-			});		
-
-			Matter.Engine.update(this.engine, ms);
-
-			this.updateCamera();
-		}
+		// Process the game's update loop if live
+		if(this.live)
+			super.update(ms);
 	}
 
 	draw(){

@@ -17,12 +17,15 @@ function main(){
 	sfLoop();
 }
 
+let lastTimestamp = Date.now();
+
 function sfLoop(){
+	const mspf = 1000 / sf.config.fps;
 
-
-	// Time calculations
-	let timeNow = Date.now();
-	let mspf = 1000 / sf.config.fps;
+	if(Date.now() - lastTimestamp < mspf){
+		requestAnimationFrame(sfLoop);
+		return;
+	}
 
 	sf.ctx.fillStyle = "black";
 	sf.ctx.fillRect(0, 0, sf.canvas.width, sf.canvas.height);
@@ -34,18 +37,14 @@ function sfLoop(){
 
 	if(sf.menuDispatcher !== null){
 		sf.menuDispatcher.update();
+		sf.menuDispatcher.draw();
 	}
 
 	input.poll();
 
-	// Calculate FPS
-	let timeEnd = Date.now();
-	let delta = timeEnd - timeNow;
-
-	if(delta > mspf)
-		setTimeout(sfLoop, 0);	
-	else
-		setTimeout(sfLoop, mspf - delta);
+	// Calculate time taken
+	lastTimestamp = Date.now();
+	requestAnimationFrame(sfLoop);
 }
 
 main();

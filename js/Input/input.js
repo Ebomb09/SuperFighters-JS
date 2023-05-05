@@ -8,6 +8,7 @@ sf.canvas.addEventListener("keydown", (event) => {
 
 	sf.input.key.held[event.code] = true;
 	sf.input.key.pressed[event.code] = true;
+	sf.input.key.lastPressed = event.code;
 });
 
 sf.canvas.addEventListener("keyup", (event) => {
@@ -18,6 +19,7 @@ sf.canvas.addEventListener("keyup", (event) => {
 
 	sf.input.key.held[event.code] = false;
 	sf.input.key.released[event.code] = true;
+	sf.input.key.lastReleased = event.code;
 });
 
 sf.canvas.addEventListener("mousedown", (event) => {
@@ -28,11 +30,13 @@ sf.canvas.addEventListener("mousedown", (event) => {
 
 	sf.input.mouse.held[event.button] = true;
 	sf.input.mouse.pressed[event.button] = true;
+	sf.input.mouse.lastPressed = event.button;
 });
 
 sf.canvas.addEventListener("mouseup", (event) => {
 	sf.input.mouse.held[event.button] = false;
 	sf.input.mouse.released[event.button] = true;
+	sf.input.mouse.lastReleased = event.button;
 });
 
 sf.canvas.addEventListener("mousemove", (event) => {

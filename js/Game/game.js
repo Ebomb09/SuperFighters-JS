@@ -2,11 +2,14 @@ import sf from "../sf";
 
 export default class Game{
 
-	constructor(map){
+	constructor(map, options){
 
 		// Init physics world
-		this.engine = Matter.Engine.create();
+		this.engine = Matter.Engine.create({gravity: {x: 0, y: 0}});
 		this.world = this.engine.world;
+
+		// Custom Gravity Constant
+		this.gravity = {x: 0, y: 0.001};
 
 		// Camera
 		this.camera = {
@@ -15,6 +18,11 @@ export default class Game{
 			zoom: 1
 		};
 
+		// Assign players
+		this.local_players 	= (options.local_players) ? options.local_players : 0;
+		this.net_players 	= (options.net_players) ? options.net_players : 0;
+		this.players 		= [];
+
 		// Collision Handlers
 		Matter.Events.on(this.engine, "collisionStart", this.startCollision.bind(this));
 		Matter.Events.on(this.engine, "collisionEnd", this.endCollision.bind(this));
@@ -22,14 +30,11 @@ export default class Game{
 		// Custom game objects
 		this.objects = [];
 
-		// Debug Tester
-		this.debug = {
-			mode: true,
-			select: null
-		};
-
-		if(map)
+		// Load map and assign players
+		if(map){
 			this.loadMap(map);
+			this.createPlayers();
+		}
 	}
 
 	saveMap(objects){
@@ -65,7 +70,6 @@ export default class Game{
 				}
 			});
 		});
-
 		return JSON.stringify(map);
 	}
 
@@ -87,6 +91,86 @@ export default class Game{
 		return objects;
 	}
 
+	createPlayers(){
+		let spawns = this.getObjectsByParent(sf.data.objects.player_spawn);
+
+		if(spawns.length == 0)
+			return;
+
+		// Randomly sort the array
+		spawns.sort((a, b) => { 
+			if(Math.random() < 0.5) 
+				return 1; 
+			else
+				return -1;
+		});
+
+		// Repeat until the spawns can fulfill the players
+		while(spawns.length < (this.local_players + this.net_players)){
+			spawns = spawns.concat(spawns.copyWithin(0));
+		}
+
+		// Create players within the spawns
+		this.players = [];
+
+		for(let i = 0; i < this.local_players; i ++){
+			this.players.push(
+				{
+					type: "local",
+					id: i,
+					object: this.createObject(sf.data.objects.player, spawns[i].position)
+				});
+		}
+
+		for(let i = 0; i < this.net_players; i ++){
+			this.players.push(
+				{
+					type: "net",
+					id: i,
+					object: this.createObject(sf.data.objects.player, spawns[i].position)
+				});
+		}
+	}
+
+	handlePlayerInput(){
+
+		for(let i = 0; i < this.players.length; i ++){
+			const player = this.players[i].object;
+
+			// Get controls
+			if(this.players[i].type == "local")
+				var controls = sf.config.controls[i];
+
+			// If no control config received move to next player
+			if(!controls)
+				continue;
+
+			if(sf.input.key.held[controls.aim])
+				player.aim();
+
+			if(sf.input.key.held[controls.down])
+				player.moveDown();
+
+			if(sf.input.key.held[controls.up])
+				player.moveUp();
+
+			if(sf.input.key.held[controls.right])
+				player.moveRight();
+
+			if(sf.input.key.held[controls.left])
+				player.moveLeft();
+
+			if(sf.input.key.pressed[controls.secondaryAttack])
+				player.secondaryAttack();
+			
+			if(sf.input.key.pressed[controls.primaryAttack])
+				player.attack();
+
+			if(sf.input.key.pressed[controls.interact])
+				player.interact();
+		};
+	}
+
 	startCollision(event){
 
 		event.pairs.forEach((pair) => {
@@ -96,16 +180,6 @@ export default class Game{
 			if(objA && objB){
 				objA.addCollision(objB, pair.collision);
 				objB.addCollision(objA, pair.collision);
-			}
-
-			// Calculate damage as the difference of colliding velocities
-			let damageVector = Matter.Vector.sub(pair.bodyA.velocity, pair.bodyB.velocity);
-			let damage = Math.round(Math.abs(Matter.Vector.magnitude(damageVector)));
-
-			// Threshold damage to 6, around freefall state			
-			if(damage >= 6){
-				if(objA) objA.dealDamage(damage); 
-				if(objB) objB.dealDamage(damage);
 			}
 		});
 	}
@@ -136,6 +210,8 @@ export default class Game{
 			obj.update(ms);
 		});
 
+		this.handlePlayerInput();
+
 		Matter.Engine.update(this.engine, ms);
 
 		this.updateCamera();
@@ -157,9 +233,8 @@ export default class Game{
 	updateCamera(){
 		let positions = [];
 
-		this.objects.forEach((obj) => {
-			if(obj.constructor.name == "Player")
-				positions.push(obj.position);
+		this.getObjectsByParent(sf.data.objects.player).forEach((obj) => {
+			positions.push(obj.position);
 		});
 
 		let bounds = Matter.Bounds.create(positions);
@@ -168,8 +243,8 @@ export default class Game{
 		bounds.max.x += 32;
 		bounds.max.y += 64;
 
-		let width = bounds.max.x - bounds.min.x;
-		let height = bounds.max.y - bounds.min.y;
+		const width = bounds.max.x - bounds.min.x;
+		const height = bounds.max.y - bounds.min.y;
 
 		if(width > height)
 			var scale = sf.canvas.width / width;
@@ -178,20 +253,21 @@ export default class Game{
 
 		scale = Math.round(scale);
 
-		this.request_camera = {
-			x: (bounds.min.x + width / 2) - (sf.canvas.width / scale) / 2,
-			y: (bounds.min.y + height / 2) - (sf.canvas.height / scale) / 2,
+		const camera = {
+			x: this.camera.x + (sf.canvas.width / 2) / this.camera.zoom,
+			y: this.camera.y + (sf.canvas.height / 2) / this.camera.zoom,
+			zoom: this.camera.zoom		
+		};
+
+		const request = {
+			x: bounds.min.x + width / 2,
+			y: bounds.min.y + height / 2,
 			zoom: scale
 		};
 
-		let diff = (this.request_camera.x - this.camera.x) / 25;
-		this.camera.x += diff;
-
-		diff = (this.request_camera.y - this.camera.y) / 25;
-		this.camera.y += diff;
-
-		diff = (this.request_camera.zoom - this.camera.zoom) / 25;
-		this.camera.zoom += diff;
+		this.camera.x 		+= (request.x - camera.x) / 25;
+		this.camera.y 		+= (request.y - camera.y) / 25;
+		this.camera.zoom 	+= (request.zoom - camera.zoom) / 25;
 	}
 
 	createObject(parent, ...params){
@@ -258,6 +334,17 @@ export default class Game{
 				return this.objects[i];
 		}
 		return null;		
+	}
+
+	getObjectsByParent(parent){
+		let objects = [];
+
+		for(let i = 0; i < this.objects.length; i ++){
+
+			if(this.objects[i].parent == parent)
+				objects.push(this.objects[i]);
+		}
+		return objects;		
 	}
 
 	getObjectsByPoints(...points){
