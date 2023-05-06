@@ -2,8 +2,8 @@ import sf from "../sf";
 import BaseMenu from "./base_menu";
 
 const sounds = {
-	accept: sf.data.loadAudio("sounds/accept_02.mp3"),
-	cancel: sf.data.loadAudio("sounds/cancel_02.mp3")
+	accept: sf.data.loadAudio("sounds/ui/accept.mp3"),
+	cancel: sf.data.loadAudio("sounds/ui/cancel.mp3")
 };
 
 export default class MenuDispatcher extends Array{

@@ -51,6 +51,7 @@ let added = [
 ].forEach((item) => {
 	item.type = Platform;
 	item.resizable = true;
+	item.matter = {isStatic: true};
 	item.category = sf.filters.platform;
 	item.mask = sf.filters.object | sf.filters.weapon;
 });

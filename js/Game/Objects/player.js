@@ -35,17 +35,17 @@ const Inventory = {
 
 const sounds = {
 	punch: [
-		sf.data.loadAudio("sounds/svisch4.mp3"),
-		sf.data.loadAudio("sounds/svisch6.mp3"),
+		sf.data.loadAudio("sounds/player/punch00.mp3"),
+		sf.data.loadAudio("sounds/player/punch01.mp3"),
 		],
-	roll: sf.data.loadAudio("sounds/roll.mp3"),
-	jump: sf.data.loadAudio("sounds/jump_00.mp3")
+	roll: sf.data.loadAudio("sounds/player/roll.mp3"),
+	jump: sf.data.loadAudio("sounds/player/jump.mp3")
 };
 
 export default class Player extends BaseObject{
 
 	constructor(...params){
-		super(...params, {width: 8, height: 19, matter: {inertia: Infinity, friction: 0, slop: 0.5}});
+		super(...params, {width: 8, height: 19, matter: {inertia: Infinity, friction: 0}});
 
 		this.team = 0;
 
@@ -111,6 +111,10 @@ export default class Player extends BaseObject{
 
 	draw(){
 		let angle = 0;
+		let offset = {
+			x: -this.frame.width / 2, 
+			y: this.height / 2 - this.frame.height
+		};
 
 		// Get animation from state
 		switch(this.state.name){
@@ -153,10 +157,6 @@ export default class Player extends BaseObject{
 					this.frame.index = {x: 0, y: 3};
 				else
 					this.frame.index = {x: 1, y: 3};
-				break;
-
-			case State.Knockdown:
-				this.frame.index = {x: 7, y: 1};
 				break;
 
 			case State.Jumping:
@@ -235,12 +235,11 @@ export default class Player extends BaseObject{
 				break;
 		}
 
+		console.log(offset)
+
 		super.draw(
 			{
-				offset: {
-					x: -this.frame.width / 2, 
-					y: this.height / 2 - this.frame.height
-				},
+				offset: offset,
 				angle: angle
 			});
 
@@ -422,7 +421,7 @@ export default class Player extends BaseObject{
 
 	moveUp(){
 
-		if(!this.delayDone() && !this.checkState(State.Aiming))
+		if(!this.delayDone() && !this.checkState(State.Aiming) && !this.checkState(State.Rolling))
 			return;
 
 		// Aiming up
@@ -458,7 +457,7 @@ export default class Player extends BaseObject{
 		}else if(this.checkState(State.Grounded) && !this.checkState(State.Rolling)){
 
 			// Not previously crouching
-			if(!this.checkState(State.Crouching)){
+			if(!this.checkLastState(State.Crouching)){
 
 				if((Date.now() - this.last.crouch) < 250){
 					Matter.Body.setPosition(this.body, {x: this.position.x, y: this.position.y + 2});
@@ -470,13 +469,9 @@ export default class Player extends BaseObject{
 							collision.source.update();
 					});
 				}
-				
 				this.last.crouch = Date.now();
 			}
-
-			// Make sure not dropping
-			if(!this.checkState(State.Dropping))
-				this.setState(State.Crouching, 50);
+			this.setState(State.Crouching);
 		}
 	}
 

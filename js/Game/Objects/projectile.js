@@ -19,6 +19,10 @@ export default class Projectile extends BaseObject{
 				offset: {
 					x: -this.frame.width/2,
 					y: -this.frame.height/2
+				},
+				scale: {
+					x: this.speed * 2 / this.frame.width,
+					y: 0.5
 				}
 			});
 	}

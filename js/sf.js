@@ -10,7 +10,11 @@ function loadImage(src){
 }
 
 function loadAudio(src){
-	return new Audio(src);
+
+	if(!sf.data.sounds[src])
+		sf.data.sounds[src] = new Audio(src);
+
+	return sf.data.sounds[src];
 }
 
 function playAudio(audio){

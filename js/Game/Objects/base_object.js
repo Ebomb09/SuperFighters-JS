@@ -120,7 +120,7 @@ export default class BaseObject{
 	update(ms){ 
 		this.delayStep(ms);
 
-		if(this.disableGravity)
+		if(this.disableGravity || !this.body)
 			return;
 
 		const gravity = sf.game.gravity;
@@ -134,7 +134,7 @@ export default class BaseObject{
 
 	draw(options){
 
-		if(this.disableDrawing)
+		if(this.disableDrawing || !this.body)
 			return;
 
 		if(!options) options = {};
@@ -150,7 +150,15 @@ export default class BaseObject{
 		else 
 			sf.ctx.rotate(options.angle);
 
-		sf.ctx.scale(this.facingDirection, 1);
+		// Scale image by an x / y vector
+		let scale = {x: 1, y: 1};
+
+		if(options.scale){
+			scale.x = (options.scale.x) ? options.scale.x : scale.x;
+			scale.y = (options.scale.y) ? options.scale.y : scale.y;
+		}
+
+		sf.ctx.scale(this.facingDirection * scale.x, scale.y);
 
 		// Offset from origin of body to start tiling, default top-left corner
 		if(options.offset === undefined)
@@ -437,8 +445,8 @@ let added = [
 	// Ground Objects
 	obj.dirt				= 	{ image: sf.data.loadImage("images/dirt.png"), resizable: true, matter: {isStatic: true}},
 	obj.concrete			=	{ image: sf.data.loadImage("images/concrete.png"), frameCount: {x: 3, y: 3}, resizable: true, matter: {isStatic: true}},
-	obj.concrete_slope00	=	{ image: sf.data.loadImage("images/concrete_slopeR.png"), shape: "tl-br", resizable: true, matter: {isStatic: true}},
-	obj.concrete_slope01 	=	{ image: sf.data.loadImage("images/concrete_slopeL.png"), shape: "tr-bl", resizable: true, matter: {isStatic: true}},
+	obj.concrete_slope00	=	{ image: sf.data.loadImage("images/concrete_slope00.png"), shape: "tl-br", resizable: true, matter: {isStatic: true}},
+	obj.concrete_slope01 	=	{ image: sf.data.loadImage("images/concrete_slope01.png"), shape: "tr-bl", resizable: true, matter: {isStatic: true}},
 	obj.brick				= 	{ image: sf.data.loadImage("images/brick.png"), frameCount: {x: 2, y: 1}, resizable: true, matter: {isStatic: true}},
 	obj.block				= 	{ image: sf.data.loadImage("images/block.png"), resizable: true, matter: {isStatic: true}},
 	obj.grider				= 	{ image: sf.data.loadImage("images/girder.png"), frameCount: {x: 3, y: 1}, resizable: true, matter: {isStatic: true}},

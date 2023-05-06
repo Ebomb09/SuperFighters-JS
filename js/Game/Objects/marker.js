@@ -15,7 +15,7 @@ export default class Marker extends BaseObject{
 const obj = sf.data.objects;
 
 let added = [
-	obj.player_spawn = { image: sf.data.loadImage("images/markers/player_spawn.png"), matter: {isStatic: true}}
+	obj.player_spawn = { image: sf.data.loadImage("images/marker/player_spawn.png"), matter: {isStatic: true}}
 
 ].forEach((item) => {
 	item.type = Marker;
