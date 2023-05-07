@@ -8,9 +8,6 @@ export default class Projectile extends BaseObject{
 
 		this.damage = this.options.damage;
 		this.speed = this.options.speed;
-		this.angle = this.options.matter.angle;
-
-		Matter.Body.setAngle(this.body, this.angle);
 	}
 
 	draw(){
@@ -37,8 +34,8 @@ export default class Projectile extends BaseObject{
 
 		Matter.Body.setVelocity(this.body,
 			{
-				x: Math.cos(this.angle) * this.speed,
-				y: Math.sin(this.angle) * this.speed
+				x: Math.cos(this.body.angle) * this.speed,
+				y: Math.sin(this.body.angle) * this.speed
 			});
 	}
 };

@@ -3,7 +3,8 @@ import Game from "../Game/game";
 import Editor from "../Game/editor";
 import BaseMenu from "./base_menu";
 import SetupMenu from "./setup_menu";
-import GameMenu from "./game_menu";
+import CreateGameMenu from "./create_game_menu";
+import BrowserMenu from "./browser_menu";
 
 export default class MainMenu extends BaseMenu{
 
@@ -12,9 +13,15 @@ export default class MainMenu extends BaseMenu{
 
 		this.addMarkers(this.options,
 			[{
-				text: "Play",
+				text: "Create a Game",
 				onSelect: () => {
-					sf.menuDispatcher.push(new GameMenu(this.options.x + this.options.w, this.options.y + this.options.h));
+					sf.menuDispatcher.push(new CreateGameMenu(this.options.x + this.options.w, this.options.y + this.options.h));
+				}
+			},
+			{
+				text: "Browse Games",
+				onSelect: () => {
+					sf.menuDispatcher.push(new BrowserMenu);
 				}
 			},
 			{
@@ -28,7 +35,7 @@ export default class MainMenu extends BaseMenu{
 				text: "Tutorial"
 			},
 			{
-				text: "Set up",	
+				text: "Set Up",	
 				onSelect: () => {
 					sf.menuDispatcher.push(new SetupMenu(this.options.x + this.options.w, this.options.y + this.options.h));
 				}

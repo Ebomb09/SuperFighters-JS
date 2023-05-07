@@ -16,7 +16,7 @@ const Mode = {
 export default class Editor extends Game{
 
 	constructor(map){
-		super(map, {local_players: 1});
+		super({map: map, local_players: 1});
 
 		this.selection = {
 			mode: Mode.None,

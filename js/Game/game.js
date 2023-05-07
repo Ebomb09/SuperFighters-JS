@@ -1,12 +1,21 @@
 import sf from "../sf";
 
+const PlayerType = {
+	Local: 0,
+	Net: 1
+};
+
 export default class Game{
 
-	constructor(map, options){
+	constructor(options){
 
 		// Init physics world
 		this.engine = Matter.Engine.create({gravity: {x: 0, y: 0}});
 		this.world = this.engine.world;
+
+		// Collision Handlers
+		Matter.Events.on(this.engine, "collisionStart", this.startCollision.bind(this));
+		Matter.Events.on(this.engine, "collisionEnd", this.endCollision.bind(this));
 
 		// Custom Gravity Constant
 		this.gravity = {x: 0, y: 0.001};
@@ -19,22 +28,48 @@ export default class Game{
 		};
 
 		// Assign players
-		this.local_players 	= (options.local_players) ? options.local_players : 0;
-		this.net_players 	= (options.net_players) ? options.net_players : 0;
+		this.max_players 	= (options.max_players) ? options.max_players : 1;
+		this.local_players	= (options.local_players) ? options.local_players : 0;
 		this.players 		= [];
 
-		// Collision Handlers
-		Matter.Events.on(this.engine, "collisionStart", this.startCollision.bind(this));
-		Matter.Events.on(this.engine, "collisionEnd", this.endCollision.bind(this));
+		for(let i = 0; i < this.local_players; i ++){
+			this.players.push({
+				type: PlayerType.Local, 
+				id: i,
+				input: {}
+			});
+		}
 
 		// Custom game objects
 		this.objects = [];
 
 		// Load map and assign players
-		if(map){
-			this.loadMap(map);
-			this.createPlayers();
+		this.map = (options.map) ? options.map : "{}";
+
+		if(options.host || options.client){
+			// Connect to master server
+			this.ws = new WebSocket(master_server);
+
+			this.ws.onerror = (event) => { this.ws.close(); }
+			this.ws.onclose = (event) => { this.ws = null; }
+
+			// Client connection
+			if(options.client){
+				this.ws.onopen = (event) => {
+					this.ws.send(JSON.stringify({"type": "join_game", "game_id": options.client, "players": this.local_players}));
+				};
+				this.ws.onmessage = this.onClientMessage.bind(this);
+
+			// Host start
+			}else{
+				this.ws.onopen = (event) => {
+					this.ws.send(JSON.stringify({"type": "create_game"}));
+				};
+				this.ws.onmessage = this.onServerMessage.bind(this);
+			}
 		}
+
+		this.restartGame();
 	}
 
 	saveMap(objects){
@@ -50,25 +85,7 @@ export default class Game{
 			let keys = Object.keys(sf.data.objects);
 			let values = Object.values(sf.data.objects);
 
-			map.objects.push({
-				parentKey: keys[values.indexOf(obj.parent)],
-
-				// Descriptors
-				x: obj.position.x,
-				y: obj.position.y,
-				facingDirection: obj.facingDirection,
-				customId: obj.customId,
-
-				// Rendering
-				frameIndex: obj.frame.index,
-				tiling: obj.tiling,
-
-				// Physics specifics
-				matter: {
-					angle: obj.body.angle,
-					isStatic: obj.body.isStatic
-				}
-			});
+			map.objects.push(obj.serialize());
 		});
 		return JSON.stringify(map);
 	}
@@ -84,11 +101,84 @@ export default class Game{
 		let map = JSON.parse(buffer);
 		let objects = [];
 
-		map.objects.forEach((obj) => {
-			objects.push(this.createObject(sf.data.objects[obj.parentKey], obj));
-		});
+		if(map.objects){
+			map.objects.forEach((obj) => {
+				objects.push(this.createObject(sf.data.objects[obj.parentKey], obj));
+			});
+		}
 
 		return objects;
+	}
+
+	restartGame(){
+		this.loadMap(this.map);
+		this.createPlayers();
+	}
+
+	onClientMessage(event){
+		const msg = JSON.parse(event.data);
+
+		switch(msg.type){
+
+			case "join_game":
+				if(msg.status == "fail")
+					this.ws.close();
+				break;
+
+			case "update_game_state":
+				if(msg.status == "ok")
+					this.loadMap(msg.state.map);
+				break;
+		}
+	}
+
+	onServerMessage(event){
+		const msg = JSON.parse(event.data);
+
+		switch(msg.type){
+
+			case "create_game":
+				if(msg.status == "fail")
+					this.ws.close();
+				break;
+
+			case "update_game_state":
+				if(msg.status == "ok"){
+					let player = 0;
+
+					this.players.filter(ply => ply.type == PlayerType.Net).forEach((ply) => {
+
+						if(msg.state.input[ply.id]){
+							ply.input = msg.state.input[ply.id][player];
+							player += 1;
+						}
+					});
+				}
+				break;
+
+			case "player_joined_game":
+				if(msg.status == "ok"){
+
+					for(let i = 0; i < msg.players; i ++){
+						this.players.push({type: PlayerType.Net, id: msg.player_id})
+					}
+				}
+				break;
+
+			case "player_left_game":
+				if(msg.status == "ok"){
+
+					for(let i = 0; i <
+						this.players.length; i ++){
+
+						if(this.players[i].type == PlayerType.Net && this.players[i].id == msg.player_id){
+							this.players.splice(i, 1);
+							break;
+						}
+					}
+				}
+				break;
+		}		
 	}
 
 	createPlayers(){
@@ -106,29 +196,13 @@ export default class Game{
 		});
 
 		// Repeat until the spawns can fulfill the players
-		while(spawns.length < (this.local_players + this.net_players)){
+		while(spawns.length < this.players.length){
 			spawns = spawns.concat(spawns.copyWithin(0));
 		}
 
 		// Create players within the spawns
-		this.players = [];
-
-		for(let i = 0; i < this.local_players; i ++){
-			this.players.push(
-				{
-					type: "local",
-					id: i,
-					object: this.createObject(sf.data.objects.player, spawns[i].position)
-				});
-		}
-
-		for(let i = 0; i < this.net_players; i ++){
-			this.players.push(
-				{
-					type: "net",
-					id: i,
-					object: this.createObject(sf.data.objects.player, spawns[i].position)
-				});
+		for(let i = 0; i < this.players.length; i ++){
+			this.players[i].object = this.createObject(sf.data.objects.player, spawns[i].position);
 		}
 	}
 
@@ -136,37 +210,34 @@ export default class Game{
 
 		for(let i = 0; i < this.players.length; i ++){
 			const player = this.players[i].object;
+			const input = this.players[i].input;
 
-			// Get controls
-			if(this.players[i].type == "local")
-				var controls = sf.config.controls[i];
-
-			// If no control config received move to next player
-			if(!controls)
+			// Player must still be present in-game
+			if(!player || !input)
 				continue;
 
-			if(sf.input.key.held[controls.aim])
+			if(input.aim)
 				player.aim();
 
-			if(sf.input.key.held[controls.down])
+			if(input.down)
 				player.moveDown();
 
-			if(sf.input.key.held[controls.up])
+			if(input.up)
 				player.moveUp();
 
-			if(sf.input.key.held[controls.right])
+			if(input.right)
 				player.moveRight();
 
-			if(sf.input.key.held[controls.left])
+			if(input.left)
 				player.moveLeft();
 
-			if(sf.input.key.pressed[controls.secondaryAttack])
+			if(input.secondaryAttack)
 				player.secondaryAttack();
 			
-			if(sf.input.key.pressed[controls.primaryAttack])
+			if(input.primaryAttack)
 				player.attack();
 
-			if(sf.input.key.pressed[controls.interact])
+			if(input.interact)
 				player.interact();
 		};
 	}
@@ -205,7 +276,32 @@ export default class Game{
 	}
 
 	update(ms){	
-		
+
+		// Update local player configured controls
+		this.players.forEach((player) => {
+
+			if(player.type != PlayerType.Local)
+				return;
+
+			// Get controls from local config
+			const config = sf.config.controls[player.id];
+
+			// Set player input states
+			const input = player.input;
+
+			input.aim 				= sf.input.key.held[config.aim];
+			input.down 				= sf.input.key.held[config.down];
+			input.up 				= sf.input.key.held[config.up];
+			input.right 			= sf.input.key.held[config.right];
+			input.left 				= sf.input.key.held[config.left];
+			input.secondaryAttack 	= sf.input.key.pressed[config.secondaryAttack];
+			input.primaryAttack 	= sf.input.key.pressed[config.primaryAttack];
+			input.interact 			= sf.input.key.pressed[config.interact];
+		});
+
+		if(sf.input.key.pressed["Space"])
+			this.restartGame();
+
 		this.objects.forEach((obj) => {
 			obj.update(ms);
 		});
@@ -215,6 +311,25 @@ export default class Game{
 		Matter.Engine.update(this.engine, ms);
 
 		this.updateCamera();
+
+		// Check if using WebSockets
+		if(this.ws && this.ws.readyState == WebSocket.OPEN){
+
+			// Send all local player input
+			let localPlayerInput = [];
+
+			this.players.filter(ply => ply.type == PlayerType.Local).forEach((ply) => {
+				localPlayerInput.push(ply.input);
+			});
+
+			this.ws.send(JSON.stringify({
+				type: "update_game_state",
+				state: {
+					map: this.saveMap(),
+					input: localPlayerInput
+				}
+			}));
+		}
 	}
 
 	draw(){
@@ -236,6 +351,9 @@ export default class Game{
 		this.getObjectsByParent(sf.data.objects.player).forEach((obj) => {
 			positions.push(obj.position);
 		});
+
+		if(positions.length == 0)
+			return;
 
 		let bounds = Matter.Bounds.create(positions);
 		bounds.min.x -= 32;

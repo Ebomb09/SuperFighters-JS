@@ -70,6 +70,12 @@ export default class Player extends BaseObject{
 	update(ms){
 		super.update(ms);
 
+		// Update the equiped items
+		this.inventory.forEach((obj) => {
+			if(obj)
+				obj.update(ms);
+		});
+
 		// Check player is on ground
 		if(this.onGround()){
 
@@ -234,8 +240,6 @@ export default class Player extends BaseObject{
 				this.frame.index = {x: 0, y: 4};
 				break;
 		}
-
-		console.log(offset)
 
 		super.draw(
 			{

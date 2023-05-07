@@ -249,8 +249,41 @@ export default class BaseObject{
 		}		
 	}
 
+	getParentKey(){
+		const keys = Object.keys(sf.data.objects);
+
+		for(let i = 0; i < keys.length; i ++){
+
+			if(sf.data.objects[keys[i]] == this.parent)
+				return keys[i]
+		}
+		return "";
+	}
+
 	getType(){
 		return this.constructor.name;
+	}
+
+	serialize(){
+		return {
+			parentKey: this.getParentKey(),
+
+			// Descriptors
+			x: this.position.x,
+			y: this.position.y,
+			facingDirection: this.facingDirection,
+			customId: this.customId,
+
+			// Rendering
+			frameIndex: this.frame.index,
+			tiling: this.tiling,
+
+			// Physics specifics
+			matter: {
+				angle: this.body.angle,
+				isStatic: this.body.isStatic
+			}
+		};
 	}
 
 	addCollision(source, collision){

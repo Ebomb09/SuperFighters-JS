@@ -1,6 +1,6 @@
 import sf from "../sf";
 import BaseMenu from "./base_menu";
-import KeyPressMenu from "./keypress_menu";
+import KeyPressMenu from "./key_press_menu";
 
 /* Default Control scheme
 	up: 				"ArrowUp",

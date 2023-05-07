@@ -37,7 +37,7 @@ export default class Gun extends BaseObject{
 		this.equiper = equiper;
 
 		// Remove physical body from world
-		Matter.Composite.remove(sf.game.world, this.body);
+		sf.game.kill(this);
 		this.body = null;
 
 		return this;

@@ -2,7 +2,7 @@ import sf from "../sf";
 import Game from "../Game/game";
 import BaseMenu from "./base_menu";
 
-export default class GameMenu extends BaseMenu{
+export default class CreateGameMenu extends BaseMenu{
 
 	constructor(x, y){
 		super(x, y);
@@ -55,7 +55,23 @@ export default class GameMenu extends BaseMenu{
 			{
 				text: "Start Game",
 				onSelect: () => { 
-					this.startGame(this.maps[this.mapIndex], this.players); 
+
+					fetch(`maps/${this.maps[this.mapIndex]}.sfm`).then((response) => {
+						return response.text();
+					
+					}).then((data) => {
+
+						sf.game = new Game({
+							map: data, 
+							local_players: this.players, 
+							host: true
+						});
+
+						sf.menuDispatcher.clear();
+					
+					}).catch((error) => {
+						console.error(error);
+					});
 				}
 			}]);
 
@@ -84,20 +100,6 @@ export default class GameMenu extends BaseMenu{
 					marker.text = this.players;
 					break;
 			}
-		});
-	}
-
-	startGame(mapName, localPlayers){
-
-		fetch(`maps/${mapName}.sfm`).then((response) => {
-			return response.text();
-		
-		}).then((data) => {
-			sf.game = new Game(data, {local_players: localPlayers});
-			sf.menuDispatcher.clear();
-		
-		}).catch((error) => {
-			console.error(error);
 		});
 	}
 };
