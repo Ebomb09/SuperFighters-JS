@@ -138,11 +138,14 @@ export default class Editor extends Game{
 			button.append(key);
 
 			button.addEventListener("click", () => {
-				this.createObject(
-					sf.data.objects[key], 
-					{
-						x: this.camera.x, 
-						y: this.camera.y, 
+				
+				this.createObject(sf.data.objects[key], {
+						matter:{
+							position: {
+								x: this.camera.x, 
+								y: this.camera.y
+							}
+						}
 					});
 			});
 
@@ -225,11 +228,11 @@ export default class Editor extends Game{
 						// Check if in resize bounds
 						if(this.selection.objects.length == 1 && obj.parent.resizable){
 
-							if(this.selection.start.y > obj.bounds.max.y - 2){
+							if(this.selection.start.y > obj.getBounds().max.y - 2){
 								mode = Mode.ResizeY;
 							}
 
-							if(this.selection.start.x > obj.bounds.max.x - 2){
+							if(this.selection.start.x > obj.getBounds().max.x - 2){
 
 								if(mode == Mode.ResizeY)
 									mode = Mode.Resize;
@@ -260,8 +263,8 @@ export default class Editor extends Game{
 
 				// Save state of top left corner
 				this.selection.objectsVar[i] = {
-					x: obj.position.x - obj.width / 2,
-					y: obj.position.y - obj.height / 2,
+					x: obj.getPosition().x - obj.width / 2,
+					y: obj.getPosition().y - obj.height / 2,
 					angle: obj.body.angle * 180 / Math.PI,
 					w: obj.tiling.width,
 					h: obj.tiling.height
@@ -416,7 +419,7 @@ export default class Editor extends Game{
 		let bounds = [];
 
 		this.selection.objects.forEach((obj) => {
-			bounds.push(obj.bounds.min, obj.bounds.max);
+			bounds.push(obj.getBounds().min, obj.getBounds().max);
 
 			// Draw the selected bodies
 			sf.ctx.beginPath();
@@ -460,23 +463,23 @@ export default class Editor extends Game{
 		// Draw the resizer boxes
 		if(this.selection.objects.length == 1 && this.selection.objects[0].parent.resizable){
 			let obj = this.selection.objects[0];
-			let width = obj.bounds.max.x - obj.bounds.min.x;
-			let height = obj.bounds.max.y - obj.bounds.min.y;
+			let width = obj.getBounds().max.x - obj.getBounds().min.x;
+			let height = obj.getBounds().max.y - obj.getBounds().min.y;
 
 			sf.ctx.beginPath();
-			sf.ctx.rect(obj.bounds.min.x + width / 2 - 1, obj.bounds.min.y + height - 1, 2, 2);
+			sf.ctx.rect(obj.getBounds().min.x + width / 2 - 1, obj.getBounds().min.y + height - 1, 2, 2);
 			sf.ctx.strokeStyle = "white";
 			sf.ctx.lineWidth = 0.5;
 			sf.ctx.stroke();
 
 			sf.ctx.beginPath();
-			sf.ctx.rect(obj.bounds.min.x + width - 1, obj.bounds.min.y + height / 2 - 1, 2, 2);
+			sf.ctx.rect(obj.getBounds().min.x + width - 1, obj.getBounds().min.y + height / 2 - 1, 2, 2);
 			sf.ctx.strokeStyle = "white";
 			sf.ctx.lineWidth = 0.5;
 			sf.ctx.stroke();
 
 			sf.ctx.beginPath();
-			sf.ctx.rect(obj.bounds.min.x + width - 1, obj.bounds.min.y + height - 1, 2, 2);
+			sf.ctx.rect(obj.getBounds().min.x + width - 1, obj.getBounds().min.y + height - 1, 2, 2);
 			sf.ctx.strokeStyle = "white";
 			sf.ctx.lineWidth = 0.5;
 			sf.ctx.stroke();
@@ -514,10 +517,10 @@ export default class Editor extends Game{
 			const obj = this.selection.objects[0];
 
 			// X Position
-			const x = this.createInput("x", obj.position.x);
+			const x = this.createInput("x", obj.getPosition().x);
 			x.addEventListener("input", (event) => {
 				let x = parseInt(event.target.value);
-				let y = this.selection.objects[0].position.y;
+				let y = this.selection.objects[0].getPosition().y;
 
 				if(!isNaN(x))
 					Matter.Body.setPosition(obj.body, {x: x, y: y});
@@ -525,9 +528,9 @@ export default class Editor extends Game{
 			this.selection.display.append(x);
 
 			// Y Position
-			const y = this.createInput("y", obj.position.y);
+			const y = this.createInput("y", obj.getPosition().y);
 			y.addEventListener("input", (event) => {
-				let x = obj.position.x;
+				let x = obj.getPosition().x;
 				let y = parseInt(event.target.value);
 
 				if(!isNaN(y))

@@ -18,20 +18,20 @@ export default class Platform extends BaseObject{
 			if(!this.platformBodies[i]){
 
 				// Copy
-				this.platformBodies[i] = Matter.Bodies.rectangle(this.position.x, this.position.y, this.width, this.height, {isStatic: true});
+				this.platformBodies[i] = Matter.Bodies.rectangle(this.getPosition().x, this.getPosition().y, this.width, this.height, {isStatic: true});
 				this.platformBodies[i].collisionFilter.category = 0;
 				this.platformBodies[i].collisionFilter.mask = 0;
-				this.platformBodies[i].id = this.id;
+				this.platformBodies[i].clientId = this.id;
 
 				Matter.Composite.add(sf.game.world, this.platformBodies[i]);
 			}
 
 			// Copy the main body position
-			Matter.Body.setPosition(this.platformBodies[i], this.position);
+			Matter.Body.setPosition(this.platformBodies[i], this.getPosition());
 			Matter.Body.setAngle(this.platformBodies[i], this.body.angle);
 
 			// If the platform is above disable the collision group
-			if(this.position.y <= players[i].position.y + players[i].height/2)
+			if(this.getPosition().y <= players[i].getPosition().y + players[i].height/2)
 				this.platformBodies[i].collisionFilter.group = 0;
 			else
 				this.platformBodies[i].collisionFilter.group = players[i].id;

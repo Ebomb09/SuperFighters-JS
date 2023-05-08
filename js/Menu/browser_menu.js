@@ -10,7 +10,14 @@ export default class BrowserMenu extends BaseMenu{
 	}
 
 	getGames(){
-		let ws = new WebSocket(master_server);
+
+		try{
+			var ws = new WebSocket(master_server);
+
+		}catch(error){
+			this.resetMarkers();
+			return;
+		}
 
 		ws.onopen = (event) => {
 			ws.send(JSON.stringify({
@@ -19,6 +26,7 @@ export default class BrowserMenu extends BaseMenu{
 		};
 
 		ws.onerror = (event) => {
+			this.resetMarkers();
 			ws.close();
 		}
 
@@ -38,7 +46,7 @@ export default class BrowserMenu extends BaseMenu{
 	}
 
 	joinGame(gameId){
-		sf.game = new Game({local_players: 1, client: gameId});
+		sf.game = new Game({local_players: 1, join: gameId});
 		sf.menuDispatcher.clear();
 	}
 
@@ -56,6 +64,7 @@ export default class BrowserMenu extends BaseMenu{
 		this.options.y += this.options.h;
 		this.options.w = 736;
 
-		this.addMarkers(this.options, games);
+		if(games)
+			this.addMarkers(this.options, games);
 	}
 }

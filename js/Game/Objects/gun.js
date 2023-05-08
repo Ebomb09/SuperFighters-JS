@@ -30,17 +30,25 @@ export default class Gun extends BaseObject{
 		this.ammo = this.options.gun.ammo;
 
 		// Who holds the gun
-		this.equiper = null;
+		this.holderId = (this.options.gun.holderId) ? this.options.gun.holderId : -1;
+	}
+
+	serialize(){
+		const serial = super.serialize();
+		serial.gun = {
+			ammo: this.ammo,
+			holderId: this.holderId
+		};
+		return serial;
 	}
 
 	pickup(equiper){
-		this.equiper = equiper;
+		this.holderId = equiper.id;
 
 		// Remove physical body from world
-		sf.game.kill(this);
-		this.body = null;
+		sf.game.killBody(this);
 
-		return this;
+		return this.id;
 	}
 
 	pullout(){
@@ -62,18 +70,23 @@ export default class Gun extends BaseObject{
 				shots.push({
 					delay: delay,
 					action: () => {
-						const position = this.equiper.getCrosshairPosition();
-						const angle = this.equiper.getCrosshairAngle();
+						const holder = sf.game.getObjectById(this.holderId);
+
+						if(!holder)
+							return;
+
+						const position = holder.getCrosshairPosition();
+						const angle = holder.getCrosshairAngle();
 
 						// Create the count of projectiles
 						for(let j = 0; j < this.count; j ++){
 							sf.game.createObject(sf.data.objects.projectile, 
 								{
-									x: position.x, 
-									y: position.y, 
 									damage: this.damage, 
 									speed: this.speed,
+
 									matter:{
+										position: position,
 										angle: angle + this.getSpread()
 									}
 								});

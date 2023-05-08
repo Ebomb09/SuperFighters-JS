@@ -10,6 +10,13 @@ export default class Projectile extends BaseObject{
 		this.speed = this.options.speed;
 	}
 
+	serialize(){
+		const serial = super.serialize();
+		serial.damage = this.damage;
+		serial.speed = this.speed;
+		return serial;
+	}
+
 	draw(){
 		super.draw(
 			{
@@ -32,11 +39,10 @@ export default class Projectile extends BaseObject{
 	update(ms){
 		super.update(ms);
 
-		Matter.Body.setVelocity(this.body,
-			{
-				x: Math.cos(this.body.angle) * this.speed,
-				y: Math.sin(this.body.angle) * this.speed
-			});
+		this.setVelocity(
+			Math.cos(this.body.angle) * this.speed, 
+			Math.sin(this.body.angle) * this.speed
+			);
 	}
 };
 

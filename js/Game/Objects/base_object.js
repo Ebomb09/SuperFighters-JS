@@ -4,7 +4,9 @@ export default class BaseObject{
 
 	constructor(...params){
 
-		// Combine the parameters
+		/*
+		 *	Combine the parameters
+		 */
 		let options = {};
 
 		params.forEach((param) => {
@@ -21,11 +23,11 @@ export default class BaseObject{
 			});
 		});
 		this.options = options;
-
-		// Set objects parent
 		this.parent = options.parent;
 
-		// Find how many sub-images or frames are present
+		/*
+		 *	Find how many sub-images or frames are present
+		 */
 		this.image = options.image;
 
 		this.frame = {
@@ -50,71 +52,100 @@ export default class BaseObject{
 		this.width = (options.width) ? options.width : this.frame.width * this.tiling.width;
 		this.height = (options.height) ? options.height : this.frame.height * this.tiling.height;
 
-		// Create the physics body
-		if(options.shape == "circle"){
-			this.body = Matter.Bodies.circle(options.x, options.y, this.height / 2, options.matter);
-
-		}else if(options.shape == "tl-br"){
-			options.matter.position = {
-				x: options.x,
-				y: options.y
-			};
-
-			options.matter.vertices = [
-				{x: this.frame.width, y: this.frame.height / 2},
-				{x: this.frame.width, y: this.frame.height},
-				{x: 0, y: this.frame.height / 2},
-				{x: 0, y: 0}
-				];
-
-			this.body = Matter.Body.create(options.matter);
-
-		}else if(options.shape == "tr-bl"){
-			options.matter.position = {
-				x: options.x,
-				y: options.y
-			};
-
-			options.matter.vertices = [
-				{x: this.frame.width, y: 0},
-				{x: this.frame.width, y: this.frame.height / 2},
-				{x: 0, y: this.frame.height},
-				{x: 0, y: this.frame.height / 2}
-				];
-
-			this.body = Matter.Body.create(options.matter);
-
-		}else{
-			this.body = Matter.Bodies.rectangle(options.x, options.y, this.width, this.height, options.matter);
-		}
-		this.collisions = [];
-
-		if(options.disableGravity) this.disableGravity = options.disableGravity;
-
-		// Collision filter is it and mask is what
-		if(options.category) this.body.collisionFilter.category = options.category;
-		if(options.mask) this.body.collisionFilter.mask = options.mask;
-
-		// Alias to Matter Body
-		this.position 			= this.body.position;
-		this.velocity 			= this.body.velocity;
-		this.bounds 			= this.body.bounds;
-
-		// Game specific attributes
-		this.id 				= this.body.id;
-		this.customId 			= (options.customId) ? options.customId : "";
-		this.facingDirection 	= (options.facingDirection) ? options.facingDirection : 1;
-		this.health 			= (options.health) ? options.health : -1;
-
-		// State control of object
-		this.state = {
+		/*
+		 *	State control of object
+		 */
+		this.state = (options.state) ? options.state : {
 			name: "none",
 			lastName: "",
 			entropy: 0,
 			delay: 0,
-			delayMax: 0,
-			callbacks: []
+			delayMax: 0
 		};
+		this.state.callbacks = [];
+
+		/*
+		 *	Game specific attributes
+		 */ 
+		this.id 				= (options.id) ? options.id : sf.getNextUniqueId();
+		this.customId 			= (options.customId) ? options.customId : "";
+		this.facingDirection 	= (options.facingDirection) ? options.facingDirection : 1;
+		this.health 			= (options.health) ? options.health : -1;
+
+		/*
+		 *	Physics 
+		 */
+		if(options.matter){
+			const matter = options.matter;
+
+			if(options.shape == "circle"){
+				this.body = Matter.Bodies.circle(matter.position.x, matter.position.y, this.height / 2, matter);
+
+			}else if(options.shape == "tl-br"){
+
+				matter.vertices = [
+					{x: this.frame.width, y: this.frame.height / 2},
+					{x: this.frame.width, y: this.frame.height},
+					{x: 0, y: this.frame.height / 2},
+					{x: 0, y: 0}
+					];
+
+				this.body = Matter.Body.create(matter);
+
+			}else if(options.shape == "tr-bl"){
+
+				matter.vertices = [
+					{x: this.frame.width, y: 0},
+					{x: this.frame.width, y: this.frame.height / 2},
+					{x: 0, y: this.frame.height},
+					{x: 0, y: this.frame.height / 2}
+					];
+
+				this.body = Matter.Body.create(matter);
+
+			}else{
+				this.body = Matter.Bodies.rectangle(matter.position.x, matter.position.y, this.width, this.height, matter);
+			}
+			this.body.clientId = this.id;
+			this.collisions = [];
+
+			if(options.disableGravity) this.disableGravity = options.disableGravity;
+
+			// Collision filter is it and mask is what
+			if(options.category) this.body.collisionFilter.category = options.category;
+			if(options.mask) this.body.collisionFilter.mask = options.mask;
+		}
+	}
+
+	serialize(){
+		const serial = {
+			parentKey: this.getParentKey(),
+
+			// Descriptors
+			id: this.id,
+			customId: this.customId,
+
+			facingDirection: this.facingDirection,
+
+			// Rendering
+			frameIndex: this.frame.index,
+			tiling: this.tiling,
+		};
+
+		if(this.state.name != "none")
+			serial.state = this.state;
+
+		// Physics specifics
+		if(this.body)
+			serial.matter = {
+				position: this.getPosition(),
+				velocity: this.getVelocity(),
+				angle: this.body.angle,
+
+				isStatic: this.body.isStatic
+			};
+		
+		return serial;
 	}
 
 	update(ms){ 
@@ -142,7 +173,7 @@ export default class BaseObject{
 		sf.ctx.save();
 
 		// Transform Image
-		sf.ctx.translate(this.position.x, this.position.y);
+		sf.ctx.translate(this.getPosition().x, this.getPosition().y);
 
 		// Rotate according to bodies rotation
 		if(options.angle === undefined)
@@ -264,55 +295,35 @@ export default class BaseObject{
 		return this.constructor.name;
 	}
 
-	serialize(){
-		return {
-			parentKey: this.getParentKey(),
-
-			// Descriptors
-			x: this.position.x,
-			y: this.position.y,
-			facingDirection: this.facingDirection,
-			customId: this.customId,
-
-			// Rendering
-			frameIndex: this.frame.index,
-			tiling: this.tiling,
-
-			// Physics specifics
-			matter: {
-				angle: this.body.angle,
-				isStatic: this.body.isStatic
-			}
-		};
-	}
-
 	addCollision(source, collision){
+
+		if(!this.body)
+			return;
 
 		this.collisions.push(
 			{
 				source: source,
 
 				// Store penetration vector from this -> object 
-				penetration: (collision.bodyB.id == this.id) ? collision.penetration : Matter.Vector.neg(collision.penetration)
+				penetration: (collision.bodyB == this.body) ? collision.penetration : Matter.Vector.neg(collision.penetration)
 			});	
 
 		// All force went back into this
-		if(source.body.mass == Infinity){
+		if(source.body.mass == Infinity)
 			return;
-		}	
 
 		// This is an unmoving object, force returns to source
 		if(this.body.mass == Infinity){
 			var forceVector = {
-				x: source.velocity.x * source.body.mass,
-				y: source.velocity.y * source.body.mass,
+				x: source.getVelocity().x * source.body.mass,
+				y: source.getVelocity().y * source.body.mass,
 			};
 
 		// Difference of forces
 		}else{
 			var forceVector = {
-				x: this.velocity.x * this.body.mass - source.velocity.x * source.body.mass,
-				y: this.velocity.y * this.body.mass - source.velocity.y * source.body.mass,
+				x: this.getVelocity().x * this.body.mass - source.getVelocity().x * source.body.mass,
+				y: this.getVelocity().y * this.body.mass - source.getVelocity().y * source.body.mass,
 			};
 		}
 
@@ -325,9 +336,12 @@ export default class BaseObject{
 
 	removeCollision(obj){
 
+		if(!this.body)
+			return;
+
 		for(let i = 0; i < this.collisions.length; i ++){
 
-			if(this.collisions[i].source.id == obj.id){
+			if(this.collisions[i].source == obj){
 				this.collisions.splice(i, 1)
 				break;
 			}
@@ -341,8 +355,8 @@ export default class BaseObject{
 		this.height = this.frame.height * this.tiling.height;
 
 		let body = Matter.Bodies.rectangle(
-			this.position.x, 
-			this.position.y, 
+			this.getPosition().x, 
+			this.getPosition().y, 
 			this.width, 
 			this.height);
 
@@ -380,6 +394,37 @@ export default class BaseObject{
 		}
 
 		return degree;
+	}
+
+	getPosition(){
+		if(this.body) return {x: this.body.position.x, y: this.body.position.y};
+		return {x: 0, y: 0};
+	}
+
+	movePosition(x, y){
+		if(this.body) Matter.Body.setPosition(this.body, Matter.Vector.create(this.body.position.x + x, this.body.position.y + y));
+	}
+
+	setPosition(x, y){
+		if(this.body) Matter.Body.setPosition(this.body, Matter.Vector.create(x, y));
+	}
+
+	getVelocity(){
+		if(this.body) return {x: this.body.velocity.x, y: this.body.velocity.y};
+		return {x: 0, y: 0};	
+	}
+
+	setVelocity(x, y){
+		if(this.body) Matter.Body.setVelocity(this.body, Matter.Vector.create(x, y));
+	}
+
+	moveVelocity(x, y){
+		if(this.body) Matter.Body.setVelocity(this.body, Matter.Vector.create(this.body.velocity.x + x, this.body.velocity.y + y));
+	}
+
+	getBounds(){
+		if(this.body) return this.body.bounds;
+		return {min: {x: 0, y: 0}, max: {x: 0, y: 0}};
 	}
 
 	onLeft(){

@@ -29,10 +29,11 @@ export default class Game{
 
 		// Assign players
 		this.max_players 	= (options.max_players) ? options.max_players : 1;
-		this.local_players	= (options.local_players) ? options.local_players : 0;
 		this.players 		= [];
 
-		for(let i = 0; i < this.local_players; i ++){
+		const local_players	= (options.local_players) ? options.local_players : 0;
+
+		for(let i = 0; i < local_players; i ++){
 			this.players.push({
 				type: PlayerType.Local, 
 				id: i,
@@ -46,26 +47,34 @@ export default class Game{
 		// Load map and assign players
 		this.map = (options.map) ? options.map : "{}";
 
-		if(options.host || options.client){
+		if(options.host || options.join){
+
 			// Connect to master server
-			this.ws = new WebSocket(master_server);
+			try{
+				this.ws = new WebSocket(master_server);
 
-			this.ws.onerror = (event) => { this.ws.close(); }
-			this.ws.onclose = (event) => { this.ws = null; }
+			}catch(error){
+				this.ws = null;
+			}
 
-			// Client connection
-			if(options.client){
-				this.ws.onopen = (event) => {
-					this.ws.send(JSON.stringify({"type": "join_game", "game_id": options.client, "players": this.local_players}));
-				};
-				this.ws.onmessage = this.onClientMessage.bind(this);
+			if(this.ws){
+				this.ws.onerror = (event) => { this.ws.close(); }
+				this.ws.onclose = (event) => { this.ws = null; }
 
-			// Host start
-			}else{
-				this.ws.onopen = (event) => {
-					this.ws.send(JSON.stringify({"type": "create_game"}));
-				};
-				this.ws.onmessage = this.onServerMessage.bind(this);
+				// Client connection
+				if(options.join){
+					this.ws.onopen = (event) => {
+						this.ws.send(JSON.stringify({"type": "join_game", "game_id": options.join, "players": local_players}));
+					};
+					this.ws.onmessage = this.onClientMessage.bind(this);
+
+				// Host start
+				}else{
+					this.ws.onopen = (event) => {
+						this.ws.send(JSON.stringify({"type": "create_game"}));
+					};
+					this.ws.onmessage = this.onServerMessage.bind(this);
+				}
 			}
 		}
 
@@ -98,8 +107,14 @@ export default class Game{
 			this.objects = [];
 		}
 		
-		let map = JSON.parse(buffer);
-		let objects = [];
+		// Parse the buffer contents
+		try{
+			var map = JSON.parse(buffer);
+			var objects = [];
+
+		}catch(error){
+			return [];
+		}
 
 		if(map.objects){
 			map.objects.forEach((obj) => {
@@ -126,8 +141,10 @@ export default class Game{
 				break;
 
 			case "update_game_state":
-				if(msg.status == "ok")
+				if(msg.status == "ok"){
 					this.loadMap(msg.state.map);
+					
+				}
 				break;
 		}
 	}
@@ -202,7 +219,11 @@ export default class Game{
 
 		// Create players within the spawns
 		for(let i = 0; i < this.players.length; i ++){
-			this.players[i].object = this.createObject(sf.data.objects.player, spawns[i].position);
+			this.players[i].object = this.createObject(sf.data.objects.player, { 
+				matter:{
+					position: spawns[i].getPosition()
+				}
+			});
 		}
 	}
 
@@ -216,37 +237,23 @@ export default class Game{
 			if(!player || !input)
 				continue;
 
-			if(input.aim)
-				player.aim();
-
-			if(input.down)
-				player.moveDown();
-
-			if(input.up)
-				player.moveUp();
-
-			if(input.right)
-				player.moveRight();
-
-			if(input.left)
-				player.moveLeft();
-
-			if(input.secondaryAttack)
-				player.secondaryAttack();
-			
-			if(input.primaryAttack)
-				player.attack();
-
-			if(input.interact)
-				player.interact();
+			// Send input states to the player
+			if(input.aim) 				player.aim();
+			if(input.down) 				player.moveDown();
+			if(input.up) 				player.moveUp();
+			if(input.right) 			player.moveRight();
+			if(input.left) 				player.moveLeft();
+			if(input.secondaryAttack) 	player.secondaryAttack();
+			if(input.primaryAttack) 	player.attack();
+			if(input.interact) 			player.interact();
 		};
 	}
 
 	startCollision(event){
 
 		event.pairs.forEach((pair) => {
-			let objA = this.getObjectById(pair.bodyA.id);
-			let objB = this.getObjectById(pair.bodyB.id);
+			let objA = this.getObjectByBody(pair.bodyA);
+			let objB = this.getObjectByBody(pair.bodyB);
 
 			if(objA && objB){
 				objA.addCollision(objB, pair.collision);
@@ -258,8 +265,8 @@ export default class Game{
 	endCollision(event){
 
 		event.pairs.forEach((pair) => {
-			let objA = this.getObjectById(pair.bodyA.id);
-			let objB = this.getObjectById(pair.bodyB.id);
+			let objA = this.getObjectByBody(pair.bodyA);
+			let objB = this.getObjectByBody(pair.bodyB);
 
 			if(objA && objB){
 				objA.removeCollision(objB);
@@ -349,7 +356,7 @@ export default class Game{
 		let positions = [];
 
 		this.getObjectsByParent(sf.data.objects.player).forEach((obj) => {
-			positions.push(obj.position);
+			positions.push(obj.getPosition());
 		});
 
 		if(positions.length == 0)
@@ -391,15 +398,16 @@ export default class Game{
 
 	createObject(parent, ...params){
 
-		var obj = new parent.type(parent, ...params, {parent: parent});
-
-		Matter.Composite.add(this.world, obj.body);
+		const obj = new parent.type(parent, ...params, {parent: parent});
 		this.objects.push(obj);
+
+		if(obj.body)
+			Matter.Composite.add(this.world, obj.body);
 
 		return obj;
 	}
 
-	createForce(src, circle, force){
+	createForce(source, circle, force){
 
 		// Collision check body
 		let body = Matter.Bodies.circle(circle.x, circle.y, circle.radius);
@@ -408,9 +416,9 @@ export default class Game{
 
 		// Foreach collision check it's not the source and apply the force
 		collisions.forEach((collision) => {
-			let obj = this.getObjectById(collision.bodyA.id);
+			const obj = this.getObjectByBody(collision.bodyA);
 
-			if(src != obj){
+			if(obj && source != obj){
 				Matter.Body.applyForce(
 					obj.body, 
 					body.position, 
@@ -423,16 +431,21 @@ export default class Game{
 	}
 
 	kill(object){
-		let index = this.objects.indexOf(object);
+		const index = this.objects.indexOf(object);
+
+		// Remove all references to the object
+		this.killBody(object);
+		this.objects.splice(index, 1);
+	}
+
+	killBody(object){
+		Matter.Composite.remove(this.world, object.body);
+		object.body = null;
 
 		// Remove collisions to this object
 		this.objects.forEach((obj) => {
 			obj.removeCollision(object);
 		});
-
-		// Remove all references to the object
-		this.objects.splice(index, 1);
-		Matter.Composite.remove(this.world, object.body);
 	}
 
 	getObjectById(id){
@@ -440,6 +453,16 @@ export default class Game{
 		for(let i = 0; i < this.objects.length; i ++){
 
 			if(this.objects[i].id == id)
+				return this.objects[i];
+		}
+		return null;
+	}
+
+	getObjectByBody(body){
+
+		for(let i = 0; i < this.objects.length; i ++){
+
+			if(body.clientId == this.objects[i].id)
 				return this.objects[i];
 		}
 		return null;
@@ -472,7 +495,7 @@ export default class Game{
 		let objects = [];
 
 		bodies.forEach((body) => {
-			objects.push(this.getObjectById(body.id));
+			objects.push(this.getObjectByBody(body));
 		});
 		return objects;
 	}
@@ -482,7 +505,8 @@ export default class Game{
 		let objects = [];
 
 		bodies.forEach((body) => {
-			objects.push(this.getObjectById(body.id));
+			const obj = this.getObjectByBody(body);
+			if(obj) objects.push(obj);
 		});
 		return objects;
 	}

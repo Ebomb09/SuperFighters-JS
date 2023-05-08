@@ -33,6 +33,22 @@ function playAudio(audio){
 	return copy;
 }
 
+function getNextUniqueId(){
+
+	if(!sf.game)
+		return 0;
+
+	let highest = -1;
+
+	sf.game.objects.forEach((obj) => {
+
+		if(obj.id > highest)
+			highest = obj.id;
+	});
+
+	return highest+1;
+}
+
 const docs = document.getElementById("sf-docs");
 const canvas = document.getElementById("sf-canvas");
 const ctx = canvas.getContext("2d");
@@ -107,6 +123,8 @@ const sf = {
 		objects: {}
 	},
 
+	getNextUniqueId: getNextUniqueId,
+
 	filters: {
 		object: 		1 << 0,
 		player: 		1 << 1,
@@ -115,7 +133,7 @@ const sf = {
 		marker: 		1 << 4, 
 		background: 	1 << 5, 
 		platform: 		1 << 6
-	},
+	}
 };
 
 export default sf;
