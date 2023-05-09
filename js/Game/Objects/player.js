@@ -33,15 +33,6 @@ const Inventory = {
 	Powerup: 	3
 };
 
-const sounds = {
-	punch: [
-		sf.data.loadAudio("sounds/player/punch00.mp3"),
-		sf.data.loadAudio("sounds/player/punch01.mp3"),
-		],
-	roll: sf.data.loadAudio("sounds/player/roll.mp3"),
-	jump: sf.data.loadAudio("sounds/player/jump.mp3")
-};
-
 export default class Player extends BaseObject{
 
 	constructor(...params){
@@ -69,10 +60,12 @@ export default class Player extends BaseObject{
 
 	serialize(){
 		const serial = super.serialize();
-		serial.team = this.team;
-		serial.inventory = this.inventory;
-		serial.equiped = this.equiped;
-		serial.crosshair = this.crosshair;
+
+		serial.team 		= this.team;
+		serial.inventory 	= this.inventory;
+		serial.equiped 		= this.equiped;
+		serial.crosshair 	= this.crosshair;
+
 		return serial;
 	}
 
@@ -381,7 +374,7 @@ export default class Player extends BaseObject{
 
 			if(this.checkState(State.Crouching)){
 				this.setState(State.Rolling, 300);
-				sf.data.playAudio(sounds.roll);
+				sf.data.playAudio(this.sounds.roll);
 
 			}else if(!this.checkState(State.Rolling)){
 				this.movePosition(1, 0);
@@ -399,7 +392,7 @@ export default class Player extends BaseObject{
 	
 			if(this.checkState(State.Crouching)){
 				this.setState(State.Rolling, 300);
-				sf.data.playAudio(sounds.roll);
+				sf.data.playAudio(this.sounds.roll);
 
 			}else if(!this.checkState(State.Rolling)){
 				this.movePosition(-1, 0);
@@ -425,7 +418,7 @@ export default class Player extends BaseObject{
 		}else if(this.checkState(State.Grounded)){
 			this.setVelocity(this.getVelocity().x, -4);
 			this.setState(State.Jumping);
-			sf.data.playAudio(sounds.jump);
+			sf.data.playAudio(this.sounds.jump);
 		}
 	}
 
@@ -451,9 +444,10 @@ export default class Player extends BaseObject{
 
 					// Update the collisionGroups of the platforms
 					this.collisions.forEach((collision) => {
+						const obj = sf.game.getObjectById(collision.objectId);
 
-						if(collision.source.getType() == "Platform")
-							collision.source.update();
+						if(obj.getType() == "Platform")
+							obj.update();
 					});
 				}
 				this.last.crouch = Date.now();
@@ -507,7 +501,7 @@ export default class Player extends BaseObject{
 								damage: 7
 							});
 						this.movePosition(this.facingDirection * 1.5, 0);
-						sf.data.playAudio(sounds.punch);
+						sf.data.playAudio(this.sounds.punch);
 					}
 				}]);
 
@@ -529,7 +523,7 @@ export default class Player extends BaseObject{
 								damage: 7
 							});
 						this.movePosition(this.facingDirection * 1.5, 0);
-						sf.data.playAudio(sounds.punch);
+						sf.data.playAudio(this.sounds.punch);
 					}
 				}]);
 
@@ -537,11 +531,11 @@ export default class Player extends BaseObject{
 		}else if(this.checkState(State.Punching2) && this.delayTimestamp() > 150){
 			this.setState(State.Punching3, 400, 
 				[{
-					delay: 100,
+					delay: 150,
 					action: () => {
 						sf.game.createForce(this, 
 							{
-								x: this.getPosition() + this.width/2 * this.facingDirection, 
+								x: this.getPosition().x + this.width/2 * this.facingDirection, 
 								y: this.getPosition().y,
 								radius: 5
 							},
@@ -551,7 +545,7 @@ export default class Player extends BaseObject{
 								damage: 7
 							});
 						this.movePosition(this.facingDirection * 1.5, 0);
-						sf.data.playAudio(sounds.punch);
+						sf.data.playAudio(this.sounds.punch);
 					}
 				}]);
 
@@ -570,7 +564,7 @@ export default class Player extends BaseObject{
 					y: 0,
 					damage: 5
 				});
-			sf.data.playAudio(sounds.punch);
+			sf.data.playAudio(this.sounds.punch);
 		}
 	}
 
@@ -605,7 +599,7 @@ export default class Player extends BaseObject{
 					y: -0.0001,
 					damage: 1
 				});
-			sf.data.playAudio(sounds.punch);
+			sf.data.playAudio(this.sounds.punch);
 
 		// Jump kicking
 		}else if(this.checkState(State.Jumping) && !this.checkState(State.Attacking)){
@@ -622,7 +616,7 @@ export default class Player extends BaseObject{
 					y: -0.001,
 					damage: 1
 				});
-			sf.data.playAudio(sounds.punch);
+			sf.data.playAudio(this.sounds.punch);
 		}
 	}
 
@@ -667,7 +661,26 @@ export default class Player extends BaseObject{
 const obj = sf.data.objects;
 
 let added = [
-	obj.player 			=	{ image: sf.data.loadImage("images/player.png"), frameCount: {x: 24, y: 16} },
+
+	obj.player = { 
+		image: sf.data.loadImage("images/player.png"), 
+		frameCount: {x: 24, y: 16},
+
+		sounds: {
+			hit: [
+				sf.data.loadAudio("sounds/player/hit_player00.mp3"),
+				sf.data.loadAudio("sounds/player/hit_player01.mp3"),
+				sf.data.loadAudio("sounds/player/hit_player02.mp3"),
+				sf.data.loadAudio("sounds/player/hit_player03.mp3")				
+			],
+			punch: [
+				sf.data.loadAudio("sounds/player/punch00.mp3"),
+				sf.data.loadAudio("sounds/player/punch01.mp3"),
+			],
+			roll: sf.data.loadAudio("sounds/player/roll.mp3"),
+			jump: sf.data.loadAudio("sounds/player/jump.mp3")
+		}
+	}
 
 ].forEach((item) => {
 	item.type = Player;

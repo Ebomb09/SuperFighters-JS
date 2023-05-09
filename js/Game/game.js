@@ -61,20 +61,35 @@ export default class Game{
 				this.ws.onerror = (event) => { this.ws.close(); }
 				this.ws.onclose = (event) => { this.ws = null; }
 
-				// Client connection
-				if(options.join){
-					this.ws.onopen = (event) => {
-						this.ws.send(JSON.stringify({"type": "join_game", "game_id": options.join, "players": local_players}));
-					};
-					this.ws.onmessage = this.onClientMessage.bind(this);
+				// Check first response to ensure connection is valid
+				this.ws.onmessage = (event) => {
+					const msg = JSON.parse(event.data);
 
-				// Host start
-				}else{
-					this.ws.onopen = (event) => {
-						this.ws.send(JSON.stringify({"type": "create_game"}));
-					};
-					this.ws.onmessage = this.onServerMessage.bind(this);
-				}
+					switch(msg.type){
+
+						case "connect":
+
+							if(!msg.connection_id)
+								this.ws.close();
+
+							this.ws.connectionId = msg.connection_id;
+
+							if(options.join){
+								this.ws.onmessage = this.onClientMessage.bind(this);
+								this.ws.send(JSON.stringify({"type": "join_game", "game_id": options.join, "players": local_players}));
+							
+							}else if(options.host){
+								this.ws.serverMode = true;
+								this.ws.onmessage = this.onServerMessage.bind(this);
+								this.ws.send(JSON.stringify({"type": "create_game"}));
+							}
+							break;
+
+						default:
+							this.ws.close();
+							break;
+					}
+				};
 			}
 		}
 
@@ -141,10 +156,37 @@ export default class Game{
 				break;
 
 			case "update_game_state":
-				if(msg.status == "ok"){
-					this.loadMap(msg.state.map);
-					
+
+				if(!msg.state || !msg.state.map || !msg.state.players)
+					break;
+
+				this.loadMap(msg.state.map);
+
+				// Update local players object
+				this.players = this.players.filter(ply => ply.type == PlayerType.Local);
+				const localPlayers = msg.state.players.filter(ply => ply.netId == this.ws.connectionId);
+
+				if(this.players.length <= localPlayers.length){
+
+					for(let i = 0; i < this.players.length; i ++){
+						this.players[i].objectId = localPlayers[i].objectId;
+					}
 				}
+
+				// Recreate all remaining net player
+				msg.state.players.filter(ply => ply.netId != this.ws.connectionId).forEach((ply) => {
+					this.players.push({
+						type: PlayerType.Net,
+						id: ply.netId,
+						objectId: ply.objectId,
+						input: ply.input
+					});
+				});
+				break;
+
+			case "upgrade":
+				this.ws.serverMode = true;
+				this.ws.onmessage = this.onServerMessage.bind(this);
 				break;
 		}
 	}
@@ -159,39 +201,39 @@ export default class Game{
 					this.ws.close();
 				break;
 
-			case "update_game_state":
-				if(msg.status == "ok"){
-					let player = 0;
+			case "update_player_input":
 
-					this.players.filter(ply => ply.type == PlayerType.Net).forEach((ply) => {
+				if(!msg.input || !msg.connection_id)
+					break;
 
-						if(msg.state.input[ply.id]){
-							ply.input = msg.state.input[ply.id][player];
-							player += 1;
-						}
-					});
-				}
+				let player = 0;
+
+				this.players.filter(ply => ply.id == msg.connection_id && ply.type == PlayerType.Net).forEach((ply) => {
+					ply.input = msg.input[player++];				
+				});
 				break;
 
 			case "player_joined_game":
-				if(msg.status == "ok"){
 
-					for(let i = 0; i < msg.players; i ++){
-						this.players.push({type: PlayerType.Net, id: msg.player_id})
-					}
+				if(!msg.players || !msg.connection_id)
+					break;
+
+				for(let i = 0; i < msg.players; i ++){
+					this.players.push({type: PlayerType.Net, id: msg.connection_id})
 				}
 				break;
 
 			case "player_left_game":
-				if(msg.status == "ok"){
 
-					for(let i = 0; i <
-						this.players.length; i ++){
+				if(!msg.connection_id)
+					break;
 
-						if(this.players[i].type == PlayerType.Net && this.players[i].id == msg.player_id){
-							this.players.splice(i, 1);
-							break;
-						}
+				for(let i = 0; i <
+					this.players.length; i ++){
+
+					if(this.players[i].type == PlayerType.Net && this.players[i].id == msg.connection_id){
+						this.players.splice(i, 1);
+						break;
 					}
 				}
 				break;
@@ -206,7 +248,7 @@ export default class Game{
 
 		// Randomly sort the array
 		spawns.sort((a, b) => { 
-			if(Math.random() < 0.5) 
+			if(Math.random() < 0.5)
 				return 1; 
 			else
 				return -1;
@@ -219,18 +261,19 @@ export default class Game{
 
 		// Create players within the spawns
 		for(let i = 0; i < this.players.length; i ++){
-			this.players[i].object = this.createObject(sf.data.objects.player, { 
+			const object = this.createObject(sf.data.objects.player, { 
 				matter:{
 					position: spawns[i].getPosition()
 				}
 			});
+			this.players[i].objectId = object.id;
 		}
 	}
 
 	handlePlayerInput(){
 
 		for(let i = 0; i < this.players.length; i ++){
-			const player = this.players[i].object;
+			const player = this.getObjectById(this.players[i].objectId);
 			const input = this.players[i].input;
 
 			// Player must still be present in-game
@@ -287,13 +330,16 @@ export default class Game{
 		// Update local player configured controls
 		this.players.forEach((player) => {
 
-			if(player.type != PlayerType.Local)
+			if(player.type != PlayerType.Local && player.id >= 0)
 				return;
 
 			// Get controls from local config
 			const config = sf.config.controls[player.id];
 
 			// Set player input states
+			if(!player.input)
+				player.input = {};
+
 			const input = player.input;
 
 			input.aim 				= sf.input.key.held[config.aim];
@@ -322,20 +368,38 @@ export default class Game{
 		// Check if using WebSockets
 		if(this.ws && this.ws.readyState == WebSocket.OPEN){
 
-			// Send all local player input
-			let localPlayerInput = [];
+			// Server Mode
+			if (this.ws.serverMode){
 
-			this.players.filter(ply => ply.type == PlayerType.Local).forEach((ply) => {
-				localPlayerInput.push(ply.input);
-			});
+				// Get all players
+				const allPlayers = this.players.map((ply) => {
 
-			this.ws.send(JSON.stringify({
-				type: "update_game_state",
-				state: {
-					map: this.saveMap(),
+					return {
+						objectId: ply.objectId,
+						netId: (ply.type == PlayerType.Local) ? this.ws.connectionId : ply.id,
+						input: ply.input
+					};
+				});
+
+				this.ws.send(JSON.stringify({
+					type: "update_game_state",
+					state: {
+						map: this.saveMap(),
+						players: allPlayers
+					},
+				}));
+
+			// Client Mode
+			}else{
+
+				// Send all local player input
+				const localPlayerInput = this.players.filter(ply => ply.type == PlayerType.Local).map(ply => ply.input);
+
+				this.ws.send(JSON.stringify({
+					type: "update_player_input",
 					input: localPlayerInput
-				}
-			}));
+				}));
+			}
 		}
 	}
 
@@ -398,13 +462,28 @@ export default class Game{
 
 	createObject(parent, ...params){
 
-		const obj = new parent.type(parent, ...params, {parent: parent});
+		const obj = this.prototypeObject(parent, ...params);
 		this.objects.push(obj);
 
 		if(obj.body)
 			Matter.Composite.add(this.world, obj.body);
 
 		return obj;
+	}
+
+	prototypeObject(parent, ...params){
+		return new parent.type({id: this.getNextUniqueId()}, parent, ...params, {parent: parent});;
+	}
+
+	getNextUniqueId(){
+		let highest = -1;
+
+		this.objects.forEach((obj) => {
+
+			if(obj.id > highest)
+				highest = obj.id;
+		});
+		return highest+1;
 	}
 
 	createForce(source, circle, force){

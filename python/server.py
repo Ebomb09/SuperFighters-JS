@@ -68,10 +68,6 @@ class game:
 		self.host = connection
 		self.lobby = [connection]
 
-		self.state = {
-			"map": "",
-			"input": {}
-		}
 		self.message_log = []
 
 	def get_next_id(self):
@@ -87,7 +83,7 @@ class game:
 
 		if not found:
 			self.lobby.append(connection)
-			self.host.send({"type": "player_joined_game", "status": "ok", "player_id": connection.id, "players": players})
+			self.host.send({"type": "player_joined_game", "connection_id": connection.id, "players": players})
 
 	def remove_connection(self, connection):
 
@@ -96,17 +92,24 @@ class game:
 		except ValueError:
 			pass
 
-		self.host.send({"type": "player_left_game", "status": "ok", "player_id": connection.id})
+		# Migrate host
+		if connection is self.host and len(self.lobby) > 0:
+			self.host = self.lobby[0]
+			self.host.send({"type": "upgrade"})
 
-	def update_state(self, connection, state):
+		self.host.send({"type": "player_left_game", "connection_id": connection.id})
 
-		if connection == self.host:
-			self.state["map"] = state["map"]
+	def update_game_state(self, connection, state):
 
-		self.state["input"][str(connection.id)] = state["input"]
+		if connection is self.host:
+			for conn in self.lobby:
+				if conn is not self.host:
+					conn.send({"type": "update_game_state", "state": state})
 
-	def get_state(self):
-		return self.state
+	def update_player_input(self, connection, input):
+
+		if connection is not self.host:
+			self.host.send({"type": "update_player_input", "connection_id": connection.id, "input": input})
 
 
 class host:
@@ -137,33 +140,37 @@ class host:
 		if conn is None:
 			return
 
+		conn.send({"type": "connect", "connection_id": conn.id})
+
 		while(conn.alive and self.alive):
 			
 			msg = conn.receive(5)
 
-			if msg["type"] == "create_game":
+			type = msg.get("type")
+
+			if type == "create_game":
 				self.create_game(conn)
 
-			elif msg["type"] == "get_games":
+			elif type == "get_games":
 
 				games = []
 				with self.games_lock:
 					for game in self.games:
 						games.append({"id": game.id, "players": len(game.lobby)})
 
-				conn.send({"type": "get_games", "status": "ok", "games": games})
+				conn.send({"type": "get_games", "games": games})
 
-			elif msg["type"] == "join_game":
-				self.join_game(conn, msg["game_id"], msg["players"])
+			elif type == "join_game":
+				self.join_game(conn, msg.get("game_id"), msg.get("players"))
 
-			elif msg["type"] == "leave_game":
+			elif type == "leave_game":
 				self.leave_game(conn)
 
-			elif msg["type"] == "update_game_state":
-				self.update_game_state(conn, msg["state"])
+			elif type == "update_game_state":
+				self.update_game_state(conn, msg.get("state"))
 
-			elif msg["type"] == "get_game_state":
-				self.update_game_state(conn, "")
+			elif type == "update_player_input":
+				self.update_player_input(conn, msg.get("input"))
 
 		# Signal to leave if in a game
 		self.leave_game(conn)
@@ -202,8 +209,10 @@ class host:
 		joined = self.get_connection_game(connection)
 
 		if joined is None:
+
 			with self.games_lock:
 				self.games.append(game(connection))
+
 			connection.send({"type": "create_game", "status": "ok"})
 
 		else:
@@ -238,6 +247,11 @@ class host:
 
 			with self.games_lock:
 				joined.remove_connection(connection)
+
+				# Remove game once all players have left
+				if len(joined.lobby) == 0:
+					self.games.remove(joined)
+
 			connection.send({"type": "leave_game", "status": "ok"})
 
 		else:
@@ -249,11 +263,21 @@ class host:
 
 		if joined is not None:
 			with self.games_lock:
-				joined.update_state(connection, state)
-				connection.send({"type": "update_game_state", "status": "ok", "state": joined.get_state()})
+				joined.update_game_state(connection, state)
 
 		else:
 			connection.send({"type": "update_game_state", "status": "fail"})
+
+	def update_player_input(self, connection, input):
+
+		joined = self.get_connection_game(connection)
+
+		if joined is not None:
+			with self.games_lock:
+				joined.update_player_input(connection, input)
+
+		else:
+			connection.send({"type": "update_player_input", "status": "fail"})
 
 # Run Server
 server = host("0.0.0.0", 5002)

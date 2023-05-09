@@ -32,7 +32,7 @@ export default class BrowserMenu extends BaseMenu{
 
 		ws.onmessage = (event) => {
 			let games = [];
-
+			
 			JSON.parse(event.data).games.forEach((game) => {
 				games.push({
 					text: `game_id: ${game.id} | players: ${game.players}`,
