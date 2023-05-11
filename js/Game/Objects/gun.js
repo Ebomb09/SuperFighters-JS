@@ -40,7 +40,9 @@ export default class Gun extends BaseObject{
 		this.holderId = equiper.id;
 
 		// Remove physical body from world
-		sf.game.killBody(this);
+		this.killBody();
+
+		sf.data.playAudio(this.sounds.draw);
 
 		return this.id;
 	}

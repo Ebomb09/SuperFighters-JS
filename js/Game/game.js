@@ -141,6 +141,7 @@ export default class Game{
 	}
 
 	restartGame(){
+		this.frameCounter = 0;
 		this.loadMap(this.map);
 		this.createPlayers();
 	}
@@ -157,14 +158,57 @@ export default class Game{
 
 			case "update_game_state":
 
-				if(!msg.state || !msg.state.map || !msg.state.players)
+				if(!msg.state || !msg.state.map || !msg.state.players || !msg.state.frameCounter)
 					break;
 
-				this.loadMap(msg.state.map);
+				const frameDiff = msg.state.frameCounter - this.frameCounter;
+
+				// Reload the game state
+				if(frameDiff >= 30 || frameDiff < 0){
+					this.loadMap(msg.state.map);
+					this.frameCounter = msg.state.frameCounter;
+
+				// Catch up game state
+				}if(frameDiff > 0){
+
+					for(let i = 0; i < frameDiff; i++){
+						const playerState = msg.state.players.at(-2 - i);
+
+						if(!playerState)
+							continue;
+
+						// Update local players object
+						this.players = this.players.filter(ply => ply.type == PlayerType.Local);
+						const localPlayers = playerState.filter(ply => ply.netId == this.ws.connectionId);
+
+						if(this.players.length <= localPlayers.length){
+
+							for(let i = 0; i < this.players.length; i ++){
+								this.players[i].objectId = localPlayers[i].objectId;
+							}
+						}
+
+						// Recreate all remaining net player
+						playerState.filter(ply => ply.netId != this.ws.connectionId).forEach((ply) => {
+							this.players.push({
+								type: PlayerType.Net,
+								id: ply.netId,
+								objectId: ply.objectId,
+								input: ply.input
+							});
+						});
+
+						// Update the game
+						this.update(1000 / sf.config.fps, true);
+					}
+				}
+
+				// Set the current input
+				const playerState = msg.state.players.at(-1);
 
 				// Update local players object
 				this.players = this.players.filter(ply => ply.type == PlayerType.Local);
-				const localPlayers = msg.state.players.filter(ply => ply.netId == this.ws.connectionId);
+				const localPlayers = playerState.filter(ply => ply.netId == this.ws.connectionId);
 
 				if(this.players.length <= localPlayers.length){
 
@@ -174,7 +218,7 @@ export default class Game{
 				}
 
 				// Recreate all remaining net player
-				msg.state.players.filter(ply => ply.netId != this.ws.connectionId).forEach((ply) => {
+				playerState.filter(ply => ply.netId != this.ws.connectionId).forEach((ply) => {
 					this.players.push({
 						type: PlayerType.Net,
 						id: ply.netId,
@@ -295,8 +339,8 @@ export default class Game{
 	startCollision(event){
 
 		event.pairs.forEach((pair) => {
-			let objA = this.getObjectByBody(pair.bodyA);
-			let objB = this.getObjectByBody(pair.bodyB);
+			const objA = this.getObjectByBody(pair.bodyA);
+			const objB = this.getObjectByBody(pair.bodyB);
 
 			if(objA && objB){
 				objA.addCollision(objB, pair.collision);
@@ -308,8 +352,8 @@ export default class Game{
 	endCollision(event){
 
 		event.pairs.forEach((pair) => {
-			let objA = this.getObjectByBody(pair.bodyA);
-			let objB = this.getObjectByBody(pair.bodyB);
+			const objA = this.getObjectByBody(pair.bodyA);
+			const objB = this.getObjectByBody(pair.bodyB);
 
 			if(objA && objB){
 				objA.removeCollision(objB);
@@ -325,7 +369,7 @@ export default class Game{
 		};
 	}
 
-	update(ms){	
+	update(ms, catchup){
 
 		// Update local player configured controls
 		this.players.forEach((player) => {
@@ -366,41 +410,56 @@ export default class Game{
 		this.updateCamera();
 
 		// Check if using WebSockets
-		if(this.ws && this.ws.readyState == WebSocket.OPEN){
+		if(!catchup){
 
-			// Server Mode
-			if (this.ws.serverMode){
+			if(this.ws && this.ws.readyState == WebSocket.OPEN){
 
-				// Get all players
-				const allPlayers = this.players.map((ply) => {
+				// Server Mode
+				if (this.ws.serverMode){
 
-					return {
-						objectId: ply.objectId,
-						netId: (ply.type == PlayerType.Local) ? this.ws.connectionId : ply.id,
-						input: ply.input
-					};
-				});
+					// Get all players
+					const allPlayers = this.players.map((ply) => {
 
-				this.ws.send(JSON.stringify({
-					type: "update_game_state",
-					state: {
-						map: this.saveMap(),
-						players: allPlayers
-					},
-				}));
+						return {
+							objectId: ply.objectId,
+							netId: (ply.type == PlayerType.Local) ? this.ws.connectionId : ply.id,
+							input: ply.input
+						};
+					});
 
-			// Client Mode
-			}else{
+					if(!this.prevPlayerState)
+						this.prevPlayerState = [];
 
-				// Send all local player input
-				const localPlayerInput = this.players.filter(ply => ply.type == PlayerType.Local).map(ply => ply.input);
+					// More than 30 frames captured then remove oldest frame + current frame
+					if(this.prevPlayerState.length >= 31)
+						this.prevPlayerState.splice(0, 1)
 
-				this.ws.send(JSON.stringify({
-					type: "update_player_input",
-					input: localPlayerInput
-				}));
+					this.prevPlayerState.push(allPlayers);
+
+					this.ws.send(JSON.stringify({
+						type: "update_game_state",
+						state: {
+							map: this.saveMap(),
+							players: this.prevPlayerState,
+							frameCounter: this.frameCounter
+						},
+					}));
+
+				// Client Mode
+				}else{
+
+					// Send all local player input
+					const localPlayerInput = this.players.filter(ply => ply.type == PlayerType.Local).map(ply => ply.input);
+
+					this.ws.send(JSON.stringify({
+						type: "update_player_input",
+						input: localPlayerInput
+					}));
+				}
 			}
 		}
+
+		this.frameCounter ++;
 	}
 
 	draw(){
@@ -492,6 +551,7 @@ export default class Game{
 		let body = Matter.Bodies.circle(circle.x, circle.y, circle.radius);
 		
 		let collisions = Matter.Query.collides(body, Matter.Composite.allBodies(this.world));
+		let collided = false;
 
 		// Foreach collision check it's not the source and apply the force
 		collisions.forEach((collision) => {
@@ -505,26 +565,13 @@ export default class Game{
 					);
 
 				obj.dealDamage(force.damage);
+
+				collided = true;
 			}
 		});
-	}
 
-	kill(object){
-		const index = this.objects.indexOf(object);
-
-		// Remove all references to the object
-		this.killBody(object);
-		this.objects.splice(index, 1);
-	}
-
-	killBody(object){
-		Matter.Composite.remove(this.world, object.body);
-		object.body = null;
-
-		// Remove collisions to this object
-		this.objects.forEach((obj) => {
-			obj.removeCollision(object);
-		});
+		if(collided)
+			sf.game.createObject(sf.data.objects.hit, {matter: { position: circle }});
 	}
 
 	getObjectById(id){

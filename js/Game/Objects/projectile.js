@@ -33,7 +33,8 @@ export default class Projectile extends BaseObject{
 
 	addCollision(source, collision){
 		source.dealDamage(this.damage);
-		sf.game.kill(this);
+		sf.game.createObject(sf.data.objects.hit, {matter: { position: this.getPosition() }});
+		this.kill();
 	}
 
 	update(ms){
@@ -57,5 +58,5 @@ let added = [
 ].forEach((item) => {
 	item.type = Projectile;
 	item.category = sf.filters.projectile;
-	item.mask = sf.filters.object | sf.filters.player;
+	item.mask = sf.filters.object | sf.filters.decoration | sf.filters.player;
 });

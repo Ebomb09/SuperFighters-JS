@@ -53,5 +53,5 @@ let added = [
 	item.resizable = true;
 	item.matter = {isStatic: true};
 	item.category = sf.filters.platform;
-	item.mask = sf.filters.object | sf.filters.weapon;
+	item.mask = sf.filters.object | sf.filters.decoration | sf.filters.weapon;
 });

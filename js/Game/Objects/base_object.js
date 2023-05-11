@@ -70,6 +70,11 @@ export default class BaseObject{
 		this.state.callbacks = [];
 
 		/*
+		 *	Object callbacks
+		 */
+		this.onkill = options.onkill;
+
+		/*
 		 *	Game specific attributes
 		 */ 
 		this.id 				= (options.id) ? options.id : -1;
@@ -369,6 +374,32 @@ export default class BaseObject{
 		this.body.bounds.max = body.bounds.max;
 	}
 
+	kill(){
+		if(this.onkill)
+			this.onkill(this);
+
+		// Remove world body
+		this.killBody();
+
+		// Remove from object list
+		const index = sf.game.objects.indexOf(this);
+
+		if(index >= 0)
+			sf.game.objects.splice(index, 1);
+	}
+
+	killBody(){
+		Matter.Composite.remove(sf.game.world, this.body);
+		this.body = null;
+
+		// Remove collisions to this object
+		sf.game.objects.forEach((obj) => {
+			obj.removeCollision(this);
+		});
+
+		sf.data.playAudio(this.sounds.killed);
+	}
+
 	dealDamage(damage){
 		sf.data.playAudio(this.sounds.hit);
 
@@ -377,7 +408,7 @@ export default class BaseObject{
 
 			if(this.health < 0){
 				sf.data.playAudio(this.sounds.kill);
-				sf.game.kill(this);
+				this.kill();
 			}
 		}
 	}
@@ -504,32 +535,21 @@ export default class BaseObject{
 */
 const obj = sf.data.objects;
 
-let added = [
-
-	/*
-	 *	Decorative Objects
-	 */
-	obj.crate =	{ 
-		image: sf.data.loadImage("images/crate.png"), 
-		health: 50
-	},
-
-	obj.crate_hanging =	{ 
-		image: sf.data.loadImage("images/crate_hanging.png") 
-	},
-
-	obj.barrel = { 
-		image: sf.data.loadImage("images/barrel.png"), 
-		health: 100 
-	},
-
-	obj.filecab	= { 
-		image: sf.data.loadImage("images/filecab.png")
-	},
+/*
+ *	Decorative Objects
+ */
+let decorativeObjects = [
 
 	obj.computer_monitor = { 
 		image: sf.data.loadImage("images/computer_monitor.png"), 
-		health: 5 
+		health: 5,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_computer00.mp3"),
+				sf.data.loadAudio("sounds/bust_computer01.mp3")
+			]
+		}
 	},
 
 	obj.computer_desktop = { 
@@ -542,13 +562,269 @@ let added = [
 		health: 5, 
 
 		matter: {
-			isStatic: 
-			true
+			isStatic: true
+		},
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		},
+
+		onkill: (object) => {
+
+			sf.game.createObject(sf.data.objects.target_debris00, 
+				{
+					matter: {
+						position: {
+							x: object.getPosition().x,
+							y: object.getPosition().y - 5
+						},
+						velocity: object.getVelocity()
+					}
+				});
+			sf.game.createObject(sf.data.objects.target_debris01, 
+				{
+					matter: {
+						position: object.getPosition(),
+						velocity: object.getVelocity()
+					}
+				});
+			sf.game.createObject(sf.data.objects.target_debris02, 
+				{
+					matter: {
+						position: {
+							x: object.getPosition().x,
+							y: object.getPosition().y + 5
+						},
+						velocity: object.getVelocity()
+					}
+				});
 		}
 	},
 
-	obj.pool_table = { 
-		image: sf.data.loadImage("images/pool_table.png")
+	obj.target_debris00 = { 
+		image: sf.data.loadImage("images/target_debris00.png"), 
+		health: 1, 
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		},
+	},
+
+	obj.target_debris01 = { 
+		image: sf.data.loadImage("images/target_debris01.png"), 
+		health: 5, 
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		},
+	},
+
+	obj.target_debris02 = { 
+		image: sf.data.loadImage("images/target_debris02.png"), 
+		health: 5, 
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		},
+	},
+
+	obj.table_chair = { 
+		image: sf.data.loadImage("images/table_chair.png")
+	},
+
+	obj.beachball = { 
+		image: sf.data.loadImage("images/beachball.png"), 
+		health: 25, 
+		shape: "circle",
+
+		onkill: (object) => {
+
+			sf.game.createObject(sf.data.objects.beachball_debris, 
+				{
+					matter: {
+						position: object.getPosition(),
+						velocity: object.getVelocity()
+					}
+				});
+		}
+	},
+
+	obj.beachball_debris = { 
+		image: sf.data.loadImage("images/beachball_debris.png"), 
+		health: 10
+	},
+
+	obj.paper =	{ 
+		image: sf.data.loadImage("images/paper.png"), 
+		frameCount: {x: 2, y: 1}, 
+		health: 5
+	},
+
+	obj.crate_debris00 = {
+		image: sf.data.loadImage("images/crate_debris00.png"),
+		health: 25,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		},
+	},
+
+	obj.crate_debris01 = {
+		image: sf.data.loadImage("images/crate_debris01.png"),
+		health: 25,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		},
+	},
+
+	obj.crate_debris02 = {
+		image: sf.data.loadImage("images/crate_debris02.png"),
+		health: 25,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		},
+	},
+
+	obj.table_debris00 = { 
+		image: sf.data.loadImage("images/table_debris00.png"), 
+		health: 15,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		}
+	},
+
+	obj.table_debris01 = { 
+		image: sf.data.loadImage("images/table_debris00.png"), 
+		health: 15,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		}
+	},
+
+	obj.table_debris02 = { 
+		image: sf.data.loadImage("images/table_debris00.png"), 
+		health: 15,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		}
+	},
+
+].forEach((item) => {
+	item.type = BaseObject;
+	item.category = sf.filters.decoration;
+	item.mask = sf.filters.object | sf.filters.projectile | sf.filters.platform;
+});
+
+
+/*
+ *	World Objects
+ */
+let worldObjects = [
+
+	obj.crate =	{ 
+		image: sf.data.loadImage("images/crate.png"), 
+		health: 50,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		},
+
+		onkill: (object) => {
+
+		}
+	},
+
+	obj.crate_hanging =	{ 
+		image: sf.data.loadImage("images/crate_hanging.png") 
+	},
+
+	obj.barrel = { 
+		image: sf.data.loadImage("images/barrel.png"), 
+	},
+
+	obj.filecab	= { 
+		image: sf.data.loadImage("images/filecab.png")
+	},
+
+	obj.globe = { 
+		image: sf.data.loadImage("images/globe.png"), 
+		shape: "circle"
+	},
+
+	obj.pipe = { 
+		image: sf.data.loadImage("images/pipe.png"), 
+		shape: "circle"
+	},
+
+	obj.desk = { 
+		image: sf.data.loadImage("images/desk.png"), 
+		frameCount: {x: 2, y: 1}
+	},
+
+	obj.chair = { 
+		image: sf.data.loadImage("images/chair.png")
+	},
+
+	obj.table = { 
+		image: sf.data.loadImage("images/table.png"), 
+		health: 35,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		}
+	},
+
+	obj.small_table	= { 
+		image: sf.data.loadImage("images/small_table.png"), 
+		health: 15,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		}
 	},
 
 	obj.air_duct = { 
@@ -559,52 +835,10 @@ let added = [
 		}
 	},
 
-	obj.desk = { 
-		image: sf.data.loadImage("images/desk.png"), 
-		frameCount: {x: 2, y: 1}
+	obj.pool_table = { 
+		image: sf.data.loadImage("images/pool_table.png")
 	},
 
-	obj.table = { 
-		image: sf.data.loadImage("images/table.png"), 
-		health: 35
-	},
-
-	obj.small_table	= { 
-		image: sf.data.loadImage("images/small_table.png"), 
-		health: 15
-	},
-
-	obj.chair = { 
-		image: sf.data.loadImage("images/chair.png")
-	},
-
-	obj.table_chair = { 
-		image: sf.data.loadImage("images/table_chair.png")
-	},
-
-	obj.globe = { 
-		image: sf.data.loadImage("images/globe.png"), 
-		shape: "circle"
-	},
-
-	obj.beachball = { 
-		image: sf.data.loadImage("images/beachball.png"), 
-		health: 25, 
-		shape: "circle"
-	},
-
-	obj.paper =	{ 
-		image: sf.data.loadImage("images/paper.png"), 
-		frameCount: {x: 2, y: 1}, 
-		health: 5
-	},
-
-	obj.pipe = { 
-		image: sf.data.loadImage("images/pipe.png"), 
-		shape: "circle"
-	},
-
-	// Ground Objects
 	obj.dirt = { 
 		image: sf.data.loadImage("images/dirt.png"), 
 		resizable: true, 
@@ -680,10 +914,10 @@ let added = [
 		matter: {
 			isStatic: true
 		}
-	},
+	}
 
 ].forEach((item) => {
 	item.type = BaseObject;
 	item.category = sf.filters.object;
-	item.mask = sf.filters.object | sf.filters.player | sf.filters.weapon | sf.filters.projectile | sf.filters.platform;
+	item.mask = sf.filters.object | sf.filters.player | sf.filters.weapon | sf.filters.projectile | sf.filters.platform | sf.filters.decoration;
 });

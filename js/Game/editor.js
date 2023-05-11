@@ -202,7 +202,7 @@ export default class Editor extends Game{
 		if(sf.input.key.pressed["Delete"]){
 
 			this.selection.objects.forEach((obj) => {
-				this.kill(obj);
+				obj.kill();
 			});
 			this.selection.objects = [];
 			this.updateDisplay();
