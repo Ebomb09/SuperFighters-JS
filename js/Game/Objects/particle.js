@@ -83,6 +83,40 @@ let added = [
 		}
 	},
 
+	obj.electric = {
+		image: sf.data.loadImage("images/effect/electric.png"), 
+		frameCount: {x: 3, y: 1},
+
+		lifetime: 150,
+		animation: [
+			{x: 0, y: 0, delay: 50},
+			{x: 1, y: 0, delay: 50},
+			{x: 2, y: 0, delay: 50},	
+		],
+
+		matter: {
+			isStatic: true
+		}		
+	},
+
+	obj.spark = {
+		image: sf.data.loadImage("images/effect/spark.png"), 
+		frameCount: {x: 5, y: 1},
+
+		lifetime: 250,
+		animation: [
+			{x: 0, y: 0, delay: 50},
+			{x: 1, y: 0, delay: 50},
+			{x: 2, y: 0, delay: 50},
+			{x: 3, y: 0, delay: 50},		
+			{x: 4, y: 0, delay: 50},	
+		],
+
+		matter: {
+			isStatic: true
+		}		
+	}
+
 ].forEach((item) => {
 	item.type = Particle;
 	item.category = sf.filters.effect;

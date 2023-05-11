@@ -23,7 +23,8 @@ const State = {
 	JumpKicking: 	"jumping_attacking_kicking",
 	Aiming: 		"grounded_aiming", 
 	Drawing: 		"grounded_drawing",
-	Shooting: 		"grounded_aiming_shooting"
+	Shooting: 		"grounded_aiming_shooting",
+	Climbing: 		"climbing"
 };
 
 const Inventory = {
@@ -99,8 +100,25 @@ export default class Player extends BaseObject{
 		}
 
 		// Stop velocity changes
-		if(this.checkState(State.Grounded))
+		if(this.checkState(State.Grounded) || this.checkState(State.Climbing))
 			this.setVelocity(0, 0);
+
+		// Check if still climbing
+		if(this.disableGravity){
+			const touching = sf.game.getObjectsByAABB(this.getBounds());
+			let onLadder = false;
+
+			for(let i = 0; i < touching.length; i ++){
+
+				if(touching[i].getType() == "Ladder")
+					onLadder = true;
+			}
+
+			if(!onLadder){
+				this.disableGravity = false;
+				this.setState(State.Jumping);
+			}
+		}
 	}
 
 	draw(){
@@ -226,6 +244,18 @@ export default class Player extends BaseObject{
 			case State.Drawing:
 			case State.Aiming:
 				this.frame.index = {x: 0, y: 4};
+				break;
+
+			case State.Climbing:
+				this.setAnimationFrame(
+					[
+						{x: 1, y: 6, delay: 4},
+						{x: 2, y: 6, delay: 4},
+						{x: 3, y: 6, delay: 4},
+						{x: 2, y: 6, delay: 4}
+					],
+					Math.abs(this.getPosition().y));
+
 				break;
 		}
 
@@ -370,7 +400,7 @@ export default class Player extends BaseObject{
 	moveRight(){
 		this.facingDirection = 1;
 
-		if(!this.onRight() && (this.checkState(State.Jumping) || this.strictState(State.Grounded) || this.strictState(State.Crouching))){
+		if(!this.onRight() && (this.checkState(State.Jumping) || this.strictState(State.Grounded) || this.strictState(State.Crouching) || this.checkState(State.Climbing))){
 
 			if(this.checkState(State.Crouching)){
 				this.setState(State.Rolling, 300);
@@ -388,7 +418,7 @@ export default class Player extends BaseObject{
 	moveLeft(){
 		this.facingDirection = -1;
 
-		if(!this.onLeft() && (this.checkState(State.Jumping) || this.strictState(State.Grounded) || this.strictState(State.Crouching))){
+		if(!this.onLeft() && (this.checkState(State.Jumping) || this.strictState(State.Grounded) || this.strictState(State.Crouching) || this.checkState(State.Climbing))){
 	
 			if(this.checkState(State.Crouching)){
 				this.setState(State.Rolling, 300);
@@ -419,6 +449,21 @@ export default class Player extends BaseObject{
 			this.setVelocity(this.getVelocity().x, -4);
 			this.setState(State.Jumping);
 			sf.data.playAudio(this.sounds.jump);
+
+		// Climb up ladder
+		}else if(this.checkState(State.Jumping) || this.checkState(State.Climbing)){
+
+			const touching = sf.game.getObjectsByAABB(this.getBounds());
+
+			for(let i = 0; i < touching.length; i ++){
+
+				if(touching[i].getType() == "Ladder"){
+					this.disableGravity = true;
+					this.setState(State.Climbing);
+					this.movePosition(0, -1);
+					break;
+				}
+			}
 		}
 	}
 
@@ -453,6 +498,21 @@ export default class Player extends BaseObject{
 				this.last.crouch = Date.now();
 			}
 			this.setState(State.Crouching);
+
+		// Climb down ladder
+		}else if(this.checkState(State.Jumping) || this.checkState(State.Climbing)){
+
+			const touching = sf.game.getObjectsByAABB(this.getBounds());
+
+			for(let i = 0; i < touching.length; i ++){
+
+				if(touching[i].getType() == "Ladder"){
+					this.disableGravity = true;
+					this.setState(State.Climbing);
+					this.movePosition(0, 1);
+					break;
+				}
+			}
 		}
 	}
 

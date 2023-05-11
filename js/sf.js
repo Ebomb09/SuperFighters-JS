@@ -116,7 +116,8 @@ const sf = {
 		background: 	1 << 5, 
 		platform: 		1 << 6,
 		decoration: 	1 << 7,
-		effect: 		1 << 8
+		effect: 		1 << 8,
+		ladder: 		1 << 9
 	}
 };
 

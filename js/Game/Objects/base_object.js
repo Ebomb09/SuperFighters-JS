@@ -11,17 +11,18 @@ export default class BaseObject{
 
 		params.forEach((param) => {
 
-			Object.keys(param).forEach((key) => {
+				Object.keys(param).forEach((key) => {
 
-				if(options[key] === undefined)
-					options[key] = {};
+					if(options[key] === undefined)
+						options[key] = {};
 
-				if(key == "matter")
-					options[key] = Object.assign(options[key], param[key])
-				else
-					options[key] = param[key];
-			});
+					if(key == "matter")
+						options[key] = Object.assign(options[key], param[key])
+					else
+						options[key] = param[key];
+				});
 		});
+
 		this.options = options;
 		this.parent = options.parent;
 
@@ -73,6 +74,7 @@ export default class BaseObject{
 		 *	Object callbacks
 		 */
 		this.onkill = options.onkill;
+		this.oncreate = options.oncreate;
 
 		/*
 		 *	Game specific attributes
@@ -125,6 +127,9 @@ export default class BaseObject{
 			if(options.category) this.body.collisionFilter.category = options.category;
 			if(options.mask) this.body.collisionFilter.mask = options.mask;
 		}
+
+		if(this.oncreate)
+			this.oncreate(this);
 	}
 
 	serialize(){
@@ -375,22 +380,25 @@ export default class BaseObject{
 	}
 
 	kill(){
-		if(this.onkill)
-			this.onkill(this);
-
-		// Remove world body
-		this.killBody();
-
 		// Remove from object list
 		const index = sf.game.objects.indexOf(this);
 
 		if(index >= 0)
 			sf.game.objects.splice(index, 1);
+
+		if(this.onkill)
+			this.onkill(this);
+
+		// Remove world body
+		this.killBody();
 	}
 
 	killBody(){
-		Matter.Composite.remove(sf.game.world, this.body);
-		this.body = null;
+		
+		if(this.body){
+			Matter.Composite.remove(sf.game.world, this.body);
+			this.body = null;
+		}
 
 		// Remove collisions to this object
 		sf.game.objects.forEach((obj) => {
@@ -401,7 +409,11 @@ export default class BaseObject{
 	}
 
 	dealDamage(damage){
-		sf.data.playAudio(this.sounds.hit);
+
+		if(this.sounds.hit)
+			sf.data.playAudio(this.sounds.hit);
+		else
+			sf.data.playAudio(sf.data.loadAudio("sounds/hit_generic.mp3"));
 
 		if(this.health != -1){
 			this.health -= damage;
@@ -434,8 +446,8 @@ export default class BaseObject{
 	}
 
 	getPosition(){
-		if(this.body) return {x: this.body.position.x, y: this.body.position.y};
-		return {x: 0, y: 0};
+		if(this.body) return Matter.Vector.create(this.body.position.x, this.body.position.y);
+		return Matter.Vector.create(0, 0);
 	}
 
 	movePosition(x, y){
@@ -447,8 +459,8 @@ export default class BaseObject{
 	}
 
 	getVelocity(){
-		if(this.body) return {x: this.body.velocity.x, y: this.body.velocity.y};
-		return {x: 0, y: 0};	
+		if(this.body) return Matter.Body.getVelocity(this.body);
+		return Matter.Vector.create(0, 0);	
 	}
 
 	setVelocity(x, y){
@@ -461,7 +473,7 @@ export default class BaseObject{
 
 	getBounds(){
 		if(this.body) return this.body.bounds;
-		return {min: {x: 0, y: 0}, max: {x: 0, y: 0}};
+		return {min: Matter.Vector.create(0, 0), max: Matter.Vector.create(0, 0)};
 	}
 
 	onLeft(){
@@ -549,12 +561,39 @@ let decorativeObjects = [
 				sf.data.loadAudio("sounds/bust_computer00.mp3"),
 				sf.data.loadAudio("sounds/bust_computer01.mp3")
 			]
+		},
+
+		onkill: (object) => {
+
+			sf.game.createObject(sf.data.objects.explosion_small, 
+				{
+					matter: {
+						position: object.getPosition()
+					}
+				});
 		}
 	},
 
 	obj.computer_desktop = { 
 		image: sf.data.loadImage("images/computer_desktop.png"), 
-		health: 5 
+		health: 5,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_computer00.mp3"),
+				sf.data.loadAudio("sounds/bust_computer01.mp3")
+			]
+		},
+
+		onkill: (object) => {
+
+			sf.game.createObject(sf.data.objects.explosion_small, 
+				{
+					matter: {
+						position: object.getPosition()
+					}
+				});
+		} 
 	},
 
 	obj.target = { 
@@ -649,6 +688,10 @@ let decorativeObjects = [
 		health: 25, 
 		shape: "circle",
 
+		matter: {
+			restitution: 1
+		},
+
 		onkill: (object) => {
 
 			sf.game.createObject(sf.data.objects.beachball_debris, 
@@ -721,7 +764,7 @@ let decorativeObjects = [
 	},
 
 	obj.table_debris01 = { 
-		image: sf.data.loadImage("images/table_debris00.png"), 
+		image: sf.data.loadImage("images/table_debris01.png"), 
 		health: 15,
 
 		sounds: {
@@ -733,7 +776,7 @@ let decorativeObjects = [
 	},
 
 	obj.table_debris02 = { 
-		image: sf.data.loadImage("images/table_debris00.png"), 
+		image: sf.data.loadImage("images/table_debris02.png"), 
 		health: 15,
 
 		sounds: {
@@ -769,6 +812,33 @@ let worldObjects = [
 
 		onkill: (object) => {
 
+			sf.game.createObject(sf.data.objects.crate_debris02, 
+				{
+					matter: {
+						position: {
+							x: object.getPosition().x,
+							y: object.getPosition().y - 5
+						},
+						velocity: object.getVelocity()
+					}
+				});
+			sf.game.createObject(sf.data.objects.crate_debris01, 
+				{
+					matter: {
+						position: object.getPosition(),
+						velocity: object.getVelocity()
+					}
+				});
+			sf.game.createObject(sf.data.objects.crate_debris00, 
+				{
+					matter: {
+						position: {
+							x: object.getPosition().x,
+							y: object.getPosition().y + 5
+						},
+						velocity: object.getVelocity()
+					}
+				});			
 		}
 	},
 
@@ -777,11 +847,45 @@ let worldObjects = [
 	},
 
 	obj.barrel = { 
-		image: sf.data.loadImage("images/barrel.png"), 
+		image: sf.data.loadImage("images/barrel.png")
+	},
+
+	obj.explosive_barrel = {
+		image: sf.data.loadImage("images/explosive_barrel.png"), 
+		frameIndex: {x: 0, y: 0},
+		frameCount: {x: 2, y: 1},
+
+		health: 1,
+
+		onkill: (object) => {
+			const velocity = object.getVelocity();
+			velocity.x += Math.random() * 5 - 2.5;
+			velocity.y += Math.random() * -10;
+
+			sf.game.createObject(sf.data.objects.explosive_barrel_debris, 
+				{
+					matter: {
+						position: object.getPosition(),
+						velocity: velocity
+					}
+				});
+		}
+	},
+
+	obj.explosive_barrel_debris = {
+		image: sf.data.loadImage("images/explosive_barrel.png"), 
+		frameIndex: {x: 1, y: 0},
+		frameCount: {x: 2, y: 1},
+
+		health: 1,
+
+		onkill: (object) => {
+
+		}
 	},
 
 	obj.filecab	= { 
-		image: sf.data.loadImage("images/filecab.png")
+		image: sf.data.loadImage("images/filecab.png"),
 	},
 
 	obj.globe = { 
@@ -812,6 +916,37 @@ let worldObjects = [
 				sf.data.loadAudio("sounds/bust_wood00.mp3"),
 				sf.data.loadAudio("sounds/bust_wood01.mp3")
 			]
+		},
+
+		onkill: (object) => {
+
+			sf.game.createObject(sf.data.objects.table_debris00, 
+				{
+					matter: {
+						position: {
+							x: object.getPosition().x - 5,
+							y: object.getPosition().y
+						},
+						velocity: object.getVelocity()
+					}
+				});
+			sf.game.createObject(sf.data.objects.table_debris01, 
+				{
+					matter: {
+						position: object.getPosition(),
+						velocity: object.getVelocity()
+					}
+				});
+			sf.game.createObject(sf.data.objects.table_debris02, 
+				{
+					matter: {
+						position: {
+							x: object.getPosition().x + 5,
+							y: object.getPosition().y
+						},
+						velocity: object.getVelocity()
+					}
+				});
 		}
 	},
 
@@ -824,6 +959,16 @@ let worldObjects = [
 				sf.data.loadAudio("sounds/bust_wood00.mp3"),
 				sf.data.loadAudio("sounds/bust_wood01.mp3")
 			]
+		},
+
+		onkill: (object) => {
+			sf.game.createObject(sf.data.objects.table_debris01, 
+				{
+					matter: {
+						position: object.getPosition(),
+						velocity: object.getVelocity()
+					}
+				});
 		}
 	},
 
@@ -858,6 +1003,26 @@ let worldObjects = [
 		}
 	},
 
+	obj.concrete_stair00 = { 
+		image: sf.data.loadImage("images/concrete_stair00.png"), 
+		shape: "tl-br", 
+		resizable: true,
+
+		matter: {
+			isStatic: true
+		}
+	},
+
+	obj.concrete_stair01 = { 
+		image: sf.data.loadImage("images/concrete_stair01.png"), 
+		shape: "tr-bl", 
+		resizable: true, 
+
+		matter: {
+			isStatic: true
+		}
+	},
+
 	obj.concrete_slope00 = { 
 		image: sf.data.loadImage("images/concrete_slope00.png"), 
 		shape: "tl-br", 
@@ -872,6 +1037,7 @@ let worldObjects = [
 		image: sf.data.loadImage("images/concrete_slope01.png"), 
 		shape: "tr-bl", 
 		resizable: true, 
+		
 		matter: {
 			isStatic: true
 		}

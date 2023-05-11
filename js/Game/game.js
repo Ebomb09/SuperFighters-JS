@@ -538,7 +538,7 @@ export default class Game{
 	}
 
 	prototypeObject(parent, ...params){
-		return new parent.type({id: this.getNextUniqueId()}, parent, ...params, {parent: parent});;
+		return new parent.type({id: this.getNextUniqueId()}, parent, ...params, {parent: parent});
 	}
 
 	getNextUniqueId(){
@@ -555,9 +555,9 @@ export default class Game{
 	createForce(source, circle, force){
 
 		// Collision check body
-		let body = Matter.Bodies.circle(circle.x, circle.y, circle.radius);
+		const body = Matter.Bodies.circle(circle.x, circle.y, circle.radius);
 		
-		let collisions = Matter.Query.collides(body, Matter.Composite.allBodies(this.world));
+		const collisions = Matter.Query.collides(body, Matter.Composite.allBodies(this.world));
 		let collided = false;
 
 		// Foreach collision check it's not the source and apply the force
@@ -628,7 +628,10 @@ export default class Game{
 		let objects = [];
 
 		bodies.forEach((body) => {
-			objects.push(this.getObjectByBody(body));
+			const obj = this.getObjectByBody(body);
+
+			if(obj)
+				objects.push(obj);
 		});
 		return objects;
 	}

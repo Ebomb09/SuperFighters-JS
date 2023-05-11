@@ -23,7 +23,7 @@ export default class Editor extends Game{
 			display: null,
 			objects: [],
 			objectsVar: [],
-			copy: [],
+			copy: "",
 			start: {x: 0, y: 0},
 			grid: {x: 8, y: 8, angle: 15}
 		};
@@ -175,9 +175,25 @@ export default class Editor extends Game{
 		}
 
 		// Paste
-		if(sf.input.key.held["ControlLeft"] && sf.input.key.pressed["KeyV"]){
-			this.selection.objects = this.loadMap(this.selection.copy, true);
-			this.updateDisplay();
+		if(sf.input.key.held["ControlLeft"] && sf.input.key.pressed["KeyV"] && this.selection.copy){
+
+			try{
+				const objects = JSON.parse(this.selection.copy).objects;
+
+				this.selection.objects = [];
+
+				// Create copies of object's with a new id
+				objects.forEach((obj) => {
+					this.selection.objects.push(
+						this.createObject(sf.data.objects[obj.parentKey], obj, {id: this.getNextUniqueId()})
+						);
+				});
+
+				this.updateDisplay();
+			
+			}catch(error){
+				console.log(error);
+			}
 		}
 
 		// Zoom Camera
@@ -588,6 +604,29 @@ export default class Editor extends Game{
 				obj.customId = event.target.value;
 			});		
 			this.selection.display.append(customId);
+
+			if(obj.targetAId != undefined && obj.targetBId != undefined){
+
+				// Markers target object
+				const targetAId = this.createInput("targetAId", obj.targetAId);
+				targetAId.addEventListener("input", (event) => {
+					let targetAId = parseInt(event.target.value);
+
+					if(!isNaN(targetAId))
+						obj.targetAId = targetAId;
+				});		
+				this.selection.display.append(targetAId);
+
+				const targetBId = this.createInput("targetBId", obj.targetBId);
+				targetBId.addEventListener("input", (event) => {
+					let targetBId = parseInt(event.target.value);
+
+					if(!isNaN(targetBId))
+						obj.targetBId = targetBId;
+				});		
+				this.selection.display.append(targetBId);
+			}
+
 			this.selection.display.append(this.createSubDivider());
 
 			// Frame Index

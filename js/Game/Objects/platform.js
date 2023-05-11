@@ -37,6 +37,15 @@ export default class Platform extends BaseObject{
 				this.platformBodies[i].collisionFilter.group = players[i].id;
 		}
 	}
+
+	killBody(){
+
+		this.platformBodies.forEach((plat) => {
+			Matter.Composite.remove(sf.game.world, plat);
+		});
+
+		super.killBody();
+	}
 };
 
 

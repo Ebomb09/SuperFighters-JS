@@ -237,4 +237,8 @@ let added = [
 	item.type = Gun;
 	item.category = sf.filters.weapon;
 	item.mask = sf.filters.object | sf.filters.platform;
+
+	item.matter = {
+		isStatic: true
+	};
 });
