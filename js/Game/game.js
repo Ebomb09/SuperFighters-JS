@@ -9,14 +9,6 @@ export default class Game{
 
 	constructor(options){
 
-		// Init physics world
-		this.engine = Matter.Engine.create({gravity: {x: 0, y: 0}});
-		this.world = this.engine.world;
-
-		// Collision Handlers
-		Matter.Events.on(this.engine, "collisionStart", this.startCollision.bind(this));
-		Matter.Events.on(this.engine, "collisionEnd", this.endCollision.bind(this));
-
 		// Custom Gravity Constant
 		this.gravity = {x: 0, y: 0.001};
 
@@ -40,9 +32,6 @@ export default class Game{
 				input: {}
 			});
 		}
-
-		// Custom game objects
-		this.objects = [];
 
 		// Load map and assign players
 		this.map = (options.map) ? options.map : "{}";
@@ -118,8 +107,14 @@ export default class Game{
 
 		// Clear all objects if you not request to add them
 		if(!add){
-			Matter.Composite.clear(this.world);
+			// Reset physics world
+			this.engine = Matter.Engine.create({gravity: {x: 0, y: 0}});
+			this.world = this.engine.world;
 			this.objects = [];
+
+			// Collision Handlers
+			Matter.Events.on(this.engine, "collisionStart", this.startCollision.bind(this));
+			Matter.Events.on(this.engine, "collisionEnd", this.endCollision.bind(this));
 		}
 		
 		// Parse the buffer contents
@@ -158,21 +153,29 @@ export default class Game{
 
 			case "update_game_state":
 
-				if(!msg.state || !msg.state.map || !msg.state.players || !msg.state.frameCounter)
+				if(!msg.state || msg.state.length == 0)
 					break;
 
-				const frameDiff = msg.state.frameCounter - this.frameCounter;
+				const currentState = msg.state.at(-1);
+				let frameDiff = currentState.frameCounter - this.frameCounter;
 
-				// Reload the game state
-				if(frameDiff >= 30 || frameDiff < 0){
-					this.loadMap(msg.state.map);
-					this.frameCounter = msg.state.frameCounter;
+				/*
+				 *	Reload the game state
+				 */
+				if(frameDiff > msg.state.length-1 || frameDiff < 0){
+					this.loadMap(msg.state.at(-1).map);	
+					this.frameCounter = msg.state.at(-1).frameCounter;
 
-				// Catch up game state
-				}if(frameDiff > 0){
+				/* 
+				 *	Catchup input states
+				 */
+				}else if(frameDiff != 0){
 
-					for(let i = 0; i < frameDiff; i++){
-						const playerState = msg.state.players.at(-2 - i);
+					let start = (msg.state.length-1) - frameDiff;
+
+					// Catch up game state
+					for(let i = start; i < msg.state.length-1; i++){
+						const playerState = msg.state[i].players;
 
 						if(!playerState)
 							continue;
@@ -203,8 +206,10 @@ export default class Game{
 					}
 				}
 
-				// Set the current input
-				const playerState = msg.state.players.at(-1);
+				/*
+				 *	Set the current input
+				 */
+				const playerState = currentState.players;
 
 				// Update local players object
 				this.players = this.players.filter(ply => ply.type == PlayerType.Local);
@@ -225,7 +230,7 @@ export default class Game{
 						objectId: ply.objectId,
 						input: ply.input
 					});
-				});
+				});			
 				break;
 
 			case "upgrade":
@@ -402,7 +407,6 @@ export default class Game{
 		this.objects.forEach((obj) => {
 			obj.update(ms);
 		});
-
 		this.handlePlayerInput();
 
 		Matter.Engine.update(this.engine, ms);
@@ -417,7 +421,14 @@ export default class Game{
 				// Server Mode
 				if (this.ws.serverMode){
 
-					// Get all players
+					if(!this.prevStates)
+						this.prevStates = [];
+
+					// More than 10 frames captured then remove oldest frame
+					if(this.prevStates.length > 10)
+						this.prevStates.splice(0, 1)
+
+					// Generate current state and push to the front
 					const allPlayers = this.players.map((ply) => {
 
 						return {
@@ -427,22 +438,18 @@ export default class Game{
 						};
 					});
 
-					if(!this.prevPlayerState)
-						this.prevPlayerState = [];
+					const currentState = {
+						map: this.saveMap(),
+						players: allPlayers,
+						frameCounter: this.frameCounter
+					};
 
-					// More than 30 frames captured then remove oldest frame + current frame
-					if(this.prevPlayerState.length >= 31)
-						this.prevPlayerState.splice(0, 1)
+					this.prevStates.push(currentState);
 
-					this.prevPlayerState.push(allPlayers);
-
+					// Send it to all connected clients
 					this.ws.send(JSON.stringify({
 						type: "update_game_state",
-						state: {
-							map: this.saveMap(),
-							players: this.prevPlayerState,
-							frameCounter: this.frameCounter
-						},
+						state: this.prevStates,
 					}));
 
 				// Client Mode
