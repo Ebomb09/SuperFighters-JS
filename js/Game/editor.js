@@ -275,7 +275,10 @@ export default class Editor extends Game{
 
 			// Save the original state of selected
 			for(let i = 0; i < this.selection.objects.length; i ++){
-				let obj = this.selection.objects[i];
+				const obj = this.selection.objects[i];
+
+				if(!obj.body)
+					continue;
 
 				// Save state of top left corner
 				this.selection.objectsVar[i] = {
@@ -435,6 +438,10 @@ export default class Editor extends Game{
 		let bounds = [];
 
 		this.selection.objects.forEach((obj) => {
+
+			if(!obj.body)
+				return;
+
 			bounds.push(obj.getBounds().min, obj.getBounds().max);
 
 			// Draw the selected bodies

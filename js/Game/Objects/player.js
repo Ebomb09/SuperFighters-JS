@@ -378,23 +378,35 @@ export default class Player extends BaseObject{
 		return position;
 	}
 
-	dealDamage(damage){
+	dealDamage(damage, type, threshold){
 
 		// If still trying to get up prevent damage
 		if(this.checkState(State.Recovering))
 			return;
 
-		super.dealDamage(damage);
+		// Check if damage is actually dealt
+		if(!super.dealDamage(damage, type, threshold))
+			return;
 
-		// Lower damage cause slight stun
-		if(damage < 10){
+		// Melee cause slight stun
+		if(type == "melee"){
 
 			if(!this.checkState(State.FreeFalling))
 				this.setState(State.Stun, 150);
 
-		// Larger damage knock over
-		}else
+		}else if(type == "projectile" && damage > 10){
 			this.setState(State.FreeFalling);
+
+		}else if(type == "explosion"){
+			this.setState(State.FreeFalling);
+
+		}else if(type == "collision"){
+
+			if(damage < 6 && !this.checkState(State.FreeFalling))
+				this.setState(State.Stun, 150);
+			else
+				this.setState(State.FreeFalling, 150);
+		}
 	}
 
 	moveRight(){
@@ -725,6 +737,7 @@ let added = [
 	obj.player = { 
 		image: sf.data.loadImage("images/player.png"), 
 		frameCount: {x: 24, y: 16},
+		health: 100,
 
 		sounds: {
 			hit: [

@@ -41,6 +41,7 @@ export default class MenuDispatcher extends Array{
 			// Close current menu
 			if(sf.input.key.pressed["Escape"]){
 				sf.data.playAudio(sounds.cancel);
+				menu.onClose();
 				this.pop();
 			}
 		}

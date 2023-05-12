@@ -112,7 +112,6 @@ export default class ControlsMenu extends BaseMenu{
 					config[this.playerIndex][control] = "";
 				else
 					config[this.playerIndex][control] = key;
-
 			}));
 	}
 

@@ -79,10 +79,20 @@ export default class BaseObject{
 		/*
 		 *	Game specific attributes
 		 */ 
-		this.id 				= (options.id) ? options.id : -1;
+		this.id 				= (options.id !== undefined) ? options.id : -1;
 		this.customId 			= (options.customId) ? options.customId : "";
 		this.facingDirection 	= (options.facingDirection) ? options.facingDirection : 1;
+
 		this.health 			= (options.health) ? options.health : -1;
+
+		this.damageModifier = {
+			default: 	1,
+			collision: 	1,
+			melee: 		1,
+			projectile: 1,
+			explosion: 	1 
+		};
+		if(options.damageModifier) Matter.Common.extend(this.damageModifier, options.damageModifier);
 
 		/*
 		 *	Physics 
@@ -139,6 +149,7 @@ export default class BaseObject{
 		};
 
 		if(this.customId != "") 						serial.customId 		= this.customId;
+		if(this.health != "") 							serial.health 			= this.health;
 		if(this.facingDirection != 1) 					serial.facingDirection 	= this.facingDirection;
 		if(this.frame.index.x+this.frame.index.y != 0)	serial.frameIndex 		= this.frame.index;
 		if(this.tiling.x+this.tiling.y != 0)			serial.tiling 			= this.tiling;
@@ -340,11 +351,10 @@ export default class BaseObject{
 			};
 		}
 
-		let damage = Math.round(6 * Math.sqrt(Math.pow(forceVector.x, 2) + Math.pow(forceVector.y, 2)));		
+		const damage = Math.round(6 * Math.sqrt(Math.pow(forceVector.x, 2) + Math.pow(forceVector.y, 2)));	
 
-		// Threshold damage to 6, around freefall state			
-		if(damage >= 6)
-			source.dealDamage(damage);
+		// Deal damage within a threshold of 6 (ie: time to hit freefall)	
+		source.dealDamage(damage, "collision", 6);
 	}
 
 	removeCollision(obj){
@@ -408,21 +418,34 @@ export default class BaseObject{
 		sf.data.playAudio(this.sounds.killed);
 	}
 
-	dealDamage(damage){
+	dealDamage(damage, type, threshold){
 
-		if(this.sounds.hit)
-			sf.data.playAudio(this.sounds.hit);
-		else
-			sf.data.playAudio(sf.data.loadAudio("sounds/hit_generic.mp3"));
+		// Get type of damage
+		if(!type) type = "default";
 
-		if(this.health != -1){
-			this.health -= damage;
+		// Get threshold
+		if(!threshold) threshold = 0;
+
+		// Find damage after modifier is applied
+		damage *= this.damageModifier[type];
+
+		// Deal damage if above threshold
+		if(this.health != -1 && damage > threshold){
+
+			if(this.sounds.hit)
+				sf.data.playAudio(this.sounds.hit);
+			else
+				sf.data.playAudio(sf.data.loadAudio("sounds/hit_generic.mp3"));
+
+			this.health -= Math.round(damage);
 
 			if(this.health < 0){
 				sf.data.playAudio(this.sounds.kill);
 				this.kill();
 			}
+			return true;
 		}
+		return false;
 	}
 
 	getVectorAngle(vector){
@@ -856,11 +879,23 @@ let worldObjects = [
 		frameCount: {x: 2, y: 1},
 
 		health: 1,
+		damageModifier: {
+			melee: 0
+		},
 
 		onkill: (object) => {
-			const velocity = object.getVelocity();
-			velocity.x += Math.random() * 5 - 2.5;
-			velocity.y += Math.random() * -10;
+			sf.game.createExplosion(
+				{
+					x: object.getPosition().x,
+					y: object.getPosition().y,
+					radius: 32
+				},
+				0.008);
+
+			const velocity = {
+				x: object.getVelocity().x + Math.random() * 5 - 2.5,
+				y: object.getVelocity().y + -5 + Math.random() * 2
+			};
 
 			sf.game.createObject(sf.data.objects.explosive_barrel_debris, 
 				{
@@ -878,9 +913,19 @@ let worldObjects = [
 		frameCount: {x: 2, y: 1},
 
 		health: 1,
+		damageModifier: {
+			melee: 0,
+			collision: 100
+		},
 
 		onkill: (object) => {
-
+			sf.game.createExplosion(
+				{
+					x: object.getPosition().x,
+					y: object.getPosition().y,
+					radius: 32
+				},
+				0.008);
 		}
 	},
 

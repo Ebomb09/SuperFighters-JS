@@ -5,9 +5,24 @@ const PlayerType = {
 	Net: 1
 };
 
+const sounds = {
+	explosion: [
+		sf.data.loadAudio("sounds/explosion00.mp3"),
+		sf.data.loadAudio("sounds/explosion01.mp3"),
+		sf.data.loadAudio("sounds/explosion02.mp3"),
+		sf.data.loadAudio("sounds/explosion03.mp3")
+		],
+	ambient: [
+		sf.data.loadAudio("sounds/ambient_loop_1.ogg", true)
+		]
+};
+
 export default class Game{
 
 	constructor(options){
+
+		// Play an ambient noise
+		sf.data.playAudio(sounds.ambient);
 
 		// Custom Gravity Constant
 		this.gravity = {x: 0, y: 0.001};
@@ -162,7 +177,7 @@ export default class Game{
 				/*
 				 *	Reload the game state
 				 */
-				if(frameDiff > msg.state.length-1 || frameDiff < 0){
+				if(this.frameCounter % 30 == 0 || frameDiff > msg.state.length-1 || frameDiff < 0){
 					this.loadMap(msg.state.at(-1).map);	
 					this.frameCounter = msg.state.at(-1).frameCounter;
 
@@ -474,9 +489,26 @@ export default class Game{
 
 		sf.ctx.scale(this.camera.zoom, this.camera.zoom);
 		sf.ctx.translate(-this.getCameraRealPosition().x, -this.getCameraRealPosition().y);
-		
-		this.objects.forEach((obj) => {
-			obj.draw();
+
+		// Set draw order
+		const order = [
+			sf.filters.background,
+			sf.filters.marker,
+			sf.filters.ladder,
+			sf.filters.platform,
+			sf.filters.decoration,
+			sf.filters.object,
+			sf.filters.player,
+			sf.filters.weapon,
+			sf.filters.projectile,
+			sf.filters.effect
+			];
+
+		order.forEach((filter) => {
+
+			this.objects.filter(obj => obj.body && obj.body.collisionFilter.category == filter).forEach((obj) => {
+				obj.draw();
+			});
 		});
 
 		sf.ctx.restore();
@@ -531,8 +563,12 @@ export default class Game{
 		const obj = this.prototypeObject(parent, ...params);
 		this.objects.push(obj);
 
-		if(obj.body)
+		if(obj.body){
 			Matter.Composite.add(this.world, obj.body);
+
+			// Hack the velocity into actually being set on creation
+			Matter.Body.setVelocity(obj.body, obj.body.velocity);
+		}
 
 		return obj;
 	}
@@ -552,6 +588,58 @@ export default class Game{
 		return highest+1;
 	}
 
+	createExplosion(circle, forceMultiplier){
+
+		// Create multiple visual explosions
+		const relative = [];
+
+		for(let i = 0; i < 6; i ++){
+			const angle = Math.random() * 2 * Math.PI;
+
+			relative.push({
+				x: Math.cos(angle) * Math.random() * circle.radius,
+				y: Math.sin(angle) * Math.random() * circle.radius
+			});
+		}
+
+		// Explosion effects
+		relative.forEach((pos) => {
+			const relativePos = {x: circle.x + pos.x, y: circle.y + pos.y};
+
+			this.createObject(sf.data.objects.explosion_large, 
+				{
+					matter: {
+						position: relativePos
+					}	
+				})
+		});
+
+		// Explosion hitbox and collision check
+		const body = Matter.Bodies.circle(circle.x, circle.y, circle.radius);
+		const collisions = Matter.Query.collides(body, Matter.Composite.allBodies(this.world));	
+
+		collisions.forEach((collision) => {
+			const obj = this.getObjectByBody(collision.bodyA);
+
+			if(!obj)
+				return;
+
+			const difference = Matter.Vector.sub(obj.getPosition(), circle);
+			const direction = Matter.Vector.normalise(difference);
+			const distance = Matter.Vector.magnitude(difference);
+
+			const distanceMultiplier = (distance <= circle.radius) ? ((circle.radius - distance) / circle.radius) : 0;
+
+			const force = Matter.Vector.mult(direction, forceMultiplier * distanceMultiplier);
+
+			Matter.Body.applyForce(obj.body, circle, force);
+
+			obj.dealDamage(distanceMultiplier * circle.radius, "explosion");
+		});
+
+		sf.data.playAudio(sounds.explosion);
+	}
+
 	createForce(source, circle, force){
 
 		// Collision check body
@@ -565,14 +653,8 @@ export default class Game{
 			const obj = this.getObjectByBody(collision.bodyA);
 
 			if(obj && source != obj){
-				Matter.Body.applyForce(
-					obj.body, 
-					body.position, 
-					force
-					);
-
-				obj.dealDamage(force.damage);
-
+				Matter.Body.applyForce(obj.body, body.position, force);
+				obj.dealDamage(force.damage, "melee");
 				collided = true;
 			}
 		});

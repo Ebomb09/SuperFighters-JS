@@ -1,4 +1,5 @@
 function loadImage(src){
+
 	let img = new Image();
 	img.src = src;
 
@@ -9,10 +10,16 @@ function loadImage(src){
 	return img;
 }
 
-function loadAudio(src){
+function loadAudio(src, loop){
 
-	if(!sf.data.sounds[src])
-		sf.data.sounds[src] = new Audio(src);
+	if(!loop) loop = false;
+
+	if(!sf.data.sounds[src]){
+		const sound = new Audio(src);
+		sound.loop = loop;
+
+		sf.data.sounds[src] = sound;
+	}
 
 	return sf.data.sounds[src];
 }
@@ -31,6 +38,51 @@ function playAudio(audio){
 	copy.play();
 	
 	return copy;
+}
+
+function getCookie(key, defaultValue){
+	let found = "";
+
+	document.cookie.split(";").forEach((cookie) => {
+
+		let data = cookie.split("=");
+
+		if(data.length == 2){
+			if(data[0] == key)
+				found = data[1];
+		}
+	});
+
+	if(defaultValue !== undefined && found == ""){
+		setCookie(key, defaultValue);
+		return defaultValue;
+	}
+
+	return found;
+}
+
+function setCookie(key, value){
+	let cookies = "";
+	let added = false;
+
+	document.cookie.split(";").forEach((cookie) => {
+
+		let data = cookie.split("=");
+
+		if(data.length == 2){
+			
+			if(data[0] == key){
+				cookie = `${data[0]}=${value};`;
+				added = true;
+			}
+		}
+		cookies += cookie;
+	});
+
+	if(!added)
+		cookies += `${key}=${value};`;
+
+	document.cookie = cookies;
 }
 
 const docs = document.getElementById("sf-docs");
@@ -118,7 +170,17 @@ const sf = {
 		decoration: 	1 << 7,
 		effect: 		1 << 8,
 		ladder: 		1 << 9
+	},
+
+	cookies: {
+		get: getCookie,
+		set: setCookie
 	}
 };
+
+// Try reloading previous config
+const config = localStorage.getItem("config");
+if(config) sf.config = JSON.parse(config);
+
 
 export default sf;

@@ -197,6 +197,10 @@ export default class BaseMenu{
 			this.cursor = closest;
 	}
 
+	onClose(){
+		
+	}
+
 	addMarker(marker){
 		this.markers.push(marker);
 	}

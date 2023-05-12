@@ -33,4 +33,9 @@ export default class SetupMenu extends BaseMenu{
 				}	
 			}]);
 	}
+
+	onClose(){
+		// Save config
+		localStorage.setItem("config", JSON.stringify(sf.config));
+	}
 };
