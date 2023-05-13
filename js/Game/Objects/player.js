@@ -39,6 +39,8 @@ export default class Player extends BaseObject{
 	constructor(...params){
 		super(...params, {width: 8, height: 19, matter: {inertia: Infinity, friction: 0}});
 
+		this.input = {};
+
 		this.team = (this.options.team) ? this.options.team : 0;
 
 		// Held Weapons
@@ -119,6 +121,16 @@ export default class Player extends BaseObject{
 				this.setState(State.Jumping);
 			}
 		}
+
+		// Check inputs
+		if(this.input.aim) 				this.aim();
+		if(this.input.down) 			this.moveDown();
+		if(this.input.up) 				this.moveUp();
+		if(this.input.right) 			this.moveRight();
+		if(this.input.left) 			this.moveLeft();
+		if(this.input.secondaryAttack) 	this.secondaryAttack();
+		if(this.input.primaryAttack) 	this.attack();
+		if(this.input.interact) 		this.interact();
 	}
 
 	draw(){
@@ -387,6 +399,28 @@ export default class Player extends BaseObject{
 		// Check if damage is actually dealt
 		if(!super.dealDamage(damage, type, threshold))
 			return;
+
+		// Create blood effects
+		for(let i = 0; i < 2; i ++){
+
+			if(i == 0)
+				var effect = sf.data.objects.blood_large;
+			else
+				var effect = sf.data.objects.blood_small; 
+			
+			const velocity = {
+				x: Math.random() * 2 - 1,
+				y: Math.random() * 2 - 1
+			}
+
+			const obj = sf.game.createObject(effect,
+				{
+					matter: {
+						position: this.getPosition(),
+						velocity: velocity
+					}
+				});
+		}
 
 		// Melee cause slight stun
 		if(type == "melee"){

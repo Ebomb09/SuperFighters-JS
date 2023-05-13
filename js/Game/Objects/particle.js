@@ -15,17 +15,25 @@ class Particle extends BaseObject{
 	serialize(){
 		const serial = this.serialize;
 
+		serial.lifetime = this.lifetime;
+		serial.animation = this.animation;
+		serial.startTime = this.startTime;
+
 		return serial;
 	}
 
-	update(){
+	update(ms){
+		super.update(ms);
 
 		if(Date.now() - this.startTime >= this.lifetime)
 			this.kill();
 	}
 
 	draw(){
-		this.setAnimationFrame(this.animation, Date.now() - this.startTime);
+
+		if(this.animation)
+			this.setAnimationFrame(this.animation, Date.now() - this.startTime);
+
 		super.draw();
 	}
 };
@@ -48,9 +56,7 @@ let added = [
 			{x: 1, y: 1, delay: 50}
 		],
 
-		matter: {
-			isStatic: true
-		}
+		disableGravity: true
 	},
 
 	obj.explosion_small = { 
@@ -63,9 +69,7 @@ let added = [
 			{x: 2, y: 1, delay: 50}
 		],
 
-		matter: {
-			isStatic: true
-		}
+		disableGravity: true
 	},
 
 	obj.explosion_large = { 
@@ -78,9 +82,7 @@ let added = [
 			{x: 3, y: 1, delay: 50}
 		],
 
-		matter: {
-			isStatic: true
-		}
+		disableGravity: true
 	},
 
 	obj.electric = {
@@ -94,9 +96,7 @@ let added = [
 			{x: 2, y: 0, delay: 50},	
 		],
 
-		matter: {
-			isStatic: true
-		}		
+		disableGravity: true	
 	},
 
 	obj.spark = {
@@ -112,12 +112,42 @@ let added = [
 			{x: 4, y: 0, delay: 50},	
 		],
 
-		matter: {
-			isStatic: true
-		}		
+		disableGravity: true
+	},
+
+	obj.blood_small = {
+		image: sf.data.loadImage("images/effect/blood.png"), 
+		frameCount: {x: 2, y: 1},
+		frameIndex: {x: 0, y: 0},
+
+		lifetime: 500
+	},
+
+	obj.blood_large = {
+		image: sf.data.loadImage("images/effect/blood.png"), 
+		frameCount: {x: 2, y: 1},
+		frameIndex: {x: 1, y: 0},
+
+		lifetime: 500
+	},
+
+	obj.casing_small = {
+		image: sf.data.loadImage("images/effect/casing_small.png"), 
+		lifetime: 500
+	},
+
+	obj.casing_large = {
+		image: sf.data.loadImage("images/effect/casing_large.png"), 
+		lifetime: 500
+	},
+
+	obj.shell = {
+		image: sf.data.loadImage("images/effect/shell.png"), 
+		lifetime: 500
 	}
 
 ].forEach((item) => {
 	item.type = Particle;
 	item.category = sf.filters.effect;
+	item.mask = 0;
 });

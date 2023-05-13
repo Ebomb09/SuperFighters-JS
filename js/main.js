@@ -26,6 +26,7 @@ function sfLoop(){
 		requestAnimationFrame(sfLoop);
 		return;
 	}
+	lastTimestamp = Date.now();
 
 	sf.ctx.fillStyle = "black";
 	sf.ctx.fillRect(0, 0, sf.canvas.width, sf.canvas.height);
@@ -41,9 +42,7 @@ function sfLoop(){
 	}
 
 	input.poll();
-
-	// Calculate time taken
-	lastTimestamp = Date.now();
+	
 	requestAnimationFrame(sfLoop);
 }
 

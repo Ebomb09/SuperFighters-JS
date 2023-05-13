@@ -134,8 +134,8 @@ export default class BaseObject{
 			if(options.disableGravity) this.disableGravity = options.disableGravity;
 
 			// Collision filter is it and mask is what
-			if(options.category) this.body.collisionFilter.category = options.category;
-			if(options.mask) this.body.collisionFilter.mask = options.mask;
+			if(options.category !== undefined) this.body.collisionFilter.category = options.category;
+			if(options.mask !== undefined) this.body.collisionFilter.mask = options.mask;
 		}
 
 		if(this.oncreate)
@@ -1031,6 +1031,7 @@ let worldObjects = [
 
 	obj.dirt = { 
 		image: sf.data.loadImage("images/dirt.png"), 
+		frameCount: {x: 2, y: 1},
 		resizable: true, 
 
 		matter: {
@@ -1090,7 +1091,7 @@ let worldObjects = [
 
 	obj.brick = { 
 		image: sf.data.loadImage("images/brick.png"), 
-		frameCount: {x: 2, y: 1}, 
+		frameCount: {x: 3, y: 1}, 
 		resizable: true, 
 
 		matter: {

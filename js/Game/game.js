@@ -13,7 +13,7 @@ const sounds = {
 		sf.data.loadAudio("sounds/explosion03.mp3")
 		],
 	ambient: [
-		sf.data.loadAudio("sounds/ambient_loop_1.ogg", true)
+		sf.data.loadAudio("sounds/ambient_loop_1.ogg", 0.25, true)
 		]
 };
 
@@ -43,8 +43,7 @@ export default class Game{
 		for(let i = 0; i < local_players; i ++){
 			this.players.push({
 				type: PlayerType.Local, 
-				id: i,
-				input: {}
+				id: i
 			});
 		}
 
@@ -336,24 +335,34 @@ export default class Game{
 
 	handlePlayerInput(){
 
-		for(let i = 0; i < this.players.length; i ++){
-			const player = this.getObjectById(this.players[i].objectId);
-			const input = this.players[i].input;
+		this.players.forEach((player) => {
 
-			// Player must still be present in-game
-			if(!player || !input)
-				continue;
+			if(!player.input) player.input = {};
 
-			// Send input states to the player
-			if(input.aim) 				player.aim();
-			if(input.down) 				player.moveDown();
-			if(input.up) 				player.moveUp();
-			if(input.right) 			player.moveRight();
-			if(input.left) 				player.moveLeft();
-			if(input.secondaryAttack) 	player.secondaryAttack();
-			if(input.primaryAttack) 	player.attack();
-			if(input.interact) 			player.interact();
-		};
+			const obj = this.getObjectById(player.objectId);
+			const input = player.input;
+
+			// Update local player configured controls
+			if(player.type == PlayerType.Local){
+
+				const config = sf.config.controls[player.id];
+
+				if(config){
+					input.aim 				= sf.input.key.held[config.aim];
+					input.down 				= sf.input.key.held[config.down];
+					input.up 				= sf.input.key.held[config.up];
+					input.right 			= sf.input.key.held[config.right];
+					input.left 				= sf.input.key.held[config.left];
+					input.secondaryAttack 	= sf.input.key.pressed[config.secondaryAttack];
+					input.primaryAttack 	= sf.input.key.pressed[config.primaryAttack];
+					input.interact 			= sf.input.key.pressed[config.interact];
+				}
+			}
+
+			// Send inputs to the player
+			if(obj)
+				obj.input = input;
+		});
 	}
 
 	startCollision(event){
@@ -391,38 +400,14 @@ export default class Game{
 
 	update(ms, catchup){
 
-		// Update local player configured controls
-		this.players.forEach((player) => {
-
-			if(player.type != PlayerType.Local && player.id >= 0)
-				return;
-
-			// Get controls from local config
-			const config = sf.config.controls[player.id];
-
-			// Set player input states
-			if(!player.input)
-				player.input = {};
-
-			const input = player.input;
-
-			input.aim 				= sf.input.key.held[config.aim];
-			input.down 				= sf.input.key.held[config.down];
-			input.up 				= sf.input.key.held[config.up];
-			input.right 			= sf.input.key.held[config.right];
-			input.left 				= sf.input.key.held[config.left];
-			input.secondaryAttack 	= sf.input.key.pressed[config.secondaryAttack];
-			input.primaryAttack 	= sf.input.key.pressed[config.primaryAttack];
-			input.interact 			= sf.input.key.pressed[config.interact];
-		});
-
 		if(sf.input.key.pressed["Space"])
 			this.restartGame();
+
+		this.handlePlayerInput();
 
 		this.objects.forEach((obj) => {
 			obj.update(ms);
 		});
-		this.handlePlayerInput();
 
 		Matter.Engine.update(this.engine, ms);
 

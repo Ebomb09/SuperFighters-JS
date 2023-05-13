@@ -10,12 +10,14 @@ function loadImage(src){
 	return img;
 }
 
-function loadAudio(src, loop){
+function loadAudio(src, volume, loop){
 
+	if(!volume) volume = 1;
 	if(!loop) loop = false;
 
 	if(!sf.data.sounds[src]){
 		const sound = new Audio(src);
+		sound.volume = volume;
 		sound.loop = loop;
 
 		sf.data.sounds[src] = sound;
@@ -34,7 +36,9 @@ function playAudio(audio){
 		audio = audio[Math.round(Math.random() * (audio.length - 1))];
 
 	// Create a clone to buffer multiple copies
-	let copy = audio.cloneNode();
+	const copy = audio.cloneNode();
+	copy.volume = audio.volume;
+	copy.loop = audio.loop;
 	copy.play();
 	
 	return copy;
