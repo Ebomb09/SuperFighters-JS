@@ -97,7 +97,7 @@ export default class BaseObject{
 		/*
 		 *	Physics 
 		 */
-		if(options.matter){
+		if(!options.noBody){
 			const matter = options.matter;
 
 			if(options.shape == "circle"){
@@ -160,12 +160,17 @@ export default class BaseObject{
 			serial.matter = {
 				position: this.getPosition(),
 				velocity: this.getVelocity(),
-				angle: this.body.angle,
+
+				angle: this.getAngle(),
+				angularVelocity: this.getAngularVelocity(),
 
 				isStatic: this.body.isStatic
 			};
 			serial.collisions = this.collisions;
+		}else{
+			serial.noBody = true;
 		}
+
 		return serial;
 	}
 
@@ -492,6 +497,24 @@ export default class BaseObject{
 
 	moveVelocity(x, y){
 		if(this.body) Matter.Body.setVelocity(this.body, Matter.Vector.create(this.body.velocity.x + x, this.body.velocity.y + y));
+	}
+
+	getAngle(){
+		if(this.body) return this.body.angle;
+		return 0;	
+	}
+
+	setAngle(angle){
+		if(this.body) Matter.Body.setAngle(this.body, angle);
+	}
+
+	getAngularVelocity(){
+		if(this.body) Matter.Body.getAngularVelocity(this.body);
+		return 0;
+	}
+
+	setAngularVelocity(velocity){
+		if(this.body) Matter.Body.setAngularVelocity(this.body, velocity);
 	}
 
 	getBounds(){

@@ -5,8 +5,6 @@ export default class Marker extends BaseObject{
 
 	constructor(...params){
 		super(...params);
-
-
 	}
 
 	serialize(){
@@ -46,7 +44,11 @@ const obj = sf.data.objects;
 let added = [
 
 	obj.player_spawn = { 
-		image: sf.data.loadImage("images/marker/player_spawn.png"), 
+		image: sf.data.loadImage("images/marker/player_spawn.png")
+	},
+
+	obj.weapon_spawn = {
+		image: sf.data.loadImage("images/marker/weapon_spawn.png")
 	},
 
 	obj.distance_marker = {

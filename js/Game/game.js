@@ -151,6 +151,8 @@ export default class Game{
 
 	restartGame(){
 		this.frameCounter = 0;
+		this.lastWeaponDrop = Date.now();
+		this.gameOver = false;
 		this.loadMap(this.map);
 		this.createPlayers();
 	}
@@ -400,8 +402,35 @@ export default class Game{
 
 	update(ms, catchup){
 
-		if(sf.input.key.pressed["Space"])
-			this.restartGame();
+
+		// Check who won
+		if(!this.gameOver){
+			let count = 0;
+			let winner = null;
+
+			this.players.forEach((player) => {
+				const obj = this.getObjectById(player.objectId);
+
+				if(obj){
+					count ++;
+					winner = player;
+				}
+			});
+
+			if(count <= 1 && this.players.length > 1){
+				this.gameOver = true;
+				this.nextGame = Date.now() + 5000;
+				console.log("Winner is ", winner);
+			}
+
+		}else{
+
+			if(Date.now() >= this.nextGame)
+				this.restartGame();
+		}
+
+		// Check if it's time for a weapon drop
+
 
 		this.handlePlayerInput();
 
@@ -478,7 +507,7 @@ export default class Game{
 		// Set draw order
 		const order = [
 			sf.filters.background,
-			sf.filters.marker,
+			/*sf.filters.marker,*/
 			sf.filters.ladder,
 			sf.filters.platform,
 			sf.filters.decoration,

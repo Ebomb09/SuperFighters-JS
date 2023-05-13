@@ -150,6 +150,14 @@ const sf = {
 				aim: 				"KeyD",
 				interact: 			"KeyF"
 			}
+		],
+
+		profiles:
+		[
+			// Default profile for Player 1
+			{
+				name: "New Player"
+			}
 		]
 	},
 

@@ -75,4 +75,63 @@ export function poll(){
 	Object.keys(sf.input.key.released).forEach((button) => {
 		sf.input.key.released[button] = false;
 	});
+
+	// Hook into the gamepads and create psuedo input keys
+	navigator.getGamepads().forEach((gamepad) => {
+
+		for(let i = 0; i < gamepad.axes.length; i ++){
+			const axis = gamepad.axes[i];
+
+			// Left axis
+			const L = axis < -0.25;
+			const keyL = `Gamepad${gamepad.index}_Axis${i}-`;
+
+			if(!sf.input.key.held[keyL] && L){
+				sf.input.key.pressed[keyL] = true;
+				sf.input.key.lastPressed = keyL;
+			}
+
+			if(sf.input.key.held[keyL] && !L){
+				sf.input.key.released[keyL] = true;
+				sf.input.key.lastReleased = keyL;
+			}
+
+			sf.input.key.held[keyL] = L;
+
+			// Right axis
+			const R = axis > 0.25;
+			const keyR = `Gamepad${gamepad.index}_Axis${i}+`;
+
+			if(!sf.input.key.held[keyR] && R){
+				sf.input.key.pressed[keyR] = true;
+				sf.input.key.lastPressed = keyR;
+			}
+
+			if(sf.input.key.held[keyR] && !R){
+				sf.input.key.released[keyR] = true;
+				sf.input.key.lastReleased = keyR;
+			}
+
+			sf.input.key.held[keyR] = R;
+		}
+
+		for(let i = 0; i < gamepad.buttons.length; i ++){
+			const button = gamepad.buttons[i];
+			const key = `Gamepad${gamepad.index}_Button${i}`;
+
+			// Not currently held but just marked as pressed
+			if(!sf.input.key.held[key] && button.pressed){
+				sf.input.key.pressed[key] = true;
+				sf.input.key.lastPressed = key;
+			}
+
+			// Currently held but not marked as pressed
+			if(sf.input.key.held[key] && !button.pressed){
+				sf.input.key.released[key] = true;
+				sf.input.key.lastReleased = key;
+			}
+
+			sf.input.key.held[key] = button.pressed;
+		}
+	});
 }
