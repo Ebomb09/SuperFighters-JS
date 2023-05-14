@@ -582,6 +582,7 @@ export default class Game{
 
 			// Hack the velocity into actually being set on creation
 			Matter.Body.setVelocity(obj.body, obj.body.velocity);
+			Matter.Body.setAngularVelocity(obj.body, obj.body.angularVelocity);
 		}
 
 		return obj;
@@ -603,6 +604,29 @@ export default class Game{
 	}
 
 	createExplosion(circle, forceMultiplier){
+
+		// Explosion hitbox and collision check
+		const body = Matter.Bodies.circle(circle.x, circle.y, circle.radius);
+		const collisions = Matter.Query.collides(body, Matter.Composite.allBodies(this.world));	
+
+		collisions.forEach((collision) => {
+			const obj = this.getObjectByBody(collision.bodyA);
+
+			if(!obj)
+				return;
+
+			const difference = Matter.Vector.sub(obj.getPosition(), circle);
+			const direction = Matter.Vector.normalise(difference);
+			const distance = Matter.Vector.magnitude(difference);
+
+			const distanceMultiplier = (distance <= circle.radius) ? ((circle.radius - distance) / circle.radius) : 0;
+
+			const force = Matter.Vector.mult(direction, forceMultiplier * distanceMultiplier);
+
+			Matter.Body.applyForce(obj.body, circle, force);
+
+			obj.dealDamage(distanceMultiplier * circle.radius, "explosion");
+		});
 
 		// Create multiple visual explosions
 		const relative = [];
@@ -626,29 +650,6 @@ export default class Game{
 						position: relativePos
 					}	
 				})
-		});
-
-		// Explosion hitbox and collision check
-		const body = Matter.Bodies.circle(circle.x, circle.y, circle.radius);
-		const collisions = Matter.Query.collides(body, Matter.Composite.allBodies(this.world));	
-
-		collisions.forEach((collision) => {
-			const obj = this.getObjectByBody(collision.bodyA);
-
-			if(!obj)
-				return;
-
-			const difference = Matter.Vector.sub(obj.getPosition(), circle);
-			const direction = Matter.Vector.normalise(difference);
-			const distance = Matter.Vector.magnitude(difference);
-
-			const distanceMultiplier = (distance <= circle.radius) ? ((circle.radius - distance) / circle.radius) : 0;
-
-			const force = Matter.Vector.mult(direction, forceMultiplier * distanceMultiplier);
-
-			Matter.Body.applyForce(obj.body, circle, force);
-
-			obj.dealDamage(distanceMultiplier * circle.radius, "explosion");
 		});
 
 		sf.data.playAudio(sounds.explosion);

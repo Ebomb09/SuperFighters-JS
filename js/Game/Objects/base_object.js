@@ -924,7 +924,9 @@ let worldObjects = [
 				{
 					matter: {
 						position: object.getPosition(),
-						velocity: velocity
+						velocity: velocity,
+						angle: object.getAngle(),
+						angularVelocity: Math.random() - 0.5
 					}
 				});
 		}
