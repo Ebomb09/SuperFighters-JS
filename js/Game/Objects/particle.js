@@ -6,8 +6,10 @@ class Particle extends BaseObject{
 	constructor(...params){
 		super(...params);
 
-		this.lifetime 	= this.parent.lifetime;
-		this.animation 	= this.parent.animation;
+		this.lifeTime 			= this.parent.lifeTime;
+		this.animation 			= this.parent.animation;
+		this.animateRealTime 	= this.parent.animateRealTime;
+		this.fade 				= this.parent.fade;
 
 		this.startTime = (this.options.startTime) ? this.options.startTime : Date.now();
 	}
@@ -15,7 +17,7 @@ class Particle extends BaseObject{
 	serialize(){
 		const serial = this.serialize;
 
-		serial.lifetime = this.lifetime;
+		serial.lifetime = this.lifeTime;
 		serial.animation = this.animation;
 		serial.startTime = this.startTime;
 
@@ -25,16 +27,30 @@ class Particle extends BaseObject{
 	update(ms){
 		super.update(ms);
 
-		if(Date.now() - this.startTime >= this.lifetime)
+		if(Date.now() - this.startTime >= this.lifeTime)
 			this.kill();
 	}
 
 	draw(){
 
-		if(this.animation)
-			this.setAnimationFrame(this.animation, Date.now() - this.startTime);
+		if(this.animation){
+
+			if(this.animateRealTime)
+				this.setAnimationFrame(this.animation);
+			else
+				this.setAnimationFrame(this.animation, Date.now() - this.startTime);
+		}
+
+		sf.ctx.save();
+
+		if(this.lifeTime != 0 && this.fade)
+			sf.ctx.globalAlpha = (this.lifeTime - (Date.now() -  this.startTime)) / this.lifeTime;
+
+		if(sf.ctx.globalAlpha >= 1)
+			sf.ctx.globalAlpha = 1;
 
 		super.draw();
+		sf.ctx.restore();
 	}
 };
 
@@ -50,7 +66,7 @@ let added = [
 		image: sf.data.loadImage("images/effect/hit.png"), 
 		frameCount: {x: 4, y: 2},
 
-		lifetime: 100,
+		lifeTime: 100,
 		animation: [
 			{x: 1, y: 0, delay: 50},
 			{x: 1, y: 1, delay: 50}
@@ -63,7 +79,7 @@ let added = [
 		image: sf.data.loadImage("images/effect/hit.png"), 
 		frameCount: {x: 4, y: 2},
 
-		lifetime: 100,
+		lifeTime: 100,
 		animation: [
 			{x: 2, y: 0, delay: 50},
 			{x: 2, y: 1, delay: 50}
@@ -76,7 +92,7 @@ let added = [
 		image: sf.data.loadImage("images/effect/hit.png"), 
 		frameCount: {x: 4, y: 2},
 
-		lifetime: 100,
+		lifeTime: 100,
 		animation: [
 			{x: 3, y: 0, delay: 50},
 			{x: 3, y: 1, delay: 50}
@@ -89,7 +105,7 @@ let added = [
 		image: sf.data.loadImage("images/effect/electric.png"), 
 		frameCount: {x: 3, y: 1},
 
-		lifetime: 150,
+		lifeTime: 150,
 		animation: [
 			{x: 0, y: 0, delay: 50},
 			{x: 1, y: 0, delay: 50},
@@ -103,7 +119,7 @@ let added = [
 		image: sf.data.loadImage("images/effect/spark.png"), 
 		frameCount: {x: 5, y: 1},
 
-		lifetime: 250,
+		lifeTime: 250,
 		animation: [
 			{x: 0, y: 0, delay: 50},
 			{x: 1, y: 0, delay: 50},
@@ -120,7 +136,8 @@ let added = [
 		frameCount: {x: 2, y: 1},
 		frameIndex: {x: 0, y: 0},
 
-		lifetime: 500
+		lifeTime: 500,
+		fade: true
 	},
 
 	obj.blood_large = {
@@ -128,22 +145,48 @@ let added = [
 		frameCount: {x: 2, y: 1},
 		frameIndex: {x: 1, y: 0},
 
-		lifetime: 500
+		lifeTime: 500,
+		fade: true
 	},
 
 	obj.casing_small = {
 		image: sf.data.loadImage("images/effect/casing_small.png"), 
-		lifetime: 500
+		lifeTime: 500,
+		fade: true
 	},
 
 	obj.casing_large = {
 		image: sf.data.loadImage("images/effect/casing_large.png"), 
-		lifetime: 500
+		lifeTime: 500,
+		fade: true
 	},
 
 	obj.shell = {
 		image: sf.data.loadImage("images/effect/shell.png"), 
-		lifetime: 500
+		lifeTime: 500,
+		fade: true
+	},
+
+	obj.smoke = {
+		image: sf.data.loadImage("images/effect/smoke.png"),
+		lifeTime: 500,
+		fade: true,
+		disableGravity: true
+	},
+
+	obj.burn = {
+		image: sf.data.loadImage("images/effect/burn.png"),
+		frameCount: {x: 5, y: 1},
+		animation: [
+			{x: 0, y: 0, delay: 50},
+			{x: 1, y: 0, delay: 50},
+			{x: 2, y: 0, delay: 50},
+			{x: 3, y: 0, delay: 50},		
+			{x: 4, y: 0, delay: 50},
+		],
+		animateRealTime: true,
+		lifeTime: 30,
+		disableGravity: true
 	}
 
 ].forEach((item) => {

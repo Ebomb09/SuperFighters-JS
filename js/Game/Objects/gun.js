@@ -1,5 +1,7 @@
 import sf from "../../sf";
 import BaseObject from "./base_object";
+import Fire from "./fire";
+import Projectile from "./projectile";
 
 const State = {
 	Firing: "firing"
@@ -93,19 +95,20 @@ export default class Gun extends BaseObject{
 						}
 
 						// Effect, typically the casing / shell of the gun
-						sf.game.createObject(this.expel, 
-							{
-								matter:{
-									position: position,
-									angle: Math.random() * Math.PI * 2,
-									velocity: {
-										x: (Math.cos(angle) * -3),
-										y: (Math.sin(angle) * -3) - 1
+						if(this.expel)
+							sf.game.createObject(this.expel, 
+								{
+									matter:{
+										position: position,
+										angle: Math.random() * Math.PI * 2,
+										velocity: {
+											x: (Math.cos(angle) * -3),
+											y: (Math.sin(angle) * -3) - 1
+										}
 									}
-								}
-							});
+								});
 
-						// PLay audio once (spare ears)
+						// Play audio once (spare ears)
 						sf.data.playAudio(this.sounds.fire);
 					}
 				});
@@ -265,6 +268,24 @@ let added = [
 			],
 			empty: 	sf.data.loadAudio("sounds/weapon/heavy_outofammo.mp3"),
 			draw: 	sf.data.loadAudio("sounds/weapon/rifle_draw.mp3")				
+		}
+	},
+
+	obj.flamethrower = { 
+		image: sf.data.loadImage("images/weapon/flamethrower.png"),
+
+		ammo: 60, 
+		burst: 10,
+		speed: 4, 
+		timing: 500, 
+		spread: 15,
+
+		projectile: sf.data.objects.fire,
+
+		sounds: {
+			fire: 	sf.data.loadAudio("sounds/fireplosion.mp3"), 
+			empty: 	sf.data.loadAudio("sounds/weapon/light_outofammo.mp3"),
+			draw: 	sf.data.loadAudio("sounds/weapon/heavy_draw.mp3")				
 		}
 	}
 

@@ -450,6 +450,7 @@ export default class Player extends BaseObject{
 
 			if(this.checkState(State.Crouching)){
 				this.setState(State.Rolling, 300);
+				this.putoutFire();
 				sf.data.playAudio(this.sounds.roll);
 
 			}else if(!this.checkState(State.Rolling)){
@@ -468,6 +469,7 @@ export default class Player extends BaseObject{
 	
 			if(this.checkState(State.Crouching)){
 				this.setState(State.Rolling, 300);
+				this.putoutFire();
 				sf.data.playAudio(this.sounds.roll);
 
 			}else if(!this.checkState(State.Rolling)){
@@ -770,11 +772,12 @@ let added = [
 
 	obj.player = { 
 		image: sf.data.loadImage("images/player.png"), 
-		frameCount: {x: 24, y: 16},
+		frameCount: {x: 10, y: 9},
 		health: 100,
-
+		flammable: true,
+		
 		sounds: {
-			hit: [
+			damage_melee: [
 				sf.data.loadAudio("sounds/player/hit_player00.mp3"),
 				sf.data.loadAudio("sounds/player/hit_player01.mp3"),
 				sf.data.loadAudio("sounds/player/hit_player02.mp3"),

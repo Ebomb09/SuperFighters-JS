@@ -1,5 +1,11 @@
 import sf from "../../sf";
 
+const Default = {
+	sounds: {
+		damage_melee: sf.data.loadAudio("sounds/hit_generic.mp3")
+	}
+};
+
 export default class BaseObject{
 
 	constructor(...params){
@@ -84,13 +90,16 @@ export default class BaseObject{
 		this.facingDirection 	= (options.facingDirection) ? options.facingDirection : 1;
 
 		this.health 			= (options.health) ? options.health : -1;
+		this.fire				= (options.fire) ? options.fire : 0;
+		this.flammable			= this.parent.flammable;
 
 		this.damageModifier = {
 			default: 	1,
 			collision: 	1,
 			melee: 		1,
 			projectile: 1,
-			explosion: 	1 
+			explosion: 	1,
+			fire: 		1, 
 		};
 		if(options.damageModifier) Matter.Common.extend(this.damageModifier, options.damageModifier);
 
@@ -150,6 +159,7 @@ export default class BaseObject{
 
 		if(this.customId != "") 						serial.customId 		= this.customId;
 		if(this.health != "") 							serial.health 			= this.health;
+		if(this.fire != 0) 								serial.fire 			= this.fire;
 		if(this.facingDirection != 1) 					serial.facingDirection 	= this.facingDirection;
 		if(this.frame.index.x+this.frame.index.y != 0)	serial.frameIndex 		= this.frame.index;
 		if(this.tiling.x+this.tiling.y != 0)			serial.tiling 			= this.tiling;
@@ -177,16 +187,17 @@ export default class BaseObject{
 	update(ms){ 
 		this.delayStep(ms);
 
-		if(this.disableGravity || !this.body)
-			return;
+		this.updateFire();
 
-		const gravity = sf.game.gravity;
+		if(!this.disableGravity && this.body){
+			const gravity = sf.game.gravity;
 
-		Matter.Body.applyForce(this.body, this.body.position, 
-			{
-				x: gravity.x * this.body.mass,
-				y: gravity.y * this.body.mass
-        	});
+			Matter.Body.applyForce(this.body, this.body.position, 
+				{
+					x: gravity.x * this.body.mass,
+					y: gravity.y * this.body.mass
+	        	});
+		}
 	}
 
 	draw(options){
@@ -244,6 +255,65 @@ export default class BaseObject{
 		}
 
 		sf.ctx.restore();
+	}
+
+	updateFire(){
+
+		if(this.flammable){
+
+			if(this.fire < 0)
+				this.fire = 0;
+
+			let touchingFire = false;
+
+			sf.game.getObjectsByAABB(this.getBounds()).forEach((obj) => {
+
+				if(obj.getType() == "Fire" && !touchingFire){
+					this.fire += 1;
+					touchingFire = true;
+				}
+			});
+
+			if(this.fire > 0){
+
+				if(!touchingFire)
+					this.fire += 1;
+
+				if(this.fire % 5 == 0)
+					sf.game.createObject(sf.data.objects.smoke,
+						{
+							matter:{
+								position: this.getPosition(),
+								velocity: {x: Math.random() - 0.5, y: -1}
+							}
+						});
+				
+
+				if(this.fire > 100){
+					this.dealDamage(1, "fire");
+
+					sf.game.createObject(sf.data.objects.burn,
+						{
+							matter: {
+								position: this.getPosition(),
+								velocity: this.getVelocity()
+							}
+						});
+				}
+			}
+		}		
+	}
+
+	putoutFire(){
+
+		// Set from burning to smoking
+		if(this.fire > 100){
+			this.fire = 1;
+
+		// Set fire out
+		}else{
+			this.fire = 0;
+		}
 	}
 
 	strictState(state){
@@ -437,10 +507,10 @@ export default class BaseObject{
 		// Deal damage if above threshold
 		if(this.health != -1 && damage > threshold){
 
-			if(this.sounds.hit)
-				sf.data.playAudio(this.sounds.hit);
+			if(this.sounds[`damage_${type}`])
+				sf.data.playAudio(this.sounds[`damage_${type}`]);
 			else
-				sf.data.playAudio(sf.data.loadAudio("sounds/hit_generic.mp3"));
+				sf.data.playAudio(Default.sounds[`damage_${type}`]);
 
 			this.health -= Math.round(damage);
 
@@ -520,6 +590,11 @@ export default class BaseObject{
 	getBounds(){
 		if(this.body) return this.body.bounds;
 		return {min: Matter.Vector.create(0, 0), max: Matter.Vector.create(0, 0)};
+	}
+
+	getStatic(){
+		if(this.body) return this.body.isStatic;
+		return false;	
 	}
 
 	onLeft(){
@@ -645,6 +720,7 @@ let decorativeObjects = [
 	obj.target = { 
 		image: sf.data.loadImage("images/target.png"), 
 		health: 5, 
+		flammable: true,
 
 		matter: {
 			isStatic: true
@@ -691,7 +767,8 @@ let decorativeObjects = [
 
 	obj.target_debris00 = { 
 		image: sf.data.loadImage("images/target_debris00.png"), 
-		health: 1, 
+		health: 5, 
+		flammable: true,
 
 		sounds: {
 			killed: [
@@ -704,6 +781,7 @@ let decorativeObjects = [
 	obj.target_debris01 = { 
 		image: sf.data.loadImage("images/target_debris01.png"), 
 		health: 5, 
+		flammable: true,
 
 		sounds: {
 			killed: [
@@ -716,6 +794,7 @@ let decorativeObjects = [
 	obj.target_debris02 = { 
 		image: sf.data.loadImage("images/target_debris02.png"), 
 		health: 5, 
+		flammable: true,
 
 		sounds: {
 			killed: [
@@ -758,12 +837,14 @@ let decorativeObjects = [
 	obj.paper =	{ 
 		image: sf.data.loadImage("images/paper.png"), 
 		frameCount: {x: 2, y: 1}, 
-		health: 5
+		health: 5,
+		flammable: true,
 	},
 
 	obj.crate_debris00 = {
 		image: sf.data.loadImage("images/crate_debris00.png"),
 		health: 25,
+		flammable: true,
 
 		sounds: {
 			killed: [
@@ -776,6 +857,7 @@ let decorativeObjects = [
 	obj.crate_debris01 = {
 		image: sf.data.loadImage("images/crate_debris01.png"),
 		health: 25,
+		flammable: true,
 
 		sounds: {
 			killed: [
@@ -788,6 +870,7 @@ let decorativeObjects = [
 	obj.crate_debris02 = {
 		image: sf.data.loadImage("images/crate_debris02.png"),
 		health: 25,
+		flammable: true,
 
 		sounds: {
 			killed: [
@@ -800,6 +883,7 @@ let decorativeObjects = [
 	obj.table_debris00 = { 
 		image: sf.data.loadImage("images/table_debris00.png"), 
 		health: 15,
+		flammable: true,
 
 		sounds: {
 			killed: [
@@ -812,6 +896,7 @@ let decorativeObjects = [
 	obj.table_debris01 = { 
 		image: sf.data.loadImage("images/table_debris01.png"), 
 		health: 15,
+		flammable: true,
 
 		sounds: {
 			killed: [
@@ -824,6 +909,7 @@ let decorativeObjects = [
 	obj.table_debris02 = { 
 		image: sf.data.loadImage("images/table_debris02.png"), 
 		health: 15,
+		flammable: true,
 
 		sounds: {
 			killed: [
@@ -848,6 +934,7 @@ let worldObjects = [
 	obj.crate =	{ 
 		image: sf.data.loadImage("images/crate.png"), 
 		health: 50,
+		flammable: true,
 
 		sounds: {
 			killed: [
@@ -902,6 +989,7 @@ let worldObjects = [
 		frameCount: {x: 2, y: 1},
 
 		health: 1,
+		flammable: true,
 		damageModifier: {
 			melee: 0
 		},
@@ -980,6 +1068,7 @@ let worldObjects = [
 	obj.table = { 
 		image: sf.data.loadImage("images/table.png"), 
 		health: 35,
+		flammable: true,
 
 		sounds: {
 			killed: [
@@ -1023,6 +1112,7 @@ let worldObjects = [
 	obj.small_table	= { 
 		image: sf.data.loadImage("images/small_table.png"), 
 		health: 15,
+		flammable: true,
 
 		sounds: {
 			killed: [
