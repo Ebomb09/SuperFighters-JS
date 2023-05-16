@@ -79,6 +79,10 @@ export function poll(){
 	// Hook into the gamepads and create psuedo input keys
 	navigator.getGamepads().forEach((gamepad) => {
 
+		// Some browsers can have nulled out gamepads, ie: Chrome
+		if(!gamepad)
+			return;
+
 		for(let i = 0; i < gamepad.axes.length; i ++){
 			const axis = gamepad.axes[i];
 
