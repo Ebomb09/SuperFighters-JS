@@ -10,8 +10,6 @@ export default class ProfileMenu extends BaseMenu{
 		this.playerIndex = 0;
 		this.getProfile();
 
-		console.log(sf.canvas.width/2)
-
 		this.player = new Player(sf.data.objects.player,
 			{
 				parent: sf.data.objects.player,

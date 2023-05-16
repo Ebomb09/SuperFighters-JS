@@ -9,6 +9,7 @@ const sounds = {
 export default class MenuDispatcher extends Array{
 
 	update(){
+		const controls = sf.config.controls[0];
 
 		// Only interact with the top most menu item
 		if(this.length > 0){
@@ -20,26 +21,26 @@ export default class MenuDispatcher extends Array{
 			if(menu.hover(sf.input.mouse.x, sf.input.mouse.y, sf.input.mouse.pressed[0]))
 				sf.data.playAudio(sounds.accept);
 			
-			if(sf.input.key.pressed["Space"] || sf.input.key.pressed["Enter"]){
+			if(sf.input.key.pressed[controls.primaryAttack]){
 				
 				if(menu.select())
 					sf.data.playAudio(sounds.accept);
 			}
 
-			if(sf.input.key.pressed["ArrowUp"])
+			if(sf.input.key.pressed[controls.up])
 				menu.up();
 
-			if(sf.input.key.pressed["ArrowDown"])
+			if(sf.input.key.pressed[controls.down])
 				menu.down();
 
-			if(sf.input.key.pressed["ArrowLeft"])
+			if(sf.input.key.pressed[controls.left])
 				menu.left();
 
-			if(sf.input.key.pressed["ArrowRight"])
+			if(sf.input.key.pressed[controls.right])
 				menu.right();
 
 			// Close current menu
-			if(sf.input.key.pressed["Escape"]){
+			if(sf.input.key.pressed[controls.secondaryAttack]){
 				sf.data.playAudio(sounds.cancel);
 				menu.onClose();
 				this.pop();

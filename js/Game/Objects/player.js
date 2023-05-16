@@ -343,7 +343,7 @@ export default class Player extends BaseObject{
 				sf.ctx.save();
 
 				if(this.checkState(State.Drawing)){
-					sf.ctx.rotate(Math.PI / 2 * -this.facingDirection);
+					sf.ctx.rotate(-Math.PI / 2);
 					sf.ctx.translate(0, weapon.frame.height/2);
 				}
 
@@ -365,7 +365,7 @@ export default class Player extends BaseObject{
 			// Draw torso
 			drawOrder.forEach((image) => {
 				sf.ctx.drawImage(
-					this.image,
+					image,
 
 					this.frame.width * aimFrame.x,
 					this.frame.height * aimFrame.y,
