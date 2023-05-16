@@ -168,7 +168,8 @@ const sf = {
 
 		materials: {},
 		sounds: {},
-		objects: {}
+		objects: {},
+		apparel: {}
 	},
 
 	filters: {
@@ -192,7 +193,6 @@ const sf = {
 
 // Try reloading previous config
 const config = localStorage.getItem("config");
-if(config) sf.config = JSON.parse(config);
-
+if(config) Matter.Common.extend(sf.config, JSON.parse(config));
 
 export default sf;

@@ -108,13 +108,15 @@ export default class Gun extends BaseObject{
 									}
 								});
 
-						// Play audio once (spare ears)
 						sf.data.playAudio(this.sounds.fire);
 					}
 				});
 
 				delay += this.timing / this.burst;
 			}
+
+			// Play audio once (spare ears)
+			sf.data.playAudio(this.sounds.fireOnce);
 
 			this.setState(State.Firing, this.timing, shots);
 			return this.timing;
@@ -283,9 +285,9 @@ let added = [
 		projectile: sf.data.objects.fire,
 
 		sounds: {
-			fire: 	sf.data.loadAudio("sounds/fireplosion.mp3"), 
-			empty: 	sf.data.loadAudio("sounds/weapon/light_outofammo.mp3"),
-			draw: 	sf.data.loadAudio("sounds/weapon/heavy_draw.mp3")				
+			fireOnce: 	sf.data.loadAudio("sounds/fireplosion.mp3"), 
+			empty: 		sf.data.loadAudio("sounds/weapon/light_outofammo.mp3"),
+			draw: 		sf.data.loadAudio("sounds/weapon/heavy_draw.mp3")				
 		}
 	}
 

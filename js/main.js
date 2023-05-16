@@ -12,7 +12,7 @@ function main(){
 	sf.ctx.imageSmoothingEnabled = false;
 	
 	sf.menuDispatcher = new MenuDispatcher;
-	sf.menuDispatcher.addMenu(new MainMenu);
+	sf.menuDispatcher.addMenu(MainMenu);
 
 	sfLoop();
 }

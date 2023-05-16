@@ -15,13 +15,13 @@ export default class MainMenu extends BaseMenu{
 			[{
 				text: "Create a Game",
 				onSelect: () => {
-					sf.menuDispatcher.push(new CreateGameMenu(this.options.x + this.options.w, this.options.y + this.options.h));
+					sf.menuDispatcher.addMenu(CreateGameMenu);
 				}
 			},
 			{
 				text: "Browse Games",
 				onSelect: () => {
-					sf.menuDispatcher.push(new BrowserMenu);
+					sf.menuDispatcher.addMenu(BrowserMenu);
 				}
 			},
 			{
@@ -37,7 +37,7 @@ export default class MainMenu extends BaseMenu{
 			{
 				text: "Set Up",	
 				onSelect: () => {
-					sf.menuDispatcher.push(new SetupMenu(this.options.x + this.options.w, this.options.y + this.options.h));
+					sf.menuDispatcher.addMenu(SetupMenu);
 				}
 			}
 			]);

@@ -32,6 +32,15 @@ export default class Fire extends BaseObject{
 				y: gravity.y * this.body.mass / 5
         	});
 
+		if((Date.now() - this.startTime) % 5 == 0)
+			sf.game.createObject(sf.data.objects.smoke,
+			{
+				matter:{
+					position: this.getPosition(),
+					velocity: {x: Math.random() - 0.5, y: -1}
+				}
+			});
+
 		this.lifetime -= ms;
 
 		if(Date.now() - this.startTime >= this.lifeTime)
@@ -41,11 +50,14 @@ export default class Fire extends BaseObject{
 	draw(){
 		sf.ctx.save();
 
-		if(this.lifeTime != 0)
-			sf.ctx.globalAlpha = (this.lifeTime - (Date.now() -  this.startTime)) / this.lifeTime;
+		if(this.lifeTime != 0){
+			let alpha = (this.lifeTime - (Date.now() -  this.startTime)) / this.lifeTime;
 
-		if(sf.ctx.globalAlpha > 1)
-			sf.ctx.globalAlpha = 1;
+			if(alpha < 0)
+				alpha = 0;
+
+			sf.ctx.globalAlpha = alpha;
+		}
 
 		super.draw();
 		sf.ctx.restore();
@@ -67,7 +79,7 @@ let added = [
 
 ].forEach((item) => {
 	item.type = Fire;
-	item.matter = {inertia: Infinity, frictionAir: 0.05};
+	item.matter = {inertia: Infinity, frictionAir: 0.05, friction: 0};
 	item.category = sf.filters.decoration;
 	item.mask = sf.filters.object | sf.filters.platform;
 });

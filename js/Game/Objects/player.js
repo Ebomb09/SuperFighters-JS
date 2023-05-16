@@ -39,6 +39,10 @@ export default class Player extends BaseObject{
 	constructor(...params){
 		super(...params, {width: 8, height: 19, matter: {inertia: Infinity, friction: 0}});
 
+		// Profiles should be set the some other controller class, ie: Game or Marker object
+		this.profile = (this.options.profile) ? this.options.profile : null;
+
+		// Input should be set outside the player object	
 		this.input = {};
 
 		this.team = (this.options.team) ? this.options.team : 0;
@@ -68,6 +72,7 @@ export default class Player extends BaseObject{
 		serial.inventory 	= this.inventory;
 		serial.equiped 		= this.equiped;
 		serial.crosshair 	= this.crosshair;
+		serial.profile		= this.profile;
 
 		return serial;
 	}
@@ -135,10 +140,6 @@ export default class Player extends BaseObject{
 
 	draw(){
 		let angle = 0;
-		let offset = {
-			x: -this.frame.width / 2, 
-			y: this.height / 2 - this.frame.height
-		};
 
 		// Get animation from state
 		switch(this.state.name){
@@ -271,100 +272,111 @@ export default class Player extends BaseObject{
 				break;
 		}
 
-		super.draw(
-			{
-				offset: offset,
-				angle: angle
+		// Set draw order of cosmetics
+		const drawOrder = [this.image];
+
+		if(this.profile){
+			const apparel = sf.data.apparel;
+			const slots = Object.keys(this.profile);
+
+			slots.forEach((slot) => {
+				const category = apparel[slot];
+				const name = this.profile[slot];
+
+				if(category && category[name])
+					drawOrder.push(category[name]);
 			});
+		}
+
+		// Draw main body
+		sf.ctx.save();
+		sf.ctx.translate(this.getPosition().x, this.getPosition().y);
+		sf.ctx.scale(this.facingDirection, 1);
+		sf.ctx.rotate(angle);
+
+		drawOrder.forEach((image) => {
+			sf.ctx.drawImage(
+				image,
+				this.frame.index.x * this.frame.width,
+				this.frame.index.y * this.frame.height,
+				this.frame.width,
+				this.frame.height,
+
+				-this.frame.width/2,
+				this.height/2 - this.frame.height,
+				this.frame.width,
+				this.frame.height
+				);
+		});
+
+		sf.ctx.restore();
 
 		// Draw upper torso when aiming
 		if(this.checkState(State.Aiming) || this.checkState(State.Drawing)){
-			sf.ctx.save();
 
 			// Get the recoil
+			let recoil = 0;
+
 			if(this.checkState(State.Shooting))
-				var recoil = Math.sin(this.delayTimestamp() / this.state.delayMax * Math.PI);
-			else	
-				var recoil = 0;
+				recoil = Math.sin(this.delayTimestamp() / this.state.delayMax * Math.PI);
 
 			// Get equiped weapon
 			const weapon = sf.game.getObjectById(this.inventory[this.equiped]);
 
-			// Set torso frame
-			if(this.checkState(State.Aiming)){
-				var torso = {
-					index: {
-						x: 1, 
-						y: 5					
-					},
-					x: -this.frame.width/2 - recoil, 
-					y: this.height / 2 - this.frame.height,
-					angle: 0
-				};
-				var gun = { 
-					x: this.frame.width - weapon.frame.width / 1.5, 
-					y: this.frame.height/2 - weapon.frame.height/2,
-					angle: 0
-				};
-
+			// Get aiming frame
+			if(this.checkState(State.Drawing)){
+				var aimFrame = {x: 0, y: 5};
 			}else{
-				var torso = {
-					index: {
-						x: 0, 
-						y: 5,
-					},
-					x: -this.frame.width/2 - recoil, 
-					y: this.height / 2 - this.frame.height,
-					angle: 0
-				};
-				var gun = {
-					x: this.frame.width - weapon.frame.width / 1.5, 
-					y: this.frame.height/2 - weapon.frame.height/2 + this.frame.width /4,
-					angle: -Math.PI / 2
-				};
-
+				var aimFrame = {x: 1, y: 5};
 			}
 
-			// Transform Image
-			sf.ctx.translate(this.getPosition().x - this.facingDirection, this.getPosition().y - 1);
-			sf.ctx.rotate(this.getCrosshairAngle());
+			// Get position of body
+			const position = this.getPosition();
+			const angle = this.getCrosshairAngle();
+
+			sf.ctx.save();
+			sf.ctx.translate(position.x - this.facingDirection*2, position.y - 2);
 			sf.ctx.scale(1, this.facingDirection);
+			sf.ctx.rotate(angle * this.facingDirection);
 
-			// Draw weapon held
-			sf.ctx.save();
-			sf.ctx.rotate(gun.angle);
-			sf.ctx.translate(torso.x, torso.y);
-			sf.ctx.translate(gun.x, gun.y);
+				// Draw weapon held
+				sf.ctx.save();
 
-			sf.ctx.drawImage(
-				weapon.image,
-				0,
-				0,
-				weapon.frame.width,
-				weapon.frame.height,
-				0,
-				0,
-				weapon.frame.width,
-				weapon.frame.height);
+				if(this.checkState(State.Drawing)){
+					sf.ctx.rotate(Math.PI / 2 * -this.facingDirection);
+					sf.ctx.translate(0, weapon.frame.height/2);
+				}
 
-			sf.ctx.restore();
+				sf.ctx.drawImage(
+					weapon.image,
 
-			// Draw upper torso
-			sf.ctx.save();
-			sf.ctx.rotate(torso.angle);
-			sf.ctx.translate(torso.x, torso.y);
+					0,
+					0,
+					weapon.frame.width,
+					weapon.frame.height,
 
-			sf.ctx.drawImage(
-				this.image,
-				this.frame.width * torso.index.x,
-				this.frame.height * torso.index.y,
-				this.frame.width,
-				this.frame.height,
-				0,
-				0,
-				this.frame.width,
-				this.frame.height);
-			sf.ctx.restore();
+					(this.frame.width/2 - weapon.frame.width/2 - 2) - recoil,
+					(-weapon.frame.height * 3/4),
+					weapon.frame.width,
+					weapon.frame.height);
+
+				sf.ctx.restore();
+
+			// Draw torso
+			drawOrder.forEach((image) => {
+				sf.ctx.drawImage(
+					this.image,
+
+					this.frame.width * aimFrame.x,
+					this.frame.height * aimFrame.y,
+					this.frame.width,
+					this.frame.height,
+
+					(-this.frame.width/2 + 1) - recoil,
+					(-this.frame.height/2 - 2),
+					this.frame.width,
+					this.frame.height);
+			});
 
 			sf.ctx.restore();
 		}
@@ -379,13 +391,13 @@ export default class Player extends BaseObject{
 
 	getCrosshairPosition(){
 		const angle = this.getCrosshairAngle();
-		const position = {x: this.getPosition().x - this.facingDirection, y: this.getPosition().y - 1};
+		const position = {x: this.getPosition().x - this.facingDirection*2, y: this.getPosition().y - 2};
 
 		position.x += Math.cos(angle) * (this.frame.width / 2 + 4);
 		position.y += Math.sin(angle) * (this.frame.width / 2 + 4);
 
-		position.x += Math.cos(angle - Math.PI / 2) * (this.facingDirection * 4);
-		position.y += Math.sin(angle - Math.PI / 2) * (this.facingDirection * 4);
+		position.x += Math.cos(angle - Math.PI / 2) * (this.facingDirection * 2);
+		position.y += Math.sin(angle - Math.PI / 2) * (this.facingDirection * 2);
 
 		return position;
 	}
@@ -783,6 +795,12 @@ let added = [
 				sf.data.loadAudio("sounds/player/hit_player02.mp3"),
 				sf.data.loadAudio("sounds/player/hit_player03.mp3")				
 			],
+			damage_collision: [
+				sf.data.loadAudio("sounds/player/hit_player00.mp3"),
+				sf.data.loadAudio("sounds/player/hit_player01.mp3"),
+				sf.data.loadAudio("sounds/player/hit_player02.mp3"),
+				sf.data.loadAudio("sounds/player/hit_player03.mp3")				
+			],
 			punch: [
 				sf.data.loadAudio("sounds/player/punch00.mp3"),
 				sf.data.loadAudio("sounds/player/punch01.mp3"),
@@ -799,3 +817,30 @@ let added = [
 	item.category = sf.filters.player;
 	item.mask = sf.filters.object | sf.filters.projectile;
 });
+
+
+/*
+	Load the apparel items
+*/
+const apparel = sf.data.apparel;
+
+apparel.headwear = {
+	cap: sf.data.loadImage("images/apparel/hat.png"),
+	bomber_hat: sf.data.loadImage("images/apparel/bomber_hat.png")
+};
+
+apparel.face = {
+	eyes: sf.data.loadImage("images/apparel/eyes.png"),
+	specs: sf.data.loadImage("images/apparel/specs.png"),
+	face_paint: sf.data.loadImage("images/apparel/face_paint.png")
+}
+
+apparel.torso = {
+	tuxedo: sf.data.loadImage("images/apparel/tuxedo.png"),
+	jacket: sf.data.loadImage("images/apparel/jacket.png"),
+	tailored_suit: sf.data.loadImage("images/apparel/tailored_suit.png")
+};
+
+apparel.hands = {
+	gloves: sf.data.loadImage("images/apparel/gloves.png")
+};

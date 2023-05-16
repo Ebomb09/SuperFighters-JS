@@ -43,7 +43,8 @@ export default class Game{
 		for(let i = 0; i < local_players; i ++){
 			this.players.push({
 				type: PlayerType.Local, 
-				id: i
+				id: i,
+				profile: sf.config.profiles[i]
 			});
 		}
 
@@ -79,7 +80,7 @@ export default class Game{
 
 							if(options.join){
 								this.ws.onmessage = this.onClientMessage.bind(this);
-								this.ws.send(JSON.stringify({"type": "join_game", "game_id": options.join, "players": local_players}));
+								this.ws.send(JSON.stringify({"type": "join_game", "game_id": options.join, "players": this.players}));
 							
 							}else if(options.host){
 								this.ws.serverMode = true;
@@ -283,9 +284,9 @@ export default class Game{
 				if(!msg.players || !msg.connection_id)
 					break;
 
-				for(let i = 0; i < msg.players; i ++){
-					this.players.push({type: PlayerType.Net, id: msg.connection_id})
-				}
+				msg.players.forEach((ply) => {
+					this.players.push({type: PlayerType.Net, id: msg.connection_id, profile: ply.profile});
+				});
 				break;
 
 			case "player_left_game":
@@ -293,8 +294,7 @@ export default class Game{
 				if(!msg.connection_id)
 					break;
 
-				for(let i = 0; i <
-					this.players.length; i ++){
+				for(let i = 0; i < this.players.length; i ++){
 
 					if(this.players[i].type == PlayerType.Net && this.players[i].id == msg.connection_id){
 						this.players.splice(i, 1);
@@ -326,7 +326,9 @@ export default class Game{
 
 		// Create players within the spawns
 		for(let i = 0; i < this.players.length; i ++){
+
 			const object = this.createObject(sf.data.objects.player, { 
+				profile: this.players[i].profile,
 				matter:{
 					position: spawns[i].getPosition()
 				}

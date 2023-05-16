@@ -1,6 +1,7 @@
 import sf from "../sf";
 import BaseMenu from "./base_menu";
 import ControlsMenu from "./controls_menu";
+import ProfileMenu from "./profile_menu";
 
 export default class SetupMenu extends BaseMenu{
 
@@ -8,28 +9,17 @@ export default class SetupMenu extends BaseMenu{
 		super(x, y);
 
 		this.addMarkers(this.options, 
-			[{
-				text: "Graphic Quality",
-				onSelect: () => {
-
-				}			
-			},
+			[
 			{
-				text: "Effect Quality",
+				text: "Customize",
 				onSelect: () => {
-
-				}					
-			},
-			{
-				text: "Sound Volume",
-				onSelect: () => {
-
-				}				
+					sf.menuDispatcher.addMenu(ProfileMenu);
+				}
 			},
 			{
 				text: "Edit Controls",
 				onSelect: () => {
-					sf.menuDispatcher.push(new ControlsMenu(this.options.x + this.options.w, this.options.y + this.options.h))
+					sf.menuDispatcher.addMenu(ControlsMenu);
 				}	
 			}]);
 	}

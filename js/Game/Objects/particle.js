@@ -43,11 +43,14 @@ class Particle extends BaseObject{
 
 		sf.ctx.save();
 
-		if(this.lifeTime != 0 && this.fade)
-			sf.ctx.globalAlpha = (this.lifeTime - (Date.now() -  this.startTime)) / this.lifeTime;
+		if(this.lifeTime != 0 && this.fade){
+			let alpha = (this.lifeTime - (Date.now() -  this.startTime)) / this.lifeTime;
 
-		if(sf.ctx.globalAlpha >= 1)
-			sf.ctx.globalAlpha = 1;
+			if(alpha < 0)
+				alpha = 0;
+
+			sf.ctx.globalAlpha = alpha;
+		}
 
 		super.draw();
 		sf.ctx.restore();

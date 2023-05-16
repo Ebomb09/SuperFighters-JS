@@ -60,6 +60,17 @@ export default class MenuDispatcher extends Array{
 	}
 
 	addMenu(menu){
-		this.push(menu);
+		const currentMenu = this.at(-1);
+		const options = {
+			x: 0,
+			y: 0
+		};
+
+		if(currentMenu){
+			options.x = currentMenu.options.x + currentMenu.options.w;
+			options.y = currentMenu.options.y + currentMenu.options.h;
+		}
+
+		this.push(new menu(options.x, options.y));
 	}
 };
