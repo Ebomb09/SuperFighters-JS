@@ -77,7 +77,8 @@ export default class Player extends BaseObject{
 		return serial;
 	}
 
-	update(ms){
+	update(ms){		
+
 		super.update(ms);
 
 		// Check player is on ground
@@ -88,8 +89,20 @@ export default class Player extends BaseObject{
 				this.setState(State.Recovering, 30);
 
 			// Check Rolling
-			if(this.checkState(State.Rolling))
-				this.movePosition(this.facingDirection * 1, 0);
+			if(this.checkState(State.Rolling)){
+
+				if(this.facingDirection == 1){
+
+					const angle = (this.onGround() + 90) * Math.PI/180;
+					this.movePosition(Math.cos(angle), -Math.sin(angle));
+
+				}else if(this.facingDirection == -1){
+
+					const angle = (this.onGround() - 90) * Math.PI/180;
+					this.movePosition(Math.cos(angle), -Math.sin(angle));
+				}
+			}
+				
 
 			// Check if any actions are done then reset to grounded
 			if(this.delayDone())
@@ -507,8 +520,14 @@ export default class Player extends BaseObject{
 				this.putoutFire();
 				sf.data.playAudio(this.sounds.roll);
 
-			}else if(!this.checkState(State.Rolling)){
-				this.movePosition(1, 0);
+			}else{
+
+				if(this.onGround()){
+					const angle = (this.onGround() + 90) * Math.PI/180;
+					this.movePosition(Math.cos(angle), -Math.sin(angle));
+				}else{
+					this.movePosition(1, 0);
+				}
 
 				if(this.checkState(State.Grounded))
 					this.setState(State.Walking);
@@ -526,8 +545,14 @@ export default class Player extends BaseObject{
 				this.putoutFire();
 				sf.data.playAudio(this.sounds.roll);
 
-			}else if(!this.checkState(State.Rolling)){
-				this.movePosition(-1, 0);
+			}else{
+
+				if(this.onGround()){
+					const angle = (this.onGround() - 90) * Math.PI/180;
+					this.movePosition(Math.cos(angle), -Math.sin(angle));
+				}else{
+					this.movePosition(-1, 0);
+				}
 
 				if(this.checkState(State.Grounded))
 					this.setState(State.Walking);

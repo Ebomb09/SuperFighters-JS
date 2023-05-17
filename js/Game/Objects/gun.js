@@ -73,14 +73,19 @@ export default class Gun extends BaseObject{
 				// Create the count of projectiles
 				for(let j = 0; j < this.count; j ++){
 
+					const projectileAngle = angle + this.getSpread();
+
 					sf.game.createObject(this.projectile, 
 						{
 							damage: this.damage, 
-							speed: this.speed,
 
 							matter:{
 								position: position,
-								angle: angle + this.getSpread()
+								angle: projectileAngle,
+								velocity: {
+									x: Math.cos(projectileAngle) * this.speed,
+									y: Math.sin(projectileAngle) * this.speed
+								}
 							}
 						});
 				}

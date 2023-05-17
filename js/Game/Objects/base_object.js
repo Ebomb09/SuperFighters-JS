@@ -137,10 +137,12 @@ export default class BaseObject{
 			}else{
 				this.body = Matter.Bodies.rectangle(matter.position.x, matter.position.y, this.width, this.height, matter);
 			}
+
 			this.body.clientId = this.id;
 
 			this.collisions = (options.collisions) ? options.collisions : [];
 
+			this.gravityScale = (options.gravityScale) ? options.gravityScale : 1;
 			if(options.disableGravity) this.disableGravity = options.disableGravity;
 
 			// Collision filter is it and mask is what
@@ -189,13 +191,13 @@ export default class BaseObject{
 
 		this.updateFire();
 
-		if(!this.disableGravity && this.body){
+		if(!this.disableGravity && this.body && !(this.body.inertia == Infinity && this.onGround())){
 			const gravity = sf.game.gravity;
 
 			Matter.Body.applyForce(this.body, this.body.position, 
 				{
-					x: gravity.x * this.body.mass,
-					y: gravity.y * this.body.mass
+					x: gravity.x * this.body.mass * this.gravityScale,
+					y: gravity.y * this.body.mass * this.gravityScale
 	        	});
 		}
 	}
@@ -621,7 +623,7 @@ export default class BaseObject{
 
 			const penAngle = this.getVectorAngle(collision.penetration);
 
-			if((penAngle >= 0 && penAngle <= 45) || (penAngle >= 315 && penAngle <= 360))
+			if((penAngle >= -45 && penAngle <= 45) || (penAngle >= 315 && penAngle <= 405))
 				return true;
 		}
 		return false;
@@ -635,7 +637,7 @@ export default class BaseObject{
 			const penAngle = this.getVectorAngle(collision.penetration);
 
 			if(penAngle >= 225 && penAngle <= 315)
-				return true;
+				return penAngle;
 		}
 		return false;
 	}
@@ -817,8 +819,11 @@ let decorativeObjects = [
 		health: 25, 
 		shape: "circle",
 
+		gravityScale: 1/4,
+
 		matter: {
-			restitution: 1
+			restitution: 1,
+			frictionAir: 0
 		},
 
 		onkill: (object) => {

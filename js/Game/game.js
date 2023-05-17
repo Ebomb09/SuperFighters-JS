@@ -13,7 +13,7 @@ const sounds = {
 		sf.data.loadAudio("sounds/explosion03.mp3")
 		],
 	ambient: [
-		sf.data.loadAudio("sounds/ambient_loop_1.ogg", 0.25, true)
+		sf.data.loadAudio("sounds/ambient_loop_1.ogg", 0.05, true)
 		]
 };
 
