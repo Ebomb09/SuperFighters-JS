@@ -52,7 +52,7 @@ class Particle extends BaseObject{
 			sf.ctx.globalAlpha = alpha;
 		}
 
-		super.draw();
+		super.draw({angle: 0});
 		sf.ctx.restore();
 	}
 };

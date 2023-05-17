@@ -21,7 +21,6 @@ export default class Projectile extends BaseObject{
 
 		super.draw(
 			{
-				angle: 0,
 				offset: {
 					x: -this.frame.width/2,
 					y: -this.frame.height/2
