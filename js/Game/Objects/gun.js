@@ -54,7 +54,54 @@ export default class Gun extends BaseObject{
 
 	pullout(){
 		sf.data.playAudio(this.sounds.draw);
-		return 100;
+		return 6;
+	}
+
+	delayCallback(action){
+
+		switch(action){
+
+			case "shoot":
+				const holder = sf.game.getObjectById(this.holderId);
+
+				if(!holder)
+					break;
+
+				const position = holder.getCrosshairPosition();
+				const angle = holder.getCrosshairAngle();
+
+				// Create the count of projectiles
+				for(let j = 0; j < this.count; j ++){
+
+					sf.game.createObject(this.projectile, 
+						{
+							damage: this.damage, 
+							speed: this.speed,
+
+							matter:{
+								position: position,
+								angle: angle + this.getSpread()
+							}
+						});
+				}
+
+				// Effect, typically the casing / shell of the gun
+				if(this.expel)
+					sf.game.createObject(this.expel, 
+						{
+							matter:{
+								position: position,
+								angle: Math.random() * Math.PI * 2,
+								velocity: {
+									x: (Math.cos(angle) * -3),
+									y: (Math.sin(angle) * -3) - 1
+								}
+							}
+						});
+
+				sf.data.playAudio(this.sounds.fire);
+				break;
+		}
 	}
 
 	shoot(){
@@ -70,46 +117,7 @@ export default class Gun extends BaseObject{
 
 				shots.push({
 					delay: delay,
-					action: () => {
-						const holder = sf.game.getObjectById(this.holderId);
-
-						if(!holder)
-							return;
-
-						const position = holder.getCrosshairPosition();
-						const angle = holder.getCrosshairAngle();
-
-						// Create the count of projectiles
-						for(let j = 0; j < this.count; j ++){
-
-							sf.game.createObject(this.projectile, 
-								{
-									damage: this.damage, 
-									speed: this.speed,
-
-									matter:{
-										position: position,
-										angle: angle + this.getSpread()
-									}
-								});
-						}
-
-						// Effect, typically the casing / shell of the gun
-						if(this.expel)
-							sf.game.createObject(this.expel, 
-								{
-									matter:{
-										position: position,
-										angle: Math.random() * Math.PI * 2,
-										velocity: {
-											x: (Math.cos(angle) * -3),
-											y: (Math.sin(angle) * -3) - 1
-										}
-									}
-								});
-
-						sf.data.playAudio(this.sounds.fire);
-					}
+					action: "shoot"
 				});
 
 				delay += this.timing / this.burst;
@@ -123,7 +131,7 @@ export default class Gun extends BaseObject{
 		}
 
 		sf.data.playAudio(this.sounds.empty);
-		return 150;
+		return 9;
 	}
 
 	getSpread(){
@@ -144,7 +152,7 @@ let added = [
 		ammo: 12, 
 		damage: 6, 
 		speed: 15, 
-		timing: 200, 
+		timing: 12, 
 		spread: 5,
 
 		projectile: sf.data.objects.projectile,
@@ -169,7 +177,7 @@ let added = [
 		burst: 5,
 		damage: 6, 
 		speed: 15, 
-		timing: 400, 
+		timing: 24, 
 		spread: 10,
 
 		projectile: sf.data.objects.projectile,
@@ -191,7 +199,7 @@ let added = [
 		ammo: 6, 
 		damage: 25, 
 		speed: 15, 
-		timing: 400, 
+		timing: 24, 
 		spread: 1,
 
 		projectile: sf.data.objects.projectile,
@@ -211,7 +219,7 @@ let added = [
 		burst: 5,
 		damage: 7, 
 		speed: 15, 
-		timing: 400, 
+		timing: 24, 
 		spread: 5,
 
 		projectile: sf.data.objects.projectile,
@@ -234,7 +242,7 @@ let added = [
 		count: 4,
 		damage: 6, 
 		speed: 15, 
-		timing: 400, 
+		timing: 24, 
 		spread: 20,
 
 		projectile: sf.data.objects.projectile,
@@ -257,7 +265,7 @@ let added = [
 		ammo: 5, 
 		damage: 66, 
 		speed: 15, 
-		timing: 400, 
+		timing: 24, 
 		spread: 0,
 
 		projectile: sf.data.objects.projectile,
@@ -279,7 +287,7 @@ let added = [
 		ammo: 60, 
 		burst: 10,
 		speed: 4, 
-		timing: 500, 
+		timing: 30, 
 		spread: 15,
 
 		projectile: sf.data.objects.fire,

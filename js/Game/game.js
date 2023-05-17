@@ -128,8 +128,7 @@ export default class Game{
 			this.objects = [];
 
 			// Collision Handlers
-			Matter.Events.on(this.engine, "collisionStart", this.startCollision.bind(this));
-			Matter.Events.on(this.engine, "collisionEnd", this.endCollision.bind(this));
+			this.detector = Matter.Detector.create();
 		}
 		
 		// Parse the buffer contents
@@ -143,7 +142,8 @@ export default class Game{
 
 		if(map.objects){
 			map.objects.forEach((obj) => {
-				objects.push(this.createObject(sf.data.objects[obj.parentKey], obj));
+				if(obj)
+					objects.push(this.createObject(sf.data.objects[obj.parentKey], obj));
 			});
 		}
 
@@ -156,6 +156,53 @@ export default class Game{
 		this.gameOver = false;
 		this.loadMap(this.map);
 		this.createPlayers();
+	}
+
+	catchupGameState(states){
+
+		// Catch up game state
+		for(let i = 0; i < states.length; i++){
+			const frame = states[i].frameCounter;
+			const playerState = states[i].players;
+
+			if(frame != this.frameCounter)
+				continue;
+
+			if(playerState){
+
+				// Update local players object
+				this.players = this.players.filter(ply => ply.type == PlayerType.Local);
+				const localPlayers = playerState.filter(ply => ply.netId == this.ws.connectionId);
+
+				if(this.players.length <= localPlayers.length){
+
+					for(let i = 0; i < this.players.length; i ++){
+						this.players[i].input = localPlayers[i].input;
+						this.players[i].objectId = localPlayers[i].objectId;
+					}
+				}
+
+				// Recreate all remaining net player
+				playerState.filter(ply => ply.netId != this.ws.connectionId).forEach((ply) => {
+					this.players.push({
+						type: PlayerType.Net,
+						id: ply.netId,
+						objectId: ply.objectId,
+						input: ply.input
+					});
+				});
+			}
+
+			// Update the game if not the most current
+			if(states[i] != states.at(-1))
+				this.update(1000 / sf.config.fps, true);
+		}
+	}
+
+	setGameState(state){
+		this.loadMap(state.map);
+		this.frameCounter = state.frameCounter;
+		this.gameOver = state.gameOver;
 	}
 
 	onClientMessage(event){
@@ -173,81 +220,26 @@ export default class Game{
 				if(!msg.state || msg.state.length == 0)
 					break;
 
-				const currentState = msg.state.at(-1);
-				let frameDiff = currentState.frameCounter - this.frameCounter;
+				// Run on next game update
+				this.nextUpdate = () => {
+					const currentState = msg.state.at(-1);
+					const frameDiff = currentState.frameCounter - this.frameCounter;
 
-				/*
-				 *	Reload the game state
-				 */
-				if(this.frameCounter % 30 == 0 || frameDiff > msg.state.length-1 || frameDiff < 0){
-					this.loadMap(msg.state.at(-1).map);	
-					this.frameCounter = msg.state.at(-1).frameCounter;
+					// Out of sync with Host
+					if(frameDiff < 0 || frameDiff > msg.state.length-1){
 
-				/* 
-				 *	Catchup input states
-				 */
-				}else if(frameDiff != 0){
+						this.setGameState(msg.state.at(0));
 
-					let start = (msg.state.length-1) - frameDiff;
+					// Behind in frames of Host
+					}else if(frameDiff != 0){
 
-					// Catch up game state
-					for(let i = start; i < msg.state.length-1; i++){
-						const playerState = msg.state[i].players;
-
-						if(!playerState)
-							continue;
-
-						// Update local players object
-						this.players = this.players.filter(ply => ply.type == PlayerType.Local);
-						const localPlayers = playerState.filter(ply => ply.netId == this.ws.connectionId);
-
-						if(this.players.length <= localPlayers.length){
-
-							for(let i = 0; i < this.players.length; i ++){
-								this.players[i].objectId = localPlayers[i].objectId;
-							}
-						}
-
-						// Recreate all remaining net player
-						playerState.filter(ply => ply.netId != this.ws.connectionId).forEach((ply) => {
-							this.players.push({
-								type: PlayerType.Net,
-								id: ply.netId,
-								objectId: ply.objectId,
-								input: ply.input
-							});
-						});
-
-						// Update the game
-						this.update(1000 / sf.config.fps, true);
+						// Last frame for current remaining for previous frames
+						this.setGameState(msg.state.at(-1 - frameDiff));
 					}
+
+					this.catchupGameState(msg.state);	
 				}
 
-				/*
-				 *	Set the current input
-				 */
-				const playerState = currentState.players;
-
-				// Update local players object
-				this.players = this.players.filter(ply => ply.type == PlayerType.Local);
-				const localPlayers = playerState.filter(ply => ply.netId == this.ws.connectionId);
-
-				if(this.players.length <= localPlayers.length){
-
-					for(let i = 0; i < this.players.length; i ++){
-						this.players[i].objectId = localPlayers[i].objectId;
-					}
-				}
-
-				// Recreate all remaining net player
-				playerState.filter(ply => ply.netId != this.ws.connectionId).forEach((ply) => {
-					this.players.push({
-						type: PlayerType.Net,
-						id: ply.netId,
-						objectId: ply.objectId,
-						input: ply.input
-					});
-				});			
 				break;
 
 			case "upgrade":
@@ -362,35 +354,49 @@ export default class Game{
 					input.interact 			= sf.input.key.pressed[config.interact];
 				}
 			}
-
-			// Send inputs to the player
-			if(obj)
-				obj.input = input;
 		});
 	}
 
-	startCollision(event){
+	collisionUpdate(){
 
-		event.pairs.forEach((pair) => {
-			const objA = this.getObjectByBody(pair.bodyA);
-			const objB = this.getObjectByBody(pair.bodyB);
+		Matter.Detector.setBodies(this.detector, this.world.bodies);
+		const collisions = Matter.Detector.collisions(this.detector);
+
+		// Create temporary collision lists
+		const temp = {};
+
+		this.objects.forEach((obj) => {
+
+			if(!obj.body)
+				return;
+			
+			temp[obj.id] = [];
+		});
+
+		collisions.forEach((collision) => {
+			const objA = this.getObjectByBody(collision.bodyA);
+			const objB = this.getObjectByBody(collision.bodyB);
 
 			if(objA && objB){
-				objA.addCollision(objB, pair.collision);
-				objB.addCollision(objA, pair.collision);
+
+				temp[objA.id].push(objB.id);
+				objA.addCollision(objB, collision);
+
+				temp[objB.id].push(objA.id);
+				objB.addCollision(objA, collision);
 			}
 		});
-	}
 
-	endCollision(event){
+		// Update objects collision lists
+		this.objects.forEach((obj) => {
 
-		event.pairs.forEach((pair) => {
-			const objA = this.getObjectByBody(pair.bodyA);
-			const objB = this.getObjectByBody(pair.bodyB);
+			if(!obj.body)
+				return;
 
-			if(objA && objB){
-				objA.removeCollision(objB);
-				objB.removeCollision(objA);
+			for(let i = 0; i < obj.collisions.length; i ++){
+
+				if(temp[obj.id].indexOf(obj.collisions[i].objectId) == -1)
+					obj.removeCollision(obj.collisions[i].objectId);
 			}
 		});
 	}
@@ -404,6 +410,71 @@ export default class Game{
 
 	update(ms, catchup){
 
+		if(!catchup){
+
+			if(this.nextUpdate){
+				const func = this.nextUpdate;
+				this.nextUpdate = null;
+				func();
+			}
+
+			// Handle incoming player input
+			this.handlePlayerInput();
+
+			// Update camera position
+			this.updateCamera();
+
+			// Check if using WebSockets
+			if(this.ws && this.ws.readyState == WebSocket.OPEN){
+
+				// Server Mode
+				if (this.ws.serverMode){
+
+					if(!this.prevStates)
+						this.prevStates = [];
+
+					// More than 10 frames captured then remove oldest frame
+					if(this.prevStates.length > 10)
+						this.prevStates.splice(0, 1)
+
+					// Generate current state and push to the front
+					const allPlayers = this.players.map((ply) => {
+
+						return {
+							objectId: ply.objectId,
+							netId: (ply.type == PlayerType.Local) ? this.ws.connectionId : ply.id,
+							input: ply.input
+						};
+					});
+
+					const currentState = {
+						map: this.saveMap(),
+						players: allPlayers,
+						frameCounter: this.frameCounter,
+						gameOver: this.gameOver
+					};
+
+					this.prevStates.push(currentState);
+
+					// Send it to all connected clients
+					this.ws.send(JSON.stringify({
+						type: "update_game_state",
+						state: this.prevStates,
+					}));
+
+				// Client Mode
+				}else{
+
+					// Send all local player input
+					const localPlayerInput = this.players.filter(ply => ply.type == PlayerType.Local).map(ply => ply.input);
+
+					this.ws.send(JSON.stringify({
+						type: "update_player_input",
+						input: localPlayerInput
+					}));
+				}
+			}
+		}
 
 		// Check who won
 		if(!this.gameOver){
@@ -434,68 +505,22 @@ export default class Game{
 		// Check if it's time for a weapon drop
 
 
-		this.handlePlayerInput();
+		// Send input to player objects
+		this.players.forEach((ply) => {
+			const obj = this.getObjectById(ply.objectId);
 
+			if(obj)
+				obj.input = ply.input;
+		});
+
+		// Generic object update
 		this.objects.forEach((obj) => {
 			obj.update(ms);
 		});
 
+		// Matter physics update step
 		Matter.Engine.update(this.engine, ms);
-
-		this.updateCamera();
-
-		// Check if using WebSockets
-		if(!catchup){
-
-			if(this.ws && this.ws.readyState == WebSocket.OPEN){
-
-				// Server Mode
-				if (this.ws.serverMode){
-
-					if(!this.prevStates)
-						this.prevStates = [];
-
-					// More than 10 frames captured then remove oldest frame
-					if(this.prevStates.length > 10)
-						this.prevStates.splice(0, 1)
-
-					// Generate current state and push to the front
-					const allPlayers = this.players.map((ply) => {
-
-						return {
-							objectId: ply.objectId,
-							netId: (ply.type == PlayerType.Local) ? this.ws.connectionId : ply.id,
-							input: ply.input
-						};
-					});
-
-					const currentState = {
-						map: this.saveMap(),
-						players: allPlayers,
-						frameCounter: this.frameCounter
-					};
-
-					this.prevStates.push(currentState);
-
-					// Send it to all connected clients
-					this.ws.send(JSON.stringify({
-						type: "update_game_state",
-						state: this.prevStates,
-					}));
-
-				// Client Mode
-				}else{
-
-					// Send all local player input
-					const localPlayerInput = this.players.filter(ply => ply.type == PlayerType.Local).map(ply => ply.input);
-
-					this.ws.send(JSON.stringify({
-						type: "update_player_input",
-						input: localPlayerInput
-					}));
-				}
-			}
-		}
+		this.collisionUpdate();
 
 		this.frameCounter ++;
 	}

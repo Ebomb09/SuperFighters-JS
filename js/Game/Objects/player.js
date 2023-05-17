@@ -85,7 +85,7 @@ export default class Player extends BaseObject{
 
 			// Check if previously free falling
 			if(this.checkState(State.FreeFalling))
-				this.setState(State.Recovering, 500);
+				this.setState(State.Recovering, 30);
 
 			// Check Rolling
 			if(this.checkState(State.Rolling))
@@ -170,8 +170,8 @@ export default class Player extends BaseObject{
 			case State.Rolling:
 				this.setAnimationFrame(
 					[
-						{x: 1, y: 1, delay: 150},
-						{x: 2, y: 1, delay: 150},
+						{x: 1, y: 1, delay: 9},
+						{x: 2, y: 1, delay: 9},
 					],
 					this.delayTimestamp());
 				break;
@@ -191,8 +191,8 @@ export default class Player extends BaseObject{
 			case State.Recovering:
 				this.setAnimationFrame(
 					[
-						{x: 6, y: 3, delay: 250},
-						{x: 8, y: 1, delay: 250}
+						{x: 6, y: 3, delay: 15},
+						{x: 8, y: 1, delay: 15}
 					],
 					this.delayTimestamp());
 				break;
@@ -204,8 +204,8 @@ export default class Player extends BaseObject{
 			case State.Punching1:
 				this.setAnimationFrame(
 					[
-						{x: 1, y: 2, delay: 150},
-						{x: 2, y: 2, delay: 200}
+						{x: 1, y: 2, delay: 9},
+						{x: 2, y: 2, delay: 12}
 					],
 					this.delayTimestamp());
 				break;
@@ -213,8 +213,8 @@ export default class Player extends BaseObject{
 			case State.Punching2:
 				this.setAnimationFrame(
 					[
-						{x: 3, y: 2, delay: 150},
-						{x: 4, y: 2, delay: 200}
+						{x: 3, y: 2, delay: 9},
+						{x: 4, y: 2, delay: 12}
 					],
 					this.delayTimestamp());
 				break;
@@ -222,8 +222,8 @@ export default class Player extends BaseObject{
 			case State.Punching3:
 				this.setAnimationFrame(
 					[
-						{x: 5, y: 2, delay: 150},
-						{x: 6, y: 2, delay: 300}
+						{x: 5, y: 2, delay: 9},
+						{x: 6, y: 2, delay: 18}
 					],
 					this.delayTimestamp());
 				break;
@@ -438,7 +438,7 @@ export default class Player extends BaseObject{
 		if(type == "melee"){
 
 			if(!this.checkState(State.FreeFalling))
-				this.setState(State.Stun, 150);
+				this.setState(State.Stun, 9);
 
 		}else if(type == "projectile" && damage > 10){
 			this.setState(State.FreeFalling);
@@ -449,9 +449,51 @@ export default class Player extends BaseObject{
 		}else if(type == "collision"){
 
 			if(damage < 6 && !this.checkState(State.FreeFalling))
-				this.setState(State.Stun, 150);
+				this.setState(State.Stun, 9);
 			else
-				this.setState(State.FreeFalling, 150);
+				this.setState(State.FreeFalling, 9);
+		}
+	}
+
+	delayCallback(action){
+
+		switch(action){
+
+			case "light-punch":
+				sf.game.createForce(this, 
+					{
+						x: this.getPosition().x + this.width/2 * this.facingDirection, 
+						y: this.getPosition().y,
+						radius: 5
+					},
+					{
+						x: 0.001 * this.facingDirection, 
+						y: 0,
+						damage: 7
+					});
+				this.movePosition(this.facingDirection * 1.5, 0);
+				sf.data.playAudio(this.sounds.punch);
+				break;
+
+			case "hard-punch":
+				sf.game.createForce(this, 
+					{
+						x: this.getPosition().x + this.width/2 * this.facingDirection, 
+						y: this.getPosition().y,
+						radius: 5
+					},
+					{
+						x: 0.001 * this.facingDirection, 
+						y: -0.001,
+						damage: 7
+					});
+				this.movePosition(this.facingDirection * 1.5, 0);
+				sf.data.playAudio(this.sounds.punch);
+				break;
+
+			case "reset-aim":
+				this.setState(State.Aiming); 
+				break;
 		}
 	}
 
@@ -461,7 +503,7 @@ export default class Player extends BaseObject{
 		if(!this.onRight() && (this.checkState(State.Jumping) || this.strictState(State.Grounded) || this.strictState(State.Crouching) || this.checkState(State.Climbing))){
 
 			if(this.checkState(State.Crouching)){
-				this.setState(State.Rolling, 300);
+				this.setState(State.Rolling, 18);
 				this.putoutFire();
 				sf.data.playAudio(this.sounds.roll);
 
@@ -480,7 +522,7 @@ export default class Player extends BaseObject{
 		if(!this.onLeft() && (this.checkState(State.Jumping) || this.strictState(State.Grounded) || this.strictState(State.Crouching) || this.checkState(State.Climbing))){
 	
 			if(this.checkState(State.Crouching)){
-				this.setState(State.Rolling, 300);
+				this.setState(State.Rolling, 18);
 				this.putoutFire();
 				sf.data.playAudio(this.sounds.roll);
 
@@ -544,7 +586,7 @@ export default class Player extends BaseObject{
 			// Not previously crouching
 			if(!this.checkLastState(State.Crouching)){
 
-				if((Date.now() - this.last.crouch) < 250){
+				if((sf.game.frameCounter - this.last.crouch) < 15){
 					this.movePosition(0, 2);
 
 					// Update the collisionGroups of the platforms
@@ -555,7 +597,7 @@ export default class Player extends BaseObject{
 							obj.update();
 					});
 				}
-				this.last.crouch = Date.now();
+				this.last.crouch = sf.game.frameCounter;
 			}
 			this.setState(State.Crouching);
 
@@ -597,76 +639,32 @@ export default class Player extends BaseObject{
 				this.setState(State.Shooting, recoilTime,
 					[{
 						delay: recoilTime,
-						action: () => { 
-							this.setState(State.Aiming); 
-						}
+						action: "reset-aim"
 					}]);
 			}
 
 		// Punch Combo 1
 		}else if(this.checkState(State.Grounded) && !this.checkState(State.Attacking)){
-			this.setState(State.Punching1, 350, 
+			this.setState(State.Punching1, 21, 
 				[{
-					delay: 150,
-					action: () => {
-						sf.game.createForce(this, 
-							{
-								x: this.getPosition().x + this.width/2 * this.facingDirection, 
-								y: this.getPosition().y,
-								radius: 5
-							},
-							{
-								x: 0.001 * this.facingDirection, 
-								y: 0,
-								damage: 7
-							});
-						this.movePosition(this.facingDirection * 1.5, 0);
-						sf.data.playAudio(this.sounds.punch);
-					}
+					delay: 9,
+					action: "light-punch"
 				}]);
 
 		// Punch Combo 2
-		}else if(this.checkState(State.Punching1) && this.delayTimestamp() > 150){
-			this.setState(State.Punching2, 350, 
+		}else if(this.checkState(State.Punching1) && this.delayTimestamp() > 9){
+			this.setState(State.Punching2, 21, 
 				[{
-					delay: 150,
-					action: () => {
-						sf.game.createForce(this, 
-							{
-								x: this.getPosition().x + this.width/2 * this.facingDirection, 
-								y: this.getPosition().y,
-								radius: 5
-							},
-							{
-								x: 0.001 * this.facingDirection, 
-								y: 0,
-								damage: 7
-							});
-						this.movePosition(this.facingDirection * 1.5, 0);
-						sf.data.playAudio(this.sounds.punch);
-					}
+					delay: 9,
+					action: "light-punch"
 				}]);
 
 		// Punch Combo 3
-		}else if(this.checkState(State.Punching2) && this.delayTimestamp() > 150){
-			this.setState(State.Punching3, 400, 
+		}else if(this.checkState(State.Punching2) && this.delayTimestamp() > 9){
+			this.setState(State.Punching3, 24, 
 				[{
-					delay: 150,
-					action: () => {
-						sf.game.createForce(this, 
-							{
-								x: this.getPosition().x + this.width/2 * this.facingDirection, 
-								y: this.getPosition().y,
-								radius: 5
-							},
-							{
-								x: 0.001 * this.facingDirection, 
-								y: -0.001,
-								damage: 7
-							});
-						this.movePosition(this.facingDirection * 1.5, 0);
-						sf.data.playAudio(this.sounds.punch);
-					}
+					delay: 9,
+					action: "hard-punch"
 				}]);
 
 		// Jump Punching
@@ -701,12 +699,12 @@ export default class Player extends BaseObject{
 
 			if(this.inventory[Inventory.Throwable] >= 0){
 				this.equiped = Inventory.Throwable;
-				this.setState(State.Shooting, 150);
+				this.setState(State.Shooting, 9);
 			}
 
 		// Kicking
 		}else if(this.checkState(State.Grounded) && !this.checkState(State.Attacking)){
-			this.setState(State.Kicking, 100);
+			this.setState(State.Kicking, 6);
 
 			sf.game.createForce(this, 
 				{

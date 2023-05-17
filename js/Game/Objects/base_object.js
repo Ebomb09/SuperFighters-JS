@@ -72,9 +72,9 @@ export default class BaseObject{
 			lastName: "",
 			entropy: 0,
 			delay: 0,
-			delayMax: 0
+			delayMax: 0,
+			callbacks: []
 		};
-		this.state.callbacks = [];
 
 		/*
 		 *	Object callbacks
@@ -138,6 +138,7 @@ export default class BaseObject{
 				this.body = Matter.Bodies.rectangle(matter.position.x, matter.position.y, this.width, this.height, matter);
 			}
 			this.body.clientId = this.id;
+
 			this.collisions = (options.collisions) ? options.collisions : [];
 
 			if(options.disableGravity) this.disableGravity = options.disableGravity;
@@ -158,34 +159,33 @@ export default class BaseObject{
 		};
 
 		if(this.customId != "") 						serial.customId 		= this.customId;
-		if(this.health != "") 							serial.health 			= this.health;
+		if(this.health != -1) 							serial.health 			= this.health;
 		if(this.fire != 0) 								serial.fire 			= this.fire;
 		if(this.facingDirection != 1) 					serial.facingDirection 	= this.facingDirection;
 		if(this.frame.index.x+this.frame.index.y != 0)	serial.frameIndex 		= this.frame.index;
-		if(this.tiling.x+this.tiling.y != 0)			serial.tiling 			= this.tiling;
+		if(this.tiling.width+this.tiling.height != 2)	serial.tiling 			= this.tiling;
 		if(this.state.name != "none") 					serial.state 			= this.state;
 
 		// Physics specifics
 		if(this.body){
-			serial.matter = {
-				position: this.getPosition(),
-				velocity: this.getVelocity(),
-
-				angle: this.getAngle(),
-				angularVelocity: this.getAngularVelocity(),
-
-				isStatic: this.body.isStatic
-			};
-			serial.collisions = this.collisions;
-		}else{
+			serial.matter = {};
+			
+			serial.matter.position = this.getPosition();
+			
+			if(this.getVelocity().x + this.getVelocity().y != 0)	serial.matter.velocity 			= this.getVelocity();
+			if(this.getAngle() != 0) 								serial.matter.angle 			= this.getAngle();
+			if(this.getAngularVelocity() != 0)						serial.matter.angularVelocity 	= this.getAngularVelocity();
+			if(this.getStatic())									serial.matter.isStatic 			= this.getStatic();
+			if(this.collisions.length > 0) 							serial.collisions 				= this.collisions;
+		
+		}else
 			serial.noBody = true;
-		}
 
 		return serial;
 	}
 
 	update(ms){ 
-		this.delayStep(ms);
+		this.delayStep();
 
 		this.updateFire();
 
@@ -338,7 +338,7 @@ export default class BaseObject{
 		this.state.entropy = Math.random();
 		this.state.delay = (delay) ? delay : 0;
 		this.state.delayMax = this.state.delay;
-		this.state.callbacks = callbacks;
+		this.state.callbacks = (callbacks) ? callbacks : [];
 	}
 
 	getStateEntropy(){
@@ -353,27 +353,29 @@ export default class BaseObject{
 		return this.state.delayMax - this.state.delay;
 	}
 
-	delayStep(ms){
-		
+	delayStep(){
+
 		if(this.state.delay > 0){
-			this.state.delay -= ms;
+			this.state.delay -= 1;
 			this.state.delay = (this.state.delay < 0) ? 0 : this.state.delay;
 
 			// Run callback once timestamp is met
-			if(this.state.callbacks){
-				const timestamp = this.delayTimestamp();
-				const callbacks = this.state.callbacks;
+			const timestamp = this.delayTimestamp();
+			const callbacks = this.state.callbacks;
 
-				for(let i = 0; i < callbacks.length; i ++){
+			for(let i = 0; i < callbacks.length; i ++){
 
-					// Once fullfilled run and delete callback
-					if(timestamp >= callbacks[i].delay){
-						callbacks[i].action();
-						callbacks.splice(i, 1);
-					}
+				// Once fullfilled run and delete callback
+				if(timestamp >= callbacks[i].delay){
+					this.delayCallback(callbacks[i].action);
+					callbacks.splice(i, 1);
 				}
 			}
-		}		
+		}
+	}
+
+	delayCallback(action){
+		
 	}
 
 	getParentKey(){
@@ -393,14 +395,17 @@ export default class BaseObject{
 
 	addCollision(source, collision){
 
-		// Remove any existing collision with an object
-		this.removeCollision(source, collision);
+		// Check if collision already exists
+		for(let i = 0; i < this.collisions.length; i ++){
+
+			if(this.collisions[i].objectId == source.id)
+				return;
+		}
 
 		if(!this.body)
 			return;
 
-		this.collisions.push(
-			{
+		this.collisions.push({
 				objectId: source.id,
 
 				// Store penetration vector from this -> object 
@@ -432,18 +437,16 @@ export default class BaseObject{
 		source.dealDamage(damage, "collision", 6);
 	}
 
-	removeCollision(obj){
-
-		if(!this.body)
-			return;
+	removeCollision(objectId){
 
 		for(let i = 0; i < this.collisions.length; i ++){
 
-			if(this.collisions[i].objectId == obj.id){
-				this.collisions.splice(i, 1)
+			if(this.collisions[i].objectId == objectId){
+				this.collisions.splice(i, 1);
 				break;
 			}
 		}
+		return;
 	}
 
 	resetTiling(w, h){
@@ -487,8 +490,9 @@ export default class BaseObject{
 
 		// Remove collisions to this object
 		sf.game.objects.forEach((obj) => {
-			obj.removeCollision(this);
+			obj.removeCollision(this.id);
 		});
+		this.collisions = [];
 
 		sf.data.playAudio(this.sounds.killed);
 	}
@@ -600,9 +604,9 @@ export default class BaseObject{
 	onLeft(){
 
 		for(let i = 0; i < this.collisions.length; i ++){
-			let collision = this.collisions[i];
+			const collision = this.collisions[i];
 
-			let penAngle = this.getVectorAngle(collision.penetration);
+			const penAngle = this.getVectorAngle(collision.penetration);
 
 			if(penAngle >= 135 && penAngle <= 225)
 				return true;
@@ -613,9 +617,9 @@ export default class BaseObject{
 	onRight(){
 
 		for(let i = 0; i < this.collisions.length; i ++){
-			let collision = this.collisions[i];
+			const collision = this.collisions[i];
 
-			let penAngle = this.getVectorAngle(collision.penetration);
+			const penAngle = this.getVectorAngle(collision.penetration);
 
 			if((penAngle >= 0 && penAngle <= 45) || (penAngle >= 315 && penAngle <= 360))
 				return true;
@@ -626,9 +630,9 @@ export default class BaseObject{
 	onGround(){
 
 		for(let i = 0; i < this.collisions.length; i ++){
-			let collision = this.collisions[i];
+			const collision = this.collisions[i];
 
-			let penAngle = this.getVectorAngle(collision.penetration);
+			const penAngle = this.getVectorAngle(collision.penetration);
 
 			if(penAngle >= 225 && penAngle <= 315)
 				return true;
