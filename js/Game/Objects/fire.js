@@ -35,6 +35,8 @@ export default class Fire extends BaseObject{
 		if((Date.now() - this.startTime) % 5 == 0)
 			sf.game.createObject(sf.data.objects.smoke,
 			{
+				lifeTime: 500 * this.getPercentLifeTime(),
+
 				matter:{
 					position: this.getPosition(),
 					velocity: {x: Math.random() - 0.5, y: -1}
@@ -47,17 +49,19 @@ export default class Fire extends BaseObject{
 			this.kill();
 	}
 
+	getPercentLifeTime(){
+		let percent = (this.lifeTime - (Date.now() -  this.startTime)) / this.lifeTime;
+
+		if(percent < 0)
+			percent = 0;
+
+		return percent;
+	}
+
 	draw(){
 		sf.ctx.save();
 
-		if(this.lifeTime != 0){
-			let alpha = (this.lifeTime - (Date.now() -  this.startTime)) / this.lifeTime;
-
-			if(alpha < 0)
-				alpha = 0;
-
-			sf.ctx.globalAlpha = alpha;
-		}
+		sf.ctx.globalAlpha = this.getPercentLifeTime();
 
 		super.draw();
 		sf.ctx.restore();

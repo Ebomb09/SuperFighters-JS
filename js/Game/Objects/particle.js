@@ -6,12 +6,12 @@ class Particle extends BaseObject{
 	constructor(...params){
 		super(...params);
 
-		this.lifeTime 			= this.parent.lifeTime;
 		this.animation 			= this.parent.animation;
 		this.animateRealTime 	= this.parent.animateRealTime;
 		this.fade 				= this.parent.fade;
 
 		this.startTime = (this.options.startTime) ? this.options.startTime : Date.now();
+		this.lifeTime  = this.options.lifeTime;
 	}
 
 	serialize(){
