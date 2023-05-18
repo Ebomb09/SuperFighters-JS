@@ -76,6 +76,15 @@ export default class BaseObject{
 			callbacks: []
 		};
 
+		// Shortcut for objects to self destruct
+		if(options.lifeTime){
+			this.setState("__life_span__", options.lifeTime, 
+				[{
+					delay: options.lifeTime,
+					action: "__kill_this__"
+				}]);
+		}
+
 		/*
 		 *	Object callbacks
 		 */
@@ -355,6 +364,14 @@ export default class BaseObject{
 		return this.state.delayMax - this.state.delay;
 	}
 
+	delayPercentDone(){
+		return this.delayTimestamp() / this.state.delayMax;
+	}
+
+	delayPercentNotDone(){
+		return (this.state.delayMax - this.delayTimestamp()) / this.state.delayMax;
+	}
+
 	delayStep(){
 
 		if(this.state.delay > 0){
@@ -377,7 +394,13 @@ export default class BaseObject{
 	}
 
 	delayCallback(action){
-		
+
+		switch(action){
+			
+			case "__kill_this__":
+				this.kill();
+				break;
+		}
 	}
 
 	getParentKey(){
@@ -397,15 +420,15 @@ export default class BaseObject{
 
 	addCollision(source, collision){
 
+		if(!this.body || !source.body)
+			return;
+
 		// Check if collision already exists
 		for(let i = 0; i < this.collisions.length; i ++){
 
 			if(this.collisions[i].objectId == source.id)
 				return;
 		}
-
-		if(!this.body)
-			return;
 
 		this.collisions.push({
 				objectId: source.id,
@@ -491,9 +514,12 @@ export default class BaseObject{
 		}
 
 		// Remove collisions to this object
-		sf.game.objects.forEach((obj) => {
-			obj.removeCollision(this.id);
-		});
+		for(let i = 0; i < this.collisions.length; i ++){
+			const obj = sf.game.getObjectById(this.collisions[i].objectId);
+
+			if(obj)
+				obj.removeCollision(this.id);
+		}
 		this.collisions = [];
 
 		sf.data.playAudio(this.sounds.killed);

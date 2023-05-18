@@ -5,27 +5,14 @@ export default class Fire extends BaseObject{
 
 	constructor(...params){
 		super(...params);
-
-		this.lifeTime = (this.options.lifeTime) ? this.options.lifeTime : 0;
-		this.startTime = (this.options.startTime) ? this.options.startTime : Date.now();
-	}
-
-	serialize(){
-		const serial = super.serialize();
-
-		serial.lifeTime = this.lifeTime;
-		serial.startTime = this.startTime;
-
-		return serial;
 	}
 
 	update(ms){
-		super.update(ms);
-
-		if((Date.now() - this.startTime) % 5 == 0)
+		
+		if(sf.game.frameCounter % 5 == 0)
 			sf.game.createObject(sf.data.objects.smoke,
 			{
-				lifeTime: 500 * this.getPercentLifeTime(),
+				lifeTime: 30 * this.delayPercentNotDone(),
 
 				matter:{
 					position: this.getPosition(),
@@ -33,25 +20,13 @@ export default class Fire extends BaseObject{
 				}
 			});
 
-		this.lifetime -= ms;
-
-		if(Date.now() - this.startTime >= this.lifeTime)
-			this.kill();
-	}
-
-	getPercentLifeTime(){
-		let percent = (this.lifeTime - (Date.now() -  this.startTime)) / this.lifeTime;
-
-		if(percent < 0)
-			percent = 0;
-
-		return percent;
+		super.update(ms);
 	}
 
 	draw(){
 		sf.ctx.save();
 
-		sf.ctx.globalAlpha = this.getPercentLifeTime();
+		sf.ctx.globalAlpha = this.delayPercentNotDone();
 
 		super.draw({angle: 0});
 		sf.ctx.restore();
@@ -68,7 +43,7 @@ let added = [
 	
 	obj.fire = {
 		image: sf.data.loadImage("images/fire.png"),
-		lifeTime: 3000,
+		lifeTime: 180,
 
 		gravityScale: 1/5
 	}

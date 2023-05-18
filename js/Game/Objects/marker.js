@@ -17,20 +17,24 @@ export default class Marker extends BaseObject{
 	}
 
 	update(ms){
+		const targetA = sf.game.getObjectById(this.targetAId);
+		const targetB = sf.game.getObjectById(this.targetBId);
+
+		// Check if the targets are still valid
+		if(!targetA)
+			this.targetAId = -1;
+		if(!targetB)
+			this.targetBId = -1;		
 
 		// Create constraint and add to world on first game update
-		if(!this.constraint){
-			const targetA = sf.game.getObjectById(this.targetAId);
-			const targetB = sf.game.getObjectById(this.targetBId);
+		if(!this.constraint && targetA && targetB){
 
-			if(targetA && targetB){
-				this.constraint = Matter.Constraint.create({
-					bodyA: targetA.body,
-					bodyB: targetB.body
-					});
+			this.constraint = Matter.Constraint.create({
+				bodyA: targetA.body,
+				bodyB: targetB.body
+				});
 
-				Matter.Composite.add(sf.game.world, this.constraint);
-			}
+			Matter.Composite.add(sf.game.world, this.constraint);
 		}
 	}
 };

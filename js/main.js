@@ -9,7 +9,6 @@ function main(){
 	sf.canvas.width = 800;
 	sf.canvas.height = 600;
 	sf.docs.style.height = "600px";
-	sf.ctx.imageSmoothingEnabled = false;
 	
 	sf.menuDispatcher = new MenuDispatcher;
 	sf.menuDispatcher.addMenu(MainMenu);
@@ -28,15 +27,16 @@ function sfLoop(){
 	}
 	lastTimestamp = Date.now();
 
+	sf.ctx.imageSmoothingEnabled = false;
 	sf.ctx.fillStyle = "black";
 	sf.ctx.fillRect(0, 0, sf.canvas.width, sf.canvas.height);
 
-	if(sf.game !== null){
+	if(sf.game){
 		sf.game.update(mspf);
 		sf.game.draw();
 	}
 
-	if(sf.menuDispatcher !== null){
+	if(sf.menuDispatcher){
 		sf.menuDispatcher.update();
 		sf.menuDispatcher.draw();
 	}

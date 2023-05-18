@@ -152,7 +152,7 @@ export default class Game{
 
 	restartGame(){
 		this.frameCounter = 0;
-		this.lastWeaponDrop = Date.now();
+		this.lastWeaponDrop = 0;
 		this.gameOver = false;
 		this.loadMap(this.map);
 		this.createPlayers();
@@ -357,6 +357,52 @@ export default class Game{
 		});
 	}
 
+	handleWeaponDrops(){
+
+		const diff = this.frameCounter - this.lastWeaponDrop;
+
+		if(diff > 300){
+			this.lastWeaponDrop = this.frameCounter;
+
+			// Randomly sort weapon drops
+			const spawns = this.getObjectsByParent(sf.data.objects.weapon_spawn);
+
+			spawns.sort((a, b) => { 
+				if(Math.random() < 0.5)
+					return 1; 
+				else
+					return -1;
+			});
+
+			// Get all weapon parent objects
+			const weaponKeys = Object.keys(sf.data.objects).filter(key => sf.data.objects[key].category & sf.filters.weapon);
+
+			weaponKeys.sort((a, b) => { 
+				if(Math.random() < 0.5)
+					return 1; 
+				else
+					return -1;
+			});
+
+			// Check if the spawn doesn't already have a weapon associated with it
+			for(let i = 0; i < spawns.length; i ++){
+				const obj = this.getObjectById(spawns[i].targetAId);
+
+				if(!obj){
+					const weapon = this.createObject(sf.data.objects[weaponKeys[0]], 
+						{
+							lifeTime: 1500,
+							matter: {
+								position: spawns[i].getPosition()
+							}
+						});
+					spawns[i].targetAId = weapon.id;
+					break;
+				}
+			}
+		}
+	}
+
 	collisionUpdate(){
 
 		Matter.Detector.setBodies(this.detector, this.world.bodies);
@@ -502,8 +548,7 @@ export default class Game{
 				this.restartGame();
 		}
 
-		// Check if it's time for a weapon drop
-
+		this.handleWeaponDrops();
 
 		// Send input to player objects
 		this.players.forEach((ply) => {
@@ -578,8 +623,6 @@ export default class Game{
 			var scale = sf.canvas.width / width;
 		else	
 			var scale = sf.canvas.height / height;
-
-		scale = Math.round(scale);
 
 		const request = {
 			x: bounds.min.x + width / 2,

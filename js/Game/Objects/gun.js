@@ -4,6 +4,7 @@ import Fire from "./fire";
 import Projectile from "./projectile";
 
 const State = {
+	Picked: "picked_up",
 	Firing: "firing"
 };
 
@@ -53,11 +54,14 @@ export default class Gun extends BaseObject{
 	}
 
 	pullout(){
+		this.setState(State.Picked);
 		sf.data.playAudio(this.sounds.draw);
 		return 6;
 	}
 
 	delayCallback(action){
+
+		super.delayCallback(action);
 
 		switch(action){
 

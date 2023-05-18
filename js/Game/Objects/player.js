@@ -766,14 +766,11 @@ export default class Player extends BaseObject{
 	interact(){
 
 		// Pickup weapons
-		if(this.checkState(State.Grounded)){
+		sf.game.getObjectsByAABB(this.getBounds()).forEach((obj) => {
 
-			sf.game.getObjectsByAABB(this.getBounds()).forEach((obj) => {
-
-				if(obj.getType() == "Gun")
-					this.inventory[Inventory.Gun] = obj.pickup(this);
-			});
-		}
+			if(obj.getType() == "Gun")
+				this.inventory[Inventory.Gun] = obj.pickup(this);
+		});
 	}
 
 	aim(){
@@ -848,22 +845,25 @@ let added = [
 const apparel = sf.data.apparel;
 
 apparel.headwear = {
-	cap: sf.data.loadImage("images/apparel/hat.png"),
-	bomber_hat: sf.data.loadImage("images/apparel/bomber_hat.png")
+	cap: 			sf.data.loadImage("images/apparel/headwear/hat.png"),
+	aviator_hat: 	sf.data.loadImage("images/apparel/headwear/aviator_hat.png")
 };
 
 apparel.face = {
-	eyes: sf.data.loadImage("images/apparel/eyes.png"),
-	specs: sf.data.loadImage("images/apparel/specs.png"),
-	face_paint: sf.data.loadImage("images/apparel/face_paint.png")
+	eyes: 			sf.data.loadImage("images/apparel/face/eyes.png"),
+	specs: 			sf.data.loadImage("images/apparel/face/specs.png"),
+	face_paint: 	sf.data.loadImage("images/apparel/face/face_paint.png")
 }
 
 apparel.torso = {
-	tuxedo: sf.data.loadImage("images/apparel/tuxedo.png"),
-	jacket: sf.data.loadImage("images/apparel/jacket.png"),
-	tailored_suit: sf.data.loadImage("images/apparel/tailored_suit.png")
+	tuxedo: 		sf.data.loadImage("images/apparel/torso/tuxedo.png"),
+	agent_suit: 	sf.data.loadImage("images/apparel/torso/agent_suit.png"),
+	sweater: 		sf.data.loadImage("images/apparel/torso/sweater.png"),
+	jacket: 		sf.data.loadImage("images/apparel/torso/jacket.png"),
+	aviator_jacket: sf.data.loadImage("images/apparel/torso/aviator_jacket.png"),
+	tailored_suit: 	sf.data.loadImage("images/apparel/torso/tailored_suit.png")
 };
 
 apparel.hands = {
-	gloves: sf.data.loadImage("images/apparel/gloves.png")
+	gloves: 		sf.data.loadImage("images/apparel/hands/gloves.png")
 };
