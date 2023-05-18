@@ -26,7 +26,7 @@ class Particle extends BaseObject{
 			if(this.animateRealTime)
 				this.setAnimationFrame(this.animation);
 			else
-				this.setAnimationFrame(this.animation, Date.now());
+				this.setAnimationFrame(this.animation);
 		}
 
 		sf.ctx.save();
@@ -53,8 +53,8 @@ let added = [
 
 		lifeTime: 6,
 		animation: [
-			{x: 1, y: 0, delay: 50},
-			{x: 1, y: 1, delay: 50}
+			{x: 1, y: 0, delay: 3},
+			{x: 1, y: 1, delay: 3}
 		],
 
 		disableGravity: true
@@ -66,8 +66,8 @@ let added = [
 
 		lifeTime: 6,
 		animation: [
-			{x: 2, y: 0, delay: 50},
-			{x: 2, y: 1, delay: 50}
+			{x: 2, y: 0, delay: 3},
+			{x: 2, y: 1, delay: 3}
 		],
 
 		disableGravity: true
@@ -79,8 +79,8 @@ let added = [
 
 		lifeTime: 6,
 		animation: [
-			{x: 3, y: 0, delay: 50},
-			{x: 3, y: 1, delay: 50}
+			{x: 3, y: 0, delay: 3},
+			{x: 3, y: 1, delay: 3}
 		],
 
 		disableGravity: true
@@ -92,9 +92,9 @@ let added = [
 
 		lifeTime: 9,
 		animation: [
-			{x: 0, y: 0, delay: 50},
-			{x: 1, y: 0, delay: 50},
-			{x: 2, y: 0, delay: 50},	
+			{x: 0, y: 0, delay: 3},
+			{x: 1, y: 0, delay: 3},
+			{x: 2, y: 0, delay: 3},	
 		],
 
 		disableGravity: true	
@@ -106,11 +106,11 @@ let added = [
 
 		lifeTime: 15,
 		animation: [
-			{x: 0, y: 0, delay: 50},
-			{x: 1, y: 0, delay: 50},
-			{x: 2, y: 0, delay: 50},
-			{x: 3, y: 0, delay: 50},		
-			{x: 4, y: 0, delay: 50},	
+			{x: 0, y: 0, delay: 3},
+			{x: 1, y: 0, delay: 3},
+			{x: 2, y: 0, delay: 3},
+			{x: 3, y: 0, delay: 3},		
+			{x: 4, y: 0, delay: 3},	
 		],
 
 		disableGravity: true
@@ -163,11 +163,11 @@ let added = [
 		image: sf.data.loadImage("images/effect/burn.png"),
 		frameCount: {x: 5, y: 1},
 		animation: [
-			{x: 0, y: 0, delay: 50},
-			{x: 1, y: 0, delay: 50},
-			{x: 2, y: 0, delay: 50},
-			{x: 3, y: 0, delay: 50},		
-			{x: 4, y: 0, delay: 50},
+			{x: 0, y: 0, delay: 3},
+			{x: 1, y: 0, delay: 3},
+			{x: 2, y: 0, delay: 3},
+			{x: 3, y: 0, delay: 3},		
+			{x: 4, y: 0, delay: 3},
 		],
 		animateRealTime: true,
 		lifeTime: 1,

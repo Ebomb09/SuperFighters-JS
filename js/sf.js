@@ -28,7 +28,7 @@ function loadAudio(src, volume, loop){
 
 function playAudio(audio){
 
-	if(!audio)
+	if(!audio || sf.data.mute)
 		return;
 
 	// If array of sounds randomly pick one
@@ -165,6 +165,7 @@ const sf = {
 		loadImage: loadImage,
 		loadAudio: loadAudio,
 		playAudio: playAudio,
+		mute: false,
 
 		materials: {},
 		sounds: {},

@@ -37,13 +37,14 @@ export default class Game{
 		// Assign players
 		this.max_players 	= (options.max_players) ? options.max_players : 1;
 		this.players 		= [];
+		this.rollbackPlayers = [];
 
 		const local_players	= (options.local_players) ? options.local_players : 0;
 
 		for(let i = 0; i < local_players; i ++){
 			this.players.push({
 				type: PlayerType.Local, 
-				id: i,
+				localId: i,
 				profile: sf.config.profiles[i]
 			});
 		}
@@ -77,6 +78,9 @@ export default class Game{
 								this.ws.close();
 
 							this.ws.connectionId = msg.connection_id;
+
+							// Update players to reflect the network id
+							this.players.forEach((ply) => {ply.netId = this.ws.connectionId});
 
 							if(options.join){
 								this.ws.onmessage = this.onClientMessage.bind(this);
@@ -151,6 +155,7 @@ export default class Game{
 	}
 
 	restartGame(){
+		this.prevStates = [];
 		this.frameCounter = 0;
 		this.lastWeaponDrop = 0;
 		this.gameOver = false;
@@ -160,43 +165,67 @@ export default class Game{
 
 	catchupGameState(states){
 
+		sf.data.mute = true;
+
 		// Catch up game state
 		for(let i = 0; i < states.length; i++){
 			const frame = states[i].frameCounter;
-			const playerState = states[i].players;
+			const players = states[i].players;
 
 			if(frame != this.frameCounter)
 				continue;
 
-			if(playerState){
+			if(players){
 
 				// Update local players object
-				this.players = this.players.filter(ply => ply.type == PlayerType.Local);
-				const localPlayers = playerState.filter(ply => ply.netId == this.ws.connectionId);
+				this.players = [];
 
-				if(this.players.length <= localPlayers.length){
-
-					for(let i = 0; i < this.players.length; i ++){
-						this.players[i].input = localPlayers[i].input;
-						this.players[i].objectId = localPlayers[i].objectId;
-					}
-				}
-
-				// Recreate all remaining net player
-				playerState.filter(ply => ply.netId != this.ws.connectionId).forEach((ply) => {
+				players.forEach((player) => {
 					this.players.push({
-						type: PlayerType.Net,
-						id: ply.netId,
-						objectId: ply.objectId,
-						input: ply.input
+						type: (player.netId == this.ws.connectionId) ? PlayerType.Local : PlayerType.Net,
+						objectId: player.objectId,
+						localId: player.localId,
+						netId: player.netId,
+						input: Object.assign({}, player.input),
+						profile: Object.assign({}, player.profile)
 					});
 				});
 			}
 
+			states[i].map = this.saveMap();
+
 			// Update the game if not the most current
-			if(states[i] != states.at(-1))
+			if(states[i] != states.at(-1)){
 				this.update(1000 / sf.config.fps, true);
+			}
 		}
+
+		sf.data.mute = false;
+	}
+
+	getGameState(){
+
+		const allPlayers = [];
+
+		this.players.forEach((player) => {
+
+			// Create a clone copy of the player 
+			allPlayers.push({
+				type: PlayerType.Net,
+				objectId: player.objectId,
+				localId: player.localId,
+				netId: player.netId,
+				input: Object.assign({}, player.input),
+				profile: Object.assign({}, player.profile)			
+			});
+		});
+
+		return {
+			map: this.saveMap(),
+			players: allPlayers,
+			frameCounter: this.frameCounter,
+			gameOver: this.gameOver
+		};
 	}
 
 	setGameState(state){
@@ -217,28 +246,13 @@ export default class Game{
 
 			case "update_game_state":
 
-				if(!msg.state || msg.state.length == 0)
+				if(!msg.state)
 					break;
 
-				// Run on next game update
-				this.nextUpdate = () => {
-					const currentState = msg.state.at(-1);
-					const frameDiff = currentState.frameCounter - this.frameCounter;
+				const currentState = this.getGameState();
 
-					// Out of sync with Host
-					if(frameDiff < 0 || frameDiff > msg.state.length-1){
-
-						this.setGameState(msg.state.at(0));
-
-					// Behind in frames of Host
-					}else if(frameDiff != 0){
-
-						// Last frame for current remaining for previous frames
-						this.setGameState(msg.state.at(-1 - frameDiff));
-					}
-
-					this.catchupGameState(msg.state);	
-				}
+				this.setGameState(msg.state);
+				this.rollbackPlayers.push({players: msg.state.players, frame: msg.state.frameCounter});
 
 				break;
 
@@ -264,11 +278,14 @@ export default class Game{
 				if(!msg.input || !msg.connection_id)
 					break;
 
-				let player = 0;
+				const players = msg.input.players;
+				const frame = msg.input.frameCounter;
 
-				this.players.filter(ply => ply.id == msg.connection_id && ply.type == PlayerType.Net).forEach((ply) => {
-					ply.input = msg.input[player++];				
-				});
+				if(players.length <= 0)
+					return;
+
+				this.rollbackPlayers.push({players: players, frame: frame});
+				
 				break;
 
 			case "player_joined_game":
@@ -277,7 +294,12 @@ export default class Game{
 					break;
 
 				msg.players.forEach((ply) => {
-					this.players.push({type: PlayerType.Net, id: msg.connection_id, profile: ply.profile});
+					this.players.push({
+						type: PlayerType.Net,
+						localId: ply.localId,
+						netId: msg.connection_id,
+						profile: ply.profile
+					});
 				});
 				break;
 
@@ -288,9 +310,9 @@ export default class Game{
 
 				for(let i = 0; i < this.players.length; i ++){
 
-					if(this.players[i].type == PlayerType.Net && this.players[i].id == msg.connection_id){
+					if(this.players[i].type == PlayerType.Net && this.players[i].netId == msg.connection_id){
 						this.players.splice(i, 1);
-						break;
+						i -= 1;
 					}
 				}
 				break;
@@ -341,7 +363,7 @@ export default class Game{
 			// Update local player configured controls
 			if(player.type == PlayerType.Local){
 
-				const config = sf.config.controls[player.id];
+				const config = sf.config.controls[player.localId];
 
 				if(config){
 					input.aim 				= sf.input.key.held[config.aim];
@@ -458,10 +480,50 @@ export default class Game{
 
 		if(!catchup){
 
-			if(this.nextUpdate){
-				const func = this.nextUpdate;
-				this.nextUpdate = null;
-				func();
+			// Remove all updated inputs
+			const commitRollbackPlayers = this.rollbackPlayers.splice(0, this.rollbackPlayers.length);
+
+			// Attempt to commit and reload the game's state
+			if(commitRollbackPlayers.length > 0){
+
+				// Clone previous states and add current state as final result
+				const states = this.prevStates;
+				const currentState = this.getGameState();
+
+				let changed = false;
+
+				commitRollbackPlayers.forEach((commit) => {
+					const players = commit.players;
+					const frame = commit.frame;
+
+					// Update previous state to reflect the input
+					for(let i = 0; i < states.length; i ++){
+						const state = states[i];
+
+						if(state.frameCounter == frame){
+
+							players.forEach((ply) => {
+
+								for(let i = 0; i < state.players.length; i ++){
+
+									if(ply.netId == state.players[i].netId && ply.localId == state.players[i].localId){
+										state.players[i].input = ply.input;
+										changed = true;
+										break;
+									}
+								}
+							});
+
+							break;
+						}
+					}
+				});
+
+				// Set state to old and reprocess back to the current state
+				if(changed){
+					this.setGameState(states[0]);
+					this.catchupGameState([...states, currentState]);
+				}
 			}
 
 			// Handle incoming player input
@@ -473,50 +535,38 @@ export default class Game{
 			// Check if using WebSockets
 			if(this.ws && this.ws.readyState == WebSocket.OPEN){
 
+				if(!this.prevStates)
+					this.prevStates = [];
+
+				// More than 10 frames captured then remove oldest frame
+				if(this.prevStates.length > 10)
+					this.prevStates.splice(0, 1)
+
+				const currentState = this.getGameState();
+
+				this.prevStates.push(currentState);
+
 				// Server Mode
 				if (this.ws.serverMode){
-
-					if(!this.prevStates)
-						this.prevStates = [];
-
-					// More than 10 frames captured then remove oldest frame
-					if(this.prevStates.length > 10)
-						this.prevStates.splice(0, 1)
-
-					// Generate current state and push to the front
-					const allPlayers = this.players.map((ply) => {
-
-						return {
-							objectId: ply.objectId,
-							netId: (ply.type == PlayerType.Local) ? this.ws.connectionId : ply.id,
-							input: ply.input
-						};
-					});
-
-					const currentState = {
-						map: this.saveMap(),
-						players: allPlayers,
-						frameCounter: this.frameCounter,
-						gameOver: this.gameOver
-					};
-
-					this.prevStates.push(currentState);
 
 					// Send it to all connected clients
 					this.ws.send(JSON.stringify({
 						type: "update_game_state",
-						state: this.prevStates,
+						state: currentState,
 					}));
 
 				// Client Mode
 				}else{
 
 					// Send all local player input
-					const localPlayerInput = this.players.filter(ply => ply.type == PlayerType.Local).map(ply => ply.input);
+					const localPlayerInput = this.players.filter(ply => ply.type == PlayerType.Local);
 
 					this.ws.send(JSON.stringify({
 						type: "update_player_input",
-						input: localPlayerInput
+						input: {
+							players: localPlayerInput,
+							frameCounter: this.frameCounter
+						}
 					}));
 				}
 			}
@@ -560,7 +610,7 @@ export default class Game{
 
 		// Generic object update
 		this.objects.forEach((obj) => {
-			obj.update(ms);
+			obj.update();
 		});
 
 		// Matter physics update step
@@ -647,13 +697,8 @@ export default class Game{
 		const obj = this.prototypeObject(parent, ...params);
 		this.objects.push(obj);
 
-		if(obj.body){
+		if(obj.body)
 			Matter.Composite.add(this.world, obj.body);
-
-			// Hack the velocity into actually being set on creation
-			Matter.Body.setVelocity(obj.body, obj.body.velocity);
-			Matter.Body.setAngularVelocity(obj.body, obj.body.angularVelocity);
-		}
 
 		return obj;
 	}

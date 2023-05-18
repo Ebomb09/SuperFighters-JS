@@ -77,9 +77,9 @@ export default class Player extends BaseObject{
 		return serial;
 	}
 
-	update(ms){		
+	update(){		
 
-		super.update(ms);
+		super.update();
 
 		// Check player is on ground
 		if(this.onGround()){
@@ -160,19 +160,19 @@ export default class Player extends BaseObject{
 			case State.Grounded:
 				this.setAnimationFrame(
 					[
-						{x: 0, y: 0, delay: 200},
-						{x: 1, y: 0, delay: 200},
-						{x: 2, y: 0, delay: 200}
+						{x: 0, y: 0, delay: 12},
+						{x: 1, y: 0, delay: 12},
+						{x: 2, y: 0, delay: 12}
 					]);
 				break; 
 
 			case State.Walking:
 				this.setAnimationFrame(
 					[
-						{x: 3, y: 0, delay: 150},
-						{x: 4, y: 0, delay: 150},
-						{x: 5, y: 0, delay: 150},
-						{x: 4, y: 0, delay: 150}
+						{x: 3, y: 0, delay: 9},
+						{x: 4, y: 0, delay: 9},
+						{x: 5, y: 0, delay: 9},
+						{x: 4, y: 0, delay: 9}
 					]);
 				break;
 
@@ -258,8 +258,8 @@ export default class Player extends BaseObject{
 				if(this.getStateEntropy() < 0.5)
 					this.setAnimationFrame(
 						[
-							{x: 5, y: 1, delay: 100},
-							{x: 6, y: 1, delay: 100}
+							{x: 5, y: 1, delay: 6},
+							{x: 6, y: 1, delay: 6}
 						]);
 				else
 					this.frame.index = {x: 7, y: 1};

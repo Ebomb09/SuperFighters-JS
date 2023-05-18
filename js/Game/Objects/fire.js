@@ -7,7 +7,7 @@ export default class Fire extends BaseObject{
 		super(...params);
 	}
 
-	update(ms){
+	update(){
 		
 		if(sf.game.frameCounter % 5 == 0)
 			sf.game.createObject(sf.data.objects.smoke,
@@ -20,7 +20,7 @@ export default class Fire extends BaseObject{
 				}
 			});
 
-		super.update(ms);
+		super.update();
 	}
 
 	draw(){

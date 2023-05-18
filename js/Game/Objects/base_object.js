@@ -119,7 +119,7 @@ export default class BaseObject{
 			const matter = options.matter;
 
 			if(options.shape == "circle"){
-				this.body = Matter.Bodies.circle(matter.position.x, matter.position.y, this.height / 2, matter);
+				this.body = Matter.Bodies.circle(0, 0, this.height / 2, matter);
 
 			}else if(options.shape == "tl-br"){
 
@@ -144,8 +144,10 @@ export default class BaseObject{
 				this.body = Matter.Body.create(matter);
 
 			}else{
-				this.body = Matter.Bodies.rectangle(matter.position.x, matter.position.y, this.width, this.height, matter);
+				this.body = Matter.Bodies.rectangle(0, 0, this.width, this.height, matter);
 			}
+
+			Matter.Body.setPosition(this.body, matter.position);
 
 			this.body.clientId = this.id;
 
@@ -188,6 +190,10 @@ export default class BaseObject{
 			if(this.getAngularVelocity() != 0)						serial.matter.angularVelocity 	= this.getAngularVelocity();
 			if(this.getStatic())									serial.matter.isStatic 			= this.getStatic();
 			if(this.collisions.length > 0) 							serial.collisions 				= this.collisions;
+
+			// Required matter previous properties for the velocities to be properly updated
+			serial.matter.anglePrev = this.body.anglePrev;
+			serial.matter.positionPrev = this.body.positionPrev;
 		
 		}else
 			serial.noBody = true;
@@ -195,12 +201,12 @@ export default class BaseObject{
 		return serial;
 	}
 
-	update(ms){ 
+	update(){ 
 		this.delayStep();
 
 		this.updateFire();
 
-		if(!this.disableGravity && this.body && !(this.body.inertia == Infinity && this.onGround())){
+		if(!this.disableGravity && this.body && !this.getStatic() && !(this.body.inertia == Infinity && this.onGround())){
 			const gravity = sf.game.gravity;
 
 			Matter.Body.applyForce(this.body, this.body.position, 
@@ -680,7 +686,7 @@ export default class BaseObject{
 		if(timestamp)
 			var time = timestamp % loop;
 		else
-			var time = Date.now() % loop;
+			var time = sf.game.frameCounter % loop;
 
 		// Set the frame index to the animation frame
 		let accum = 0;
