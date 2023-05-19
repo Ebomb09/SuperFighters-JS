@@ -1,5 +1,5 @@
-import sf from "../../sf";
-import BaseObject from "./base_object";
+import sf from "../../sf.js";
+import BaseObject from "./base_object.js";
 
 export default class Fire extends BaseObject{
 
@@ -8,7 +8,7 @@ export default class Fire extends BaseObject{
 	}
 
 	update(){
-		
+
 		if(sf.game.frameCounter % 5 == 0)
 			sf.game.createObject(sf.data.objects.smoke,
 			{
@@ -50,7 +50,12 @@ let added = [
 
 ].forEach((item) => {
 	item.type = Fire;
-	item.matter = {inertia: Infinity, frictionAir: 0.05, friction: 0};
 	item.category = sf.filters.decoration;
 	item.mask = sf.filters.object | sf.filters.platform;
+
+	item.matter = {
+		inertia: Infinity, 
+		frictionAir: 0.05, 
+		friction: 0
+	};
 });

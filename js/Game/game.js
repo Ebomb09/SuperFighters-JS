@@ -1,4 +1,4 @@
-import sf from "../sf";
+import sf from "../sf.js";
 
 const PlayerType = {
 	Local: 0,
@@ -38,6 +38,7 @@ export default class Game{
 		this.max_players 	= (options.max_players) ? options.max_players : 1;
 		this.players 		= [];
 		this.rollbackPlayers = [];
+		this.rollbackState = null;
 
 		const local_players	= (options.local_players) ? options.local_players : 0;
 
@@ -156,11 +157,59 @@ export default class Game{
 
 	restartGame(){
 		this.prevStates = [];
+
 		this.frameCounter = 0;
 		this.lastWeaponDrop = 0;
-		this.gameOver = false;
+		this.gameOver = 0;
+
 		this.loadMap(this.map);
 		this.createPlayers();
+	}
+
+	getGameState(){
+
+		const allPlayers = [];
+
+		this.players.forEach((player) => {
+
+			// Create a clone copy of the player 
+			allPlayers.push({
+				type: PlayerType.Net,
+				objectId: player.objectId,
+				localId: player.localId,
+				netId: player.netId,
+				input: Object.assign({}, player.input),
+				profile: Object.assign({}, player.profile)			
+			});
+		});
+
+		return {
+			map: this.saveMap(),
+			players: allPlayers,
+			frameCounter: this.frameCounter,
+			lastWeaponDrop: this.lastWeaponDrop,
+			gameOver: this.gameOver
+		};
+	}
+
+	setGameState(state){
+		this.loadMap(state.map);
+		this.frameCounter = state.frameCounter;
+		this.gameOver = state.gameOver;
+
+		// Update local players object
+		this.players = [];
+
+		state.players.forEach((player) => {
+			this.players.push({
+				type: (player.netId == this.ws.connectionId) ? PlayerType.Local : PlayerType.Net,
+				objectId: player.objectId,
+				localId: player.localId,
+				netId: player.netId,
+				input: Object.assign({}, player.input),
+				profile: Object.assign({}, player.profile)
+			});
+		});
 	}
 
 	catchupGameState(states){
@@ -203,37 +252,6 @@ export default class Game{
 		sf.data.mute = false;
 	}
 
-	getGameState(){
-
-		const allPlayers = [];
-
-		this.players.forEach((player) => {
-
-			// Create a clone copy of the player 
-			allPlayers.push({
-				type: PlayerType.Net,
-				objectId: player.objectId,
-				localId: player.localId,
-				netId: player.netId,
-				input: Object.assign({}, player.input),
-				profile: Object.assign({}, player.profile)			
-			});
-		});
-
-		return {
-			map: this.saveMap(),
-			players: allPlayers,
-			frameCounter: this.frameCounter,
-			gameOver: this.gameOver
-		};
-	}
-
-	setGameState(state){
-		this.loadMap(state.map);
-		this.frameCounter = state.frameCounter;
-		this.gameOver = state.gameOver;
-	}
-
 	onClientMessage(event){
 		const msg = JSON.parse(event.data);
 
@@ -249,11 +267,8 @@ export default class Game{
 				if(!msg.state)
 					break;
 
-				const currentState = this.getGameState();
-
-				this.setGameState(msg.state);
-				this.rollbackPlayers.push({players: msg.state.players, frame: msg.state.frameCounter});
-
+				this.rollbackState = msg.state;
+				
 				break;
 
 			case "upgrade":
@@ -425,6 +440,33 @@ export default class Game{
 		}
 	}
 
+	handleGameOver(){
+
+		if(this.gameOver == 0){
+			let count = 0;
+			let winner = null;
+
+			this.players.forEach((player) => {
+				const obj = this.getObjectById(player.objectId);
+
+				if(obj){
+					count ++;
+					winner = player;
+				}
+			});
+
+			if(count <= 1 && this.players.length > 1){
+				this.gameOver = 1;
+			}
+
+		}else{
+			this.gameOver ++;
+
+			if(this.gameOver >= 300)
+				this.restartGame();
+		}		
+	}
+
 	collisionUpdate(){
 
 		Matter.Detector.setBodies(this.detector, this.world.bodies);
@@ -487,42 +529,47 @@ export default class Game{
 			if(commitRollbackPlayers.length > 0){
 
 				// Clone previous states and add current state as final result
-				const states = this.prevStates;
-				const currentState = this.getGameState();
+				const states = [...this.prevStates, this.getGameState()];
 
 				let changed = false;
 
 				commitRollbackPlayers.forEach((commit) => {
-					const players = commit.players;
-					const frame = commit.frame;
 
 					// Update previous state to reflect the input
-					for(let i = 0; i < states.length; i ++){
-						const state = states[i];
+					states.forEach((state) => {
 
-						if(state.frameCounter == frame){
+						// Apply changes to states that are later in time than it
+						if(commit.frame <= state.frameCounter){
 
-							players.forEach((ply) => {
+							// Compare player input with the rollback input
+							commit.players.forEach((ply) => {
 
 								for(let i = 0; i < state.players.length; i ++){
 
-									if(ply.netId == state.players[i].netId && ply.localId == state.players[i].localId){
-										state.players[i].input = ply.input;
-										changed = true;
-										break;
+									if(state.players[i].netId == ply.netId && state.players[i].localId == ply.localId){
+										
+										const keys = Object.keys(ply.input);
+
+										keys.forEach((key) => {
+
+											// Check if the input state has actually changed
+											if((!state.players[i].input[key] && ply.input[key]) || (state.players[i].input[key] && !ply.input[key])){
+												state.players[i].input = ply.input;
+												changed = true;
+											}
+										});
 									}
 								}
 							});
-
-							break;
+							return;
 						}
-					}
+					});
 				});
 
 				// Set state to old and reprocess back to the current state
 				if(changed){
 					this.setGameState(states[0]);
-					this.catchupGameState([...states, currentState]);
+					this.catchupGameState(states);
 				}
 			}
 
@@ -570,34 +617,17 @@ export default class Game{
 					}));
 				}
 			}
-		}
 
-		// Check who won
-		if(!this.gameOver){
-			let count = 0;
-			let winner = null;
-
-			this.players.forEach((player) => {
-				const obj = this.getObjectById(player.objectId);
-
-				if(obj){
-					count ++;
-					winner = player;
-				}
-			});
-
-			if(count <= 1 && this.players.length > 1){
-				this.gameOver = true;
-				this.nextGame = Date.now() + 5000;
-				console.log("Winner is ", winner);
+			// Set state after sending client input
+			if(this.rollbackState){
+				const state = this.rollbackState;
+				this.rollbackState = null;
+				this.setGameState(state);
+				this.prevStates = [];
 			}
-
-		}else{
-
-			if(Date.now() >= this.nextGame)
-				this.restartGame();
 		}
 
+		this.handleGameOver();
 		this.handleWeaponDrops();
 
 		// Send input to player objects
@@ -694,6 +724,9 @@ export default class Game{
 
 	createObject(parent, ...params){
 
+		if(!parent)
+			return null;
+
 		const obj = this.prototypeObject(parent, ...params);
 		this.objects.push(obj);
 
@@ -704,6 +737,10 @@ export default class Game{
 	}
 
 	prototypeObject(parent, ...params){
+
+		if(!parent)
+			return null;
+
 		return new parent.type({id: this.getNextUniqueId()}, parent, ...params, {parent: parent});
 	}
 

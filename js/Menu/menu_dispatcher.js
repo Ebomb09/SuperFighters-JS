@@ -1,5 +1,5 @@
-import sf from "../sf";
-import BaseMenu from "./base_menu";
+import sf from "../sf.js";
+import BaseMenu from "./base_menu.js";
 
 const sounds = {
 	accept: sf.data.loadAudio("sounds/ui/accept.mp3"),

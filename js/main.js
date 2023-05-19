@@ -1,9 +1,9 @@
-import sf from "./sf";
-import * as input from "./Input/input";
+import sf from "./sf.js";
+import * as input from "./Input/input.js";
 
-import MenuDispatcher from "./Menu/menu_dispatcher";
-import MainMenu from "./Menu/main_menu";
-import Game from "./Game/game"
+import MenuDispatcher from "./Menu/menu_dispatcher.js";
+import MainMenu from "./Menu/main_menu.js";
+import Game from "./Game/game.js"
 
 function main(){
 	sf.canvas.width = 800;

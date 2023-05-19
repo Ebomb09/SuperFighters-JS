@@ -1,6 +1,6 @@
-import sf from "../sf";
-import Game from "../Game/game";
-import BaseMenu from "./base_menu";
+import sf from "../sf.js";
+import Game from "../Game/game.js";
+import BaseMenu from "./base_menu.js";
 
 export default class BrowserMenu extends BaseMenu{
 
@@ -19,29 +19,41 @@ export default class BrowserMenu extends BaseMenu{
 			return;
 		}
 
-		ws.onopen = (event) => {
-			ws.send(JSON.stringify({
-				type: "get_games"
-			}));
-		};
-
 		ws.onerror = (event) => {
 			this.resetMarkers();
 			ws.close();
 		}
 
 		ws.onmessage = (event) => {
-			let games = [];
-			
-			JSON.parse(event.data).games.forEach((game) => {
-				games.push({
-					text: `game_id: ${game.id} | players: ${game.players}`,
-					onSelect: () => { this.joinGame(game.id); }
-				});
-			});
 
-			this.resetMarkers(games);
-			ws.close();
+			const msg = JSON.parse(event.data);
+
+			switch(msg.type){
+
+				case "connect":
+					ws.send(JSON.stringify({
+						type: "get_games"
+					}));
+					break;
+
+				case "get_games":
+
+					if(!msg.games)
+						break;
+
+					const games = [];
+
+					msg.games.forEach((game) => {
+						games.push({
+							text: `game_id: ${game.id} | players: ${game.players}`,
+							onSelect: () => { this.joinGame(game.id); }
+						});
+					});
+
+					this.resetMarkers(games);
+					ws.close();
+					break;
+			}
 		}
 	}
 

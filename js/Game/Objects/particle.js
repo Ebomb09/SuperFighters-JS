@@ -1,5 +1,5 @@
-import sf from "../../sf";
-import BaseObject from "./base_object";
+import sf from "../../sf.js";
+import BaseObject from "./base_object.js";
 
 class Particle extends BaseObject{
 
@@ -11,14 +11,6 @@ class Particle extends BaseObject{
 		this.fade 				= this.parent.fade;
 	}
 
-	serialize(){
-		const serial = this.serialize;
-
-		serial.animation = this.animation;
-
-		return serial;
-	}
-
 	draw(){
 
 		if(this.animation){
@@ -26,7 +18,7 @@ class Particle extends BaseObject{
 			if(this.animateRealTime)
 				this.setAnimationFrame(this.animation);
 			else
-				this.setAnimationFrame(this.animation);
+				this.setAnimationFrame(this.animation, this.delayTimestamp());
 		}
 
 		sf.ctx.save();

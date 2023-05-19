@@ -1,10 +1,10 @@
-import sf from "../sf";
-import Game from "../Game/game";
-import Editor from "../Game/editor";
-import BaseMenu from "./base_menu";
-import SetupMenu from "./setup_menu";
-import CreateGameMenu from "./create_game_menu";
-import BrowserMenu from "./browser_menu";
+import sf from "../sf.js";
+import Game from "../Game/game.js";
+import Editor from "../Game/editor.js";
+import BaseMenu from "./base_menu.js";
+import SetupMenu from "./setup_menu.js";
+import CreateGameMenu from "./create_game_menu.js";
+import BrowserMenu from "./browser_menu.js";
 
 export default class MainMenu extends BaseMenu{
 

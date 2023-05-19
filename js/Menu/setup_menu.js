@@ -1,7 +1,7 @@
-import sf from "../sf";
-import BaseMenu from "./base_menu";
-import ControlsMenu from "./controls_menu";
-import ProfileMenu from "./profile_menu";
+import sf from "../sf.js";
+import BaseMenu from "./base_menu.js";
+import ControlsMenu from "./controls_menu.js";
+import ProfileMenu from "./profile_menu.js";
 
 export default class SetupMenu extends BaseMenu{
 

@@ -1,5 +1,5 @@
-import sf from "../../sf";
-import BaseObject from "./base_object";
+import sf from "../../sf.js";
+import BaseObject from "./base_object.js";
 
 export default class Projectile extends BaseObject{
 
@@ -45,7 +45,10 @@ export default class Projectile extends BaseObject{
 const obj = sf.data.objects;
 
 let added = [
-	obj.projectile = { image: sf.data.loadImage("images/projectile.png")}
+	
+	obj.projectile = { 
+		image: sf.data.loadImage("images/projectile.png")
+	}
 
 ].forEach((item) => {
 	item.type = Projectile;

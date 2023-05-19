@@ -1,6 +1,6 @@
-import sf from "../sf";
-import Player from "../Game/Objects/player";
-import BaseMenu from "./base_menu";
+import sf from "../sf.js";
+import Player from "../Game/Objects/player.js";
+import BaseMenu from "./base_menu.js";
 
 export default class ProfileMenu extends BaseMenu{
 

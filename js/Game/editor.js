@@ -1,5 +1,5 @@
-import sf from "../sf";
-import Game from "./game";
+import sf from "../sf.js";
+import Game from "./game.js";
 
 const Mode = {
 	None: 		"none",

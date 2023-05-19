@@ -1,4 +1,4 @@
-import sf from "../../sf";
+import sf from "../../sf.js";
 
 const Default = {
 	sounds: {
@@ -13,20 +13,22 @@ export default class BaseObject{
 		/*
 		 *	Combine the parameters
 		 */
-		let options = {};
+		const options = {};
 
 		params.forEach((param) => {
+			
+			const keys = Object.keys(param);
 
-				Object.keys(param).forEach((key) => {
+			keys.forEach((key) => {
 
-					if(options[key] === undefined)
-						options[key] = {};
+				if(!options[key])
+					options[key] = {};
 
-					if(key == "matter")
-						options[key] = Object.assign(options[key], param[key])
-					else
-						options[key] = param[key];
-				});
+				if(key == "matter")
+					Matter.Common.extend(options[key], param[key], true);
+				else
+					options[key] = param[key];
+			});
 		});
 
 		this.options = options;
@@ -77,7 +79,7 @@ export default class BaseObject{
 		};
 
 		// Shortcut for objects to self destruct
-		if(options.lifeTime){
+		if(options.lifeTime && this.state.name == "none"){
 			this.setState("__life_span__", options.lifeTime, 
 				[{
 					delay: options.lifeTime,
@@ -147,7 +149,8 @@ export default class BaseObject{
 				this.body = Matter.Bodies.rectangle(0, 0, this.width, this.height, matter);
 			}
 
-			Matter.Body.setPosition(this.body, matter.position);
+			Matter.Body.setVelocity(this.body, this.body.velocity);
+			Matter.Body.setAngularVelocity(this.body, this.body.angularVelocity);
 
 			this.body.clientId = this.id;
 
@@ -190,6 +193,7 @@ export default class BaseObject{
 			if(this.getAngularVelocity() != 0)						serial.matter.angularVelocity 	= this.getAngularVelocity();
 			if(this.getStatic())									serial.matter.isStatic 			= this.getStatic();
 			if(this.collisions.length > 0) 							serial.collisions 				= this.collisions;
+			if(this.disableGravity)									serial.disableGravity			= this.disableGravity;
 
 			// Required matter previous properties for the velocities to be properly updated
 			serial.matter.anglePrev = this.body.anglePrev;
@@ -371,11 +375,21 @@ export default class BaseObject{
 	}
 
 	delayPercentDone(){
-		return this.delayTimestamp() / this.state.delayMax;
+		const percent = this.delayTimestamp() / this.state.delayMax;
+
+		if(percent < 0) percent = 0;
+		if(percent > 1) percent = 1;
+
+		return percent;
 	}
 
 	delayPercentNotDone(){
-		return (this.state.delayMax - this.delayTimestamp()) / this.state.delayMax;
+		const percent = 1 - this.delayPercentDone();
+
+		if(percent < 0) percent = 0;
+		if(percent > 1) percent = 1;
+
+		return percent;
 	}
 
 	delayStep(){
@@ -415,7 +429,7 @@ export default class BaseObject{
 		for(let i = 0; i < keys.length; i ++){
 
 			if(sf.data.objects[keys[i]] == this.parent)
-				return keys[i]
+				return keys[i];
 		}
 		return "";
 	}
@@ -520,13 +534,16 @@ export default class BaseObject{
 		}
 
 		// Remove collisions to this object
-		for(let i = 0; i < this.collisions.length; i ++){
-			const obj = sf.game.getObjectById(this.collisions[i].objectId);
+		if(this.collisions){
 
-			if(obj)
-				obj.removeCollision(this.id);
+			for(let i = 0; i < this.collisions.length; i ++){
+				const obj = sf.game.getObjectById(this.collisions[i].objectId);
+
+				if(obj)
+					obj.removeCollision(this.id);
+			}
+			this.collisions = [];
 		}
-		this.collisions = [];
 
 		sf.data.playAudio(this.sounds.killed);
 	}

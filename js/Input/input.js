@@ -1,4 +1,4 @@
-import sf from "../sf";
+import sf from "../sf.js";
 
 sf.canvas.addEventListener("keydown", (event) => {
 	event.preventDefault();

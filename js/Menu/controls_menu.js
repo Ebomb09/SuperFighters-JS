@@ -1,6 +1,6 @@
-import sf from "../sf";
-import BaseMenu from "./base_menu";
-import KeyPressMenu from "./key_press_menu";
+import sf from "../sf.js";
+import BaseMenu from "./base_menu.js";
+import KeyPressMenu from "./key_press_menu.js";
 
 /* Default Control scheme
 	up: 				"ArrowUp",

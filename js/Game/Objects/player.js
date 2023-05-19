@@ -1,5 +1,5 @@
-import sf from "../../sf";
-import BaseObject from "./base_object";
+import sf from "../../sf.js";
+import BaseObject from "./base_object.js";
 
 const State = {
 	None: 			"none",
@@ -57,7 +57,7 @@ export default class Player extends BaseObject{
 		};
 
 		// Track last time for specific actions
-		this.last = {
+		this.last = (this.options.last) ? this.options.last : {
 			crouch: 0
 		};
 
@@ -73,6 +73,7 @@ export default class Player extends BaseObject{
 		serial.equiped 		= this.equiped;
 		serial.crosshair 	= this.crosshair;
 		serial.profile		= this.profile;
+		serial.last			= this.last;
 
 		return serial;
 	}
@@ -739,7 +740,7 @@ export default class Player extends BaseObject{
 				},
 				{
 					x: 0.001 * this.facingDirection, 
-					y: -0.0001,
+					y: 0,
 					damage: 1
 				});
 			sf.data.playAudio(this.sounds.punch);
@@ -832,7 +833,6 @@ let added = [
 
 ].forEach((item) => {
 	item.type = Player;
-	item.animated = true;
 
 	item.category = sf.filters.player;
 	item.mask = sf.filters.object | sf.filters.projectile;

@@ -1,5 +1,5 @@
-import sf from "../../sf";
-import BaseObject from "./base_object";
+import sf from "../../sf.js";
+import BaseObject from "./base_object.js";
 
 export default class Marker extends BaseObject{
 
@@ -10,8 +10,8 @@ export default class Marker extends BaseObject{
 	serialize(){
 		const serial = super.serialize();
 
-		if(this.targetAId) serial.targetAId = this.targetAId;
-		if(this.targetBId) serial.targetBId = this.targetBId;
+		if(this.targetAId !== undefined) serial.targetAId = this.targetAId;
+		if(this.targetBId !== undefined) serial.targetBId = this.targetBId;
 
 		return serial;
 	}

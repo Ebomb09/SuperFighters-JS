@@ -1,4 +1,4 @@
-import sf from "../sf";
+import sf from "../sf.js";
 
 function inRect(pos, rect){
 	return (pos.x > rect.x && pos.x < rect.x + rect.w) && (pos.y > rect.y && pos.y < rect.y + rect.h);
