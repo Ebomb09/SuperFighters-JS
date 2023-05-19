@@ -186,8 +186,7 @@ export default class BaseObject{
 		if(this.body){
 			serial.matter = {};
 			
-			serial.matter.position = this.getPosition();
-			
+			if(this.getPosition().x + this.getPosition().y != 0)	serial.matter.position 			= this.getPosition();
 			if(this.getVelocity().x + this.getVelocity().y != 0)	serial.matter.velocity 			= this.getVelocity();
 			if(this.getAngle() != 0) 								serial.matter.angle 			= this.getAngle();
 			if(this.getAngularVelocity() != 0)						serial.matter.angularVelocity 	= this.getAngularVelocity();
@@ -196,8 +195,8 @@ export default class BaseObject{
 			if(this.disableGravity)									serial.disableGravity			= this.disableGravity;
 
 			// Required matter previous properties for the velocities to be properly updated
-			serial.matter.anglePrev = this.body.anglePrev;
-			serial.matter.positionPrev = this.body.positionPrev;
+			if(this.body.anglePrev) 								serial.matter.anglePrev 		= this.body.anglePrev;
+			if(this.body.positionPrev) 								serial.matter.positionPrev 		= this.body.positionPrev;
 		
 		}else
 			serial.noBody = true;
@@ -305,7 +304,7 @@ export default class BaseObject{
 						{
 							matter:{
 								position: this.getPosition(),
-								velocity: {x: Math.random() - 0.5, y: -1}
+								velocity: {x: sf.game.random() - 0.5, y: -1}
 							}
 						});
 				
@@ -356,7 +355,7 @@ export default class BaseObject{
 	setState(state, delay, callbacks){
 		this.state.lastName = this.state.name;
 		this.state.name = state;
-		this.state.entropy = Math.random();
+		this.state.entropy = sf.game.random();
 		this.state.delay = (delay) ? delay : 0;
 		this.state.delayMax = this.state.delay;
 		this.state.callbacks = (callbacks) ? callbacks : [];
@@ -1062,8 +1061,8 @@ let worldObjects = [
 				0.008);
 
 			const velocity = {
-				x: object.getVelocity().x + Math.random() * 5 - 2.5,
-				y: object.getVelocity().y + -5 + Math.random() * 2
+				x: object.getVelocity().x + sf.game.random() * 5 - 2.5,
+				y: object.getVelocity().y + -5 + sf.game.random() * 2
 			};
 
 			sf.game.createObject(sf.data.objects.explosive_barrel_debris, 
@@ -1072,7 +1071,7 @@ let worldObjects = [
 						position: object.getPosition(),
 						velocity: velocity,
 						angle: object.getAngle(),
-						angularVelocity: Math.random() - 0.5
+						angularVelocity: sf.game.random() - 0.5
 					}
 				});
 		}

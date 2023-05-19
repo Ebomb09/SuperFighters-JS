@@ -16,7 +16,7 @@ export default class Fire extends BaseObject{
 
 				matter:{
 					position: this.getPosition(),
-					velocity: {x: Math.random() - 0.5, y: -1}
+					velocity: {x: sf.game.random() - 0.5, y: -1}
 				}
 			});
 

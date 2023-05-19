@@ -17,6 +17,20 @@ const sounds = {
 		]
 };
 
+const random = [
+	33,32,34,2,35,1,10,36,38,3,
+	39,17,19,9,16,0,37,8,11,40,
+	41,43,5,42,44,18,45,46,47,
+	13,62,14,52,61,63,21,60,54,
+	53,56,4,59,20,51,6,49,22,55,
+	23,57,48,15,58,50,25,7,26,12,
+	24,27,29,30,28,31,100,64,97,
+	99,96,98,70,72,82,80,83,75,
+	90,88,89,66,81,68,65,67,91,
+	92,71,95,85,94,76,74,84,87,
+	69,77,86,93,73,79,78
+	];
+
 export default class Game{
 
 	constructor(options){
@@ -157,8 +171,10 @@ export default class Game{
 
 	restartGame(){
 		this.prevStates = [];
-
 		this.frameCounter = 0;
+
+		this.seed = Math.round(Math.random()*(random.length-1));
+
 		this.lastWeaponDrop = 0;
 		this.gameOver = 0;
 
@@ -186,7 +202,11 @@ export default class Game{
 		return {
 			map: this.saveMap(),
 			players: allPlayers,
+
 			frameCounter: this.frameCounter,
+
+			seed: this.seed,
+
 			lastWeaponDrop: this.lastWeaponDrop,
 			gameOver: this.gameOver
 		};
@@ -194,8 +214,6 @@ export default class Game{
 
 	setGameState(state){
 		this.loadMap(state.map);
-		this.frameCounter = state.frameCounter;
-		this.gameOver = state.gameOver;
 
 		// Update local players object
 		this.players = [];
@@ -210,6 +228,13 @@ export default class Game{
 				profile: Object.assign({}, player.profile)
 			});
 		});
+
+		this.frameCounter = state.frameCounter;
+
+		this.seed = state.seed;
+
+		this.lastWeaponDrop = state.lastWeaponDrop;
+		this.gameOver = state.gameOver;
 	}
 
 	catchupGameState(states){
@@ -241,12 +266,14 @@ export default class Game{
 				});
 			}
 
-			states[i].map = this.saveMap();
+			// Update the state to reflect in the original array
+			states[i].map		= this.saveMap();
+			states[i].seed		= this.seed;
+			states[i].gameOver	= this.gameOver;
 
 			// Update the game if not the most current
-			if(states[i] != states.at(-1)){
+			if(i != states.length-1)
 				this.update(1000 / sf.config.fps, true);
-			}
 		}
 
 		sf.data.mute = false;
@@ -296,10 +323,17 @@ export default class Game{
 				const players = msg.input.players;
 				const frame = msg.input.frameCounter;
 
-				if(players.length <= 0)
-					return;
+				// Check if the players being updated are from the same connection
+				let valid = true;
 
-				this.rollbackPlayers.push({players: players, frame: frame});
+				for(let i = 0; i < players.length; i ++){
+
+					if(players[i].netId != msg.connection_id)
+						valid = false;
+				}
+
+				if(valid)
+					this.rollbackPlayers.push({players: players, frame: frame});
 				
 				break;
 
@@ -342,10 +376,8 @@ export default class Game{
 
 		// Randomly sort the array
 		spawns.sort((a, b) => { 
-			if(Math.random() < 0.5)
-				return 1; 
-			else
-				return -1;
+			if(this.random() < 0.5) return 1; 
+			else					return -1;
 		});
 
 		// Repeat until the spawns can fulfill the players
@@ -405,20 +437,16 @@ export default class Game{
 			const spawns = this.getObjectsByParent(sf.data.objects.weapon_spawn);
 
 			spawns.sort((a, b) => { 
-				if(Math.random() < 0.5)
-					return 1; 
-				else
-					return -1;
+				if(this.random() < 0.5)	return 1; 
+				else					return -1;
 			});
 
 			// Get all weapon parent objects
 			const weaponKeys = Object.keys(sf.data.objects).filter(key => sf.data.objects[key].category & sf.filters.weapon);
 
 			weaponKeys.sort((a, b) => { 
-				if(Math.random() < 0.5)
-					return 1; 
-				else
-					return -1;
+				if(this.random() < 0.5)	return 1; 
+				else					return -1;
 			});
 
 			// Check if the spawn doesn't already have a weapon associated with it
@@ -509,6 +537,15 @@ export default class Game{
 					obj.removeCollision(obj.collisions[i].objectId);
 			}
 		});
+	}
+
+	random(){
+		this.seed ++;
+
+		if(this.seed >= random.length)
+			this.seed = 0;
+		
+		return random[this.seed]/100;
 	}
 
 	getMousePosition(){
@@ -784,11 +821,11 @@ export default class Game{
 		const relative = [];
 
 		for(let i = 0; i < 6; i ++){
-			const angle = Math.random() * 2 * Math.PI;
+			const angle = this.random() * 2 * Math.PI;
 
 			relative.push({
-				x: Math.cos(angle) * Math.random() * circle.radius,
-				y: Math.sin(angle) * Math.random() * circle.radius
+				x: Math.cos(angle) * this.random() * circle.radius,
+				y: Math.sin(angle) * this.random() * circle.radius
 			});
 		}
 

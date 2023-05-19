@@ -435,8 +435,8 @@ export default class Player extends BaseObject{
 				var effect = sf.data.objects.blood_small; 
 			
 			const velocity = {
-				x: Math.random() * 2 - 1,
-				y: Math.random() * 2 - 1
+				x: sf.game.random() * 2 - 1,
+				y: sf.game.random() * 2 - 1
 			}
 
 			const obj = sf.game.createObject(effect,

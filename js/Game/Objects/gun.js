@@ -100,7 +100,7 @@ export default class Gun extends BaseObject{
 						{
 							matter:{
 								position: position,
-								angle: Math.random() * Math.PI * 2,
+								angle: sf.game.random() * Math.PI * 2,
 								velocity: {
 									x: (Math.cos(angle) * -3),
 									y: (Math.sin(angle) * -3) - 1
@@ -144,7 +144,7 @@ export default class Gun extends BaseObject{
 	}
 
 	getSpread(){
-		return Math.round((Math.random()*this.spread) - this.spread/2) * Math.PI / 180;
+		return Math.round((sf.game.random()*this.spread) - this.spread/2) * Math.PI / 180;
 	}
 };
 
