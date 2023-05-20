@@ -699,10 +699,10 @@ export default class BaseObject{
 		});
 
 		// Get current time in the animation
-		if(timestamp)
-			var time = timestamp % loop;
-		else
+		if(timestamp == undefined)
 			var time = sf.game.frameCounter % loop;
+		else
+			var time = timestamp % loop;
 
 		// Set the frame index to the animation frame
 		let accum = 0;

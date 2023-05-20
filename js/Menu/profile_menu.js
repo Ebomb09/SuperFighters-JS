@@ -21,6 +21,58 @@ export default class ProfileMenu extends BaseMenu{
 				}
 			});
 
+		this.player.draw = function() {
+
+			// Idle animation
+			this.setAnimationFrame(
+				[
+					{x: 0, y: 0, delay: 12},
+					{x: 1, y: 0, delay: 12},
+					{x: 2, y: 0, delay: 12}
+				],
+				Math.round(Date.now() / (1000 / sf.config.fps)));
+
+			// Set draw order of cosmetics
+			const drawOrder = [this.image];
+
+			if(this.profile){
+				const apparel = sf.data.apparel;
+				const slots = Object.keys(this.profile);
+
+				slots.forEach((slot) => {
+					const category = apparel[slot];
+					const name = this.profile[slot];
+
+					if(category && category[name])
+						drawOrder.push(category[name]);
+				});
+			}		
+
+			// Draw main body
+			sf.ctx.save();
+			sf.ctx.translate(this.getPosition().x, this.getPosition().y);
+			sf.ctx.scale(this.facingDirection, 1);
+
+			drawOrder.forEach((image) => {
+				sf.ctx.drawImage(
+					image,
+					this.frame.index.x * this.frame.width,
+					this.frame.index.y * this.frame.height,
+					this.frame.width,
+					this.frame.height,
+
+					-this.frame.width/2,
+					this.height/2 - this.frame.height,
+					this.frame.width,
+					this.frame.height
+					);
+			});
+
+			sf.ctx.restore();
+		};
+
+		sf.ctx.restore();
+
 		this.addMarkers(this.options,
 			[{
 				text: this.getPlayerText(),
@@ -100,8 +152,10 @@ export default class ProfileMenu extends BaseMenu{
 		sf.ctx.save();
 		sf.ctx.translate(sf.canvas.width / 2, sf.canvas.height / 2);
 		sf.ctx.scale(5, 5);
+
 		this.player.profile = this.profile;
 		this.player.draw();
+
 		sf.ctx.restore();
 	}
 

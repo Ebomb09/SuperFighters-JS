@@ -14,10 +14,10 @@ const State = {
 	Crouching: 		"grounded_crouching", 
 	Rolling: 		"grounded_rolling", 
 	Attacking: 		"attacking", 
-	Punching: 		"grounded_attacking_punching",
-	Punching1: 		"grounded_attacking_punching1",
-	Punching2: 		"grounded_attacking_punching2",
-	Punching3: 		"grounded_attacking_punching3",
+	Melee: 			"grounded_attacking_melee",
+	MeleeCombo1: 	"grounded_attacking_melee_combo_1",
+	MeleeCombo2: 	"grounded_attacking_melee_combo_2",
+	MeleeCombo3: 	"grounded_attacking_melee_combo_3",
 	JumpPunching: 	"jumping_attacking_punching",
 	Kicking: 		"grounded_attacking_kicking",
 	JumpKicking: 	"jumping_attacking_kicking",
@@ -153,6 +153,10 @@ export default class Player extends BaseObject{
 	}
 
 	draw(){
+		const meleeWeapon 		= sf.game.getObjectById(this.inventory[Inventory.Melee]);
+		const gunWeapon 		= sf.game.getObjectById(this.inventory[Inventory.Gun]);
+		const throwableWeapon	= sf.game.getObjectById(this.inventory[Inventory.Throwable]);
+
 		let angle = 0;
 
 		// Get animation from state
@@ -215,31 +219,115 @@ export default class Player extends BaseObject{
 				this.frame.index = {x: 0, y: 2};
 				break;
 
-			case State.Punching1:
-				this.setAnimationFrame(
-					[
-						{x: 1, y: 2, delay: 9},
-						{x: 2, y: 2, delay: 12}
-					],
-					this.delayTimestamp());
+			case State.MeleeCombo1:
+
+				if(!meleeWeapon){
+					this.setAnimationFrame(
+						[
+							{x: 1, y: 2, delay: 9},
+							{x: 2, y: 2, delay: 12}
+						],
+						this.delayTimestamp());
+
+				}else{
+
+					if(meleeWeapon.hands == 1){
+						this.setAnimationFrame(
+							[
+								{x: 0, y: 7, delay: 9},
+								{x: 1, y: 7, delay: 12}
+							],
+							this.delayTimestamp());
+
+						if(this.frame.index.x == 0)	meleeWeapon.offset = {x: -2, y: -9, angle: 180};
+						if(this.frame.index.x == 1) meleeWeapon.offset = {x: -1, y: 1, angle: 225, flip: true, onTop: true};
+
+					}else{
+						this.setAnimationFrame(
+							[
+								{x: 0, y: 8, delay: 9},
+								{x: 1, y: 8, delay: 12}
+							],
+							this.delayTimestamp());			
+
+						if(this.frame.index.x == 0)	meleeWeapon.offset = {x: 6, y: -4, angle: 225};
+						if(this.frame.index.x == 1) meleeWeapon.offset = {x: -4, y: 1, angle: 180, flip: true};			
+					}
+				}
 				break;
 
-			case State.Punching2:
-				this.setAnimationFrame(
-					[
-						{x: 3, y: 2, delay: 9},
-						{x: 4, y: 2, delay: 12}
-					],
-					this.delayTimestamp());
+			case State.MeleeCombo2:
+
+				if(!meleeWeapon){
+					this.setAnimationFrame(
+						[
+							{x: 3, y: 2, delay: 9},
+							{x: 4, y: 2, delay: 12}
+						],
+						this.delayTimestamp());
+
+				}else{
+
+					if(meleeWeapon.hands == 1){
+						this.setAnimationFrame(
+							[
+								{x: 1, y: 7, delay: 9},
+								{x: 2, y: 7, delay: 12}
+							],
+							this.delayTimestamp());
+
+						if(this.frame.index.x == 1)	meleeWeapon.offset = {x: -1, y: 1, angle: 225, flip: true, onTop: true};
+						if(this.frame.index.x == 2) meleeWeapon.offset = {x: -6, y: -4, angle: 225};
+
+					}else{
+						this.setAnimationFrame(
+							[
+								{x: 2, y: 8, delay: 9},
+								{x: 3, y: 8, delay: 12}
+							],
+							this.delayTimestamp());	
+
+						if(this.frame.index.x == 2)	meleeWeapon.offset = {x: -4, y: 0, angle: 225, flip: true, onTop: true};
+						if(this.frame.index.x == 3) meleeWeapon.offset = {x: 6, y: -4, angle: 225, flip: true};				
+					}
+				}
 				break;
 
-			case State.Punching3:
-				this.setAnimationFrame(
-					[
-						{x: 5, y: 2, delay: 9},
-						{x: 6, y: 2, delay: 18}
-					],
-					this.delayTimestamp());
+			case State.MeleeCombo3:
+
+				if(!meleeWeapon){
+					this.setAnimationFrame(
+						[
+							{x: 5, y: 2, delay: 9},
+							{x: 6, y: 2, delay: 18}
+						],
+						this.delayTimestamp());
+
+				}else{
+
+					if(meleeWeapon.hands == 1){
+						this.setAnimationFrame(
+							[
+								{x: 2, y: 7, delay: 9},
+								{x: 3, y: 7, delay: 18}
+							],
+							this.delayTimestamp());
+
+						if(this.frame.index.x == 2) meleeWeapon.offset = {x: -6, y: -4, angle: 225};
+						if(this.frame.index.x == 3) meleeWeapon.offset = {x: 5, y: 4, angle: 0};
+
+					}else{
+						this.setAnimationFrame(
+							[
+								{x: 4, y: 8, delay: 9},
+								{x: 5, y: 8, delay: 18}
+							],
+							this.delayTimestamp());		
+
+						if(this.frame.index.x == 4)	meleeWeapon.offset = {x: 0, y: -8, angle: 135};
+						if(this.frame.index.x == 5) meleeWeapon.offset = {x: 3, y: 4, angle: 0};					
+					}
+				}
 				break;
 
 			case State.JumpPunching:
@@ -302,6 +390,37 @@ export default class Player extends BaseObject{
 			});
 		}
 
+		// Draw weapon when performing melee combo
+		const drawMelee = () => {
+			sf.ctx.save();
+			sf.ctx.translate(this.getPosition().x + meleeWeapon.offset.x * this.facingDirection, this.getPosition().y + meleeWeapon.offset.y);
+			sf.ctx.rotate(meleeWeapon.offset.angle * Math.PI / 180 * this.facingDirection);
+			sf.ctx.scale(this.facingDirection, 1);
+
+			if(meleeWeapon.offset.flip)
+				sf.ctx.scale(1, -1);
+
+			sf.ctx.drawImage(
+				meleeWeapon.image,
+
+				0,
+				0,
+				meleeWeapon.frame.width,
+				meleeWeapon.frame.height,
+
+				-2,
+				-2,
+				meleeWeapon.frame.width,
+				meleeWeapon.frame.height
+				);
+
+			sf.ctx.restore();
+		};
+
+		// Draw melee over player
+		if(this.checkState(State.Melee) && meleeWeapon && !meleeWeapon.offset.onTop)
+			drawMelee();
+
 		// Draw main body
 		sf.ctx.save();
 		sf.ctx.translate(this.getPosition().x, this.getPosition().y);
@@ -325,6 +444,10 @@ export default class Player extends BaseObject{
 
 		sf.ctx.restore();
 
+		// Draw melee under player
+		if(this.checkState(State.Melee) && meleeWeapon && meleeWeapon.offset.onTop)
+			drawMelee();
+
 		// Draw upper torso when aiming
 		if(this.checkState(State.Aiming) || this.checkState(State.Drawing)){
 
@@ -333,9 +456,6 @@ export default class Player extends BaseObject{
 
 			if(this.checkState(State.Shooting))
 				recoil = Math.sin(this.delayTimestamp() / this.state.delayMax * Math.PI);
-
-			// Get equiped weapon
-			const weapon = sf.game.getObjectById(this.inventory[this.equiped]);
 
 			// Get aiming frame
 			if(this.checkState(State.Drawing)){
@@ -358,21 +478,21 @@ export default class Player extends BaseObject{
 
 				if(this.checkState(State.Drawing)){
 					sf.ctx.rotate(-Math.PI / 2);
-					sf.ctx.translate(0, weapon.frame.height/2);
+					sf.ctx.translate(0, gunWeapon.frame.height/2);
 				}
 
 				sf.ctx.drawImage(
-					weapon.image,
+					gunWeapon.image,
 
 					0,
 					0,
-					weapon.frame.width,
-					weapon.frame.height,
+					gunWeapon.frame.width,
+					gunWeapon.frame.height,
 
-					(this.frame.width/2 - weapon.frame.width/2 - 2) - recoil,
-					(-weapon.frame.height * 3/4),
-					weapon.frame.width,
-					weapon.frame.height);
+					(this.frame.width/2 - gunWeapon.frame.width/2 - 2) - recoil,
+					(-gunWeapon.frame.height * 3/4),
+					gunWeapon.frame.width,
+					gunWeapon.frame.height);
 
 				sf.ctx.restore();
 
@@ -669,25 +789,28 @@ export default class Player extends BaseObject{
 					}]);
 			}
 
-		// Punch Combo 1
+		// Melee Combo 1
 		}else if(this.checkState(State.Grounded) && !this.checkState(State.Attacking)){
-			this.setState(State.Punching1, 21, 
+
+			this.setState(State.MeleeCombo1, 21, 
 				[{
 					delay: 9,
 					action: "light-punch"
 				}]);
 
-		// Punch Combo 2
-		}else if(this.checkState(State.Punching1) && this.delayTimestamp() > 9){
-			this.setState(State.Punching2, 21, 
+		// Melee Combo 2
+		}else if(this.checkState(State.MeleeCombo1) && this.delayTimestamp() > 9){
+
+			this.setState(State.MeleeCombo2, 21, 
 				[{
 					delay: 9,
 					action: "light-punch"
 				}]);
 
-		// Punch Combo 3
-		}else if(this.checkState(State.Punching2) && this.delayTimestamp() > 9){
-			this.setState(State.Punching3, 24, 
+		// Melee Combo 3
+		}else if(this.checkState(State.MeleeCombo2) && this.delayTimestamp() > 9){
+
+			this.setState(State.MeleeCombo3, 24, 
 				[{
 					delay: 9,
 					action: "hard-punch"
@@ -769,8 +892,16 @@ export default class Player extends BaseObject{
 		// Pickup weapons
 		sf.game.getObjectsByAABB(this.getBounds()).forEach((obj) => {
 
-			if(obj.getType() == "Gun")
-				this.inventory[Inventory.Gun] = obj.pickup(this);
+			switch(obj.getType()){
+
+				case "Sword":
+					this.inventory[Inventory.Melee] = obj.pickup(this);
+					break;
+
+				case "Gun":
+					this.inventory[Inventory.Gun] = obj.pickup(this);
+					break;
+			}				
 		});
 	}
 

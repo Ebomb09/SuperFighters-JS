@@ -162,7 +162,7 @@ let added = [
 			{x: 4, y: 0, delay: 3},
 		],
 		animateRealTime: true,
-		lifeTime: 1,
+		lifeTime: 2,
 		disableGravity: true
 	}
 
