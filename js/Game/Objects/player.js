@@ -49,7 +49,7 @@ export default class Player extends BaseObject{
 
 		// Held Weapons
 		this.inventory = (this.options.inventory) ? this.options.inventory : [-1, -1, -1, -1];
-		this.equiped = (this.options.equiped) ? (this.options.equiped) : Inventory.Gun;
+		this.equiped = (this.options.equiped) ? (this.options.equiped) : -1;
 
 		// Aiming Properties
 		this.crosshair = (this.options.crosshair) ? this.options.crosshair : {
@@ -451,6 +451,11 @@ export default class Player extends BaseObject{
 		// Draw upper torso when aiming
 		if(this.checkState(State.Aiming) || this.checkState(State.Drawing)){
 
+			if(this.equiped == Inventory.Gun)
+				var weapon = gunWeapon;
+			else
+				var weapon = throwableWeapon;
+
 			// Get the recoil
 			let recoil = 0;
 
@@ -478,21 +483,21 @@ export default class Player extends BaseObject{
 
 				if(this.checkState(State.Drawing)){
 					sf.ctx.rotate(-Math.PI / 2);
-					sf.ctx.translate(0, gunWeapon.frame.height/2);
+					sf.ctx.translate(0, weapon.frame.height/2);
 				}
 
 				sf.ctx.drawImage(
-					gunWeapon.image,
+					weapon.image,
 
 					0,
 					0,
-					gunWeapon.frame.width,
-					gunWeapon.frame.height,
+					weapon.frame.width,
+					weapon.frame.height,
 
-					(this.frame.width/2 - gunWeapon.frame.width/2 - 2) - recoil,
-					(-gunWeapon.frame.height * 3/4),
-					gunWeapon.frame.width,
-					gunWeapon.frame.height);
+					(this.frame.width/2 - weapon.frame.width/2 - 2) - recoil,
+					(-weapon.frame.height * 3/4),
+					weapon.frame.width,
+					weapon.frame.height);
 
 				sf.ctx.restore();
 
@@ -770,13 +775,10 @@ export default class Player extends BaseObject{
 			return;
 
 		// Try to fire gun
-		if(this.checkState(State.Aiming)){
-
-			if(!this.strictState(State.Aiming))
-				return;
+		if(this.strictState(State.Aiming)){
 
 			// Fire gun and set delay to recoil timing
-			if(this.inventory[Inventory.Gun] >= 0){
+			if(this.inventory[Inventory.Gun] != -1){
 				this.equiped = Inventory.Gun;
 
 				const weapon = sf.game.getObjectById(this.inventory[Inventory.Gun]);
@@ -840,15 +842,20 @@ export default class Player extends BaseObject{
 		if(!this.delayDone() && !this.checkState(State.Attacking))
 			return;
 
-		// Try to throw gun
-		if(this.checkState(State.Aiming)){
+		// Try to throw
+		if(this.strictState(State.Aiming)){
 
-			if(!this.strictState(State.Aiming))
-				return;
-
-			if(this.inventory[Inventory.Throwable] >= 0){
+			if(this.inventory[Inventory.Throwable] != -1){
 				this.equiped = Inventory.Throwable;
-				this.setState(State.Shooting, 9);
+
+				const weapon = sf.game.getObjectById(this.inventory[Inventory.Throwable]);
+				const recoilTime = weapon.throw();
+
+				this.setState(State.Shooting, recoilTime,
+					[{
+						delay: recoilTime,
+						action: "reset-aim"
+					}]);
 			}
 
 		// Kicking
@@ -901,6 +908,10 @@ export default class Player extends BaseObject{
 				case "Gun":
 					this.inventory[Inventory.Gun] = obj.pickup(this);
 					break;
+
+				case "Throwable":
+					this.inventory[Inventory.Throwable] = obj.pickup(this);
+					break;
 			}				
 		});
 	}
@@ -910,7 +921,15 @@ export default class Player extends BaseObject{
 		if(!this.delayDone())
 			return;
 
-		if(this.checkState(State.Grounded) && this.inventory[this.equiped] >= 0){
+		// Choose which inventory item to use
+		if(this.equiped == -1){
+			if(this.inventory[Inventory.Throwable] != -1)
+				this.equiped = Inventory.Throwable;
+			else
+				this.equiped = Inventory.Gun;			
+		}
+
+		if(this.checkState(State.Grounded) && this.inventory[this.equiped] != -1){
 
 			// Not previously aiming then reset crosshair angled
 			if(!this.checkLastState(State.Aiming) && !this.checkState(State.Drawing) && !this.checkLastState(State.Drawing)){

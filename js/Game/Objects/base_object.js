@@ -1099,6 +1099,26 @@ let worldObjects = [
 		}
 	},
 
+	obj.grenade = {
+		image: sf.data.loadImage("images/grenade.png"), 
+
+		health: 1,
+		damageModifier: {
+			melee: 0,
+			collision: 0
+		}
+	},
+
+	obj.molotov = {
+		image: sf.data.loadImage("images/molotov.png"), 
+
+		health: 1,
+		damageModifier: {
+			melee: 0,
+			collision: 100
+		}
+	},
+
 	obj.filecab	= { 
 		image: sf.data.loadImage("images/filecab.png"),
 	},
