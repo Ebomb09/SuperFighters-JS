@@ -182,6 +182,27 @@ let added = [
 		image: sf.data.loadImage("images/effect/muzzle_flash/rifle_flash.png"),
 		lifeTime: 2,
 		disableGravity: true
+	},
+
+	obj.axe_swing = {
+		image: sf.data.loadImage("images/effect/axe_swing.png"),
+		frameCount: {x: 3, y: 1},
+		lifeTime: 2,
+		disableGravity: true
+	},
+
+	obj.sword_swing = {
+		image: sf.data.loadImage("images/effect/sword_swing.png"),
+		frameCount: {x: 3, y: 1},
+		lifeTime: 2,
+		disableGravity: true
+	},
+
+	obj.machete_swing = {
+		image: sf.data.loadImage("images/effect/machete_swing.png"),
+		frameCount: {x: 3, y: 1},
+		lifeTime: 2,
+		disableGravity: true
 	}
 
 ].forEach((item) => {

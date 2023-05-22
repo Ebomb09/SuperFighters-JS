@@ -119,6 +119,8 @@ export default class BaseObject{
 		 */
 		if(!options.noBody){
 			const matter = options.matter;
+			
+			matter.position = (matter.position) ? matter.position : {x: 0, y: 0};
 
 			if(options.shape == "circle"){
 				this.body = Matter.Bodies.circle(0, 0, this.height / 2, matter);

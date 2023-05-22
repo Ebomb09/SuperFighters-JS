@@ -850,7 +850,6 @@ export default class Game{
 		const body = Matter.Bodies.circle(circle.x, circle.y, circle.radius);
 		
 		const collisions = Matter.Query.collides(body, Matter.Composite.allBodies(this.world));
-		let collided = false;
 
 		// Foreach collision check it's not the source and apply the force
 		collisions.forEach((collision) => {
@@ -858,13 +857,39 @@ export default class Game{
 
 			if(obj && source != obj){
 				Matter.Body.applyForce(obj.body, body.position, force);
-				obj.dealDamage(force.damage, "melee");
-				collided = true;
+				obj.dealDamage(force.damage, "collision");
+
+				if(collision.supports.length > 1)
+					this.createObject(sf.data.objects.hit, {matter: { position: {x: collision.supports[0].x, y: collision.supports[0].y} }});
+			}
+		});			
+	}
+
+	createHitbox(source, hitboxes, force){
+
+		let objects = [];
+
+		// Collision check body
+		hitboxes.forEach((hitbox) => {
+			const body = Matter.Bodies.rectangle(hitbox.x, hitbox.y, hitbox.width, hitbox.height);
+			const collisions = Matter.Query.collides(body, Matter.Composite.allBodies(this.world));
+
+			// Foreach collision check if alread y collided with
+			collisions.forEach((collision) => {
+				const obj = this.getObjectByBody(collision.bodyA);
+
+				if(obj && objects.indexOf(obj) == -1)
+					objects.push(obj);
+			});
+		})
+
+		objects.forEach((object) => {
+
+			if(object != source){
+				Matter.Body.applyForce(object.body, object.getPosition(), force);
+				object.dealDamage(force.damage, "melee");
 			}
 		});
-
-		if(collided)
-			sf.game.createObject(sf.data.objects.hit, {matter: { position: circle }});
 	}
 
 	getObjectById(id){

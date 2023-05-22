@@ -79,8 +79,22 @@ export default class Player extends BaseObject{
 	}
 
 	update(){		
-
 		super.update();
+
+		// Check inventory is still valid
+		for(let i = 0; i < this.inventory.length; i ++){
+			const item = sf.game.getObjectById(this.inventory[i]);
+
+			if(!item){
+				this.inventory[i] = -1;
+
+				// Default items when nothing held
+				if(i == Inventory.Melee){
+					const fists = sf.game.createObject(sf.data.objects.fists);
+					this.inventory[i] = fists.pickup(this);
+				}	
+			}	
+		}
 
 		// Check player is on ground
 		if(this.onGround()){
@@ -221,17 +235,20 @@ export default class Player extends BaseObject{
 
 			case State.MeleeCombo1:
 
-				if(!meleeWeapon){
-					this.setAnimationFrame(
-						[
-							{x: 1, y: 2, delay: 9},
-							{x: 2, y: 2, delay: 12}
-						],
-						this.delayTimestamp());
+				switch(meleeWeapon.hands){
 
-				}else{
-
-					if(meleeWeapon.hands == 1){
+					// Fists
+					case 0:
+						this.setAnimationFrame(
+							[
+								{x: 1, y: 2, delay: 9},
+								{x: 2, y: 2, delay: 12}
+							],
+							this.delayTimestamp());
+						break;
+				
+					// Single handed (machete)
+					case 1:
 						this.setAnimationFrame(
 							[
 								{x: 0, y: 7, delay: 9},
@@ -241,8 +258,10 @@ export default class Player extends BaseObject{
 
 						if(this.frame.index.x == 0)	meleeWeapon.offset = {x: -2, y: -9, angle: 180};
 						if(this.frame.index.x == 1) meleeWeapon.offset = {x: -1, y: 1, angle: 225, flip: true, onTop: true};
+						break;
 
-					}else{
+					// Double handed (swords)
+					case 2:
 						this.setAnimationFrame(
 							[
 								{x: 0, y: 8, delay: 9},
@@ -251,24 +270,27 @@ export default class Player extends BaseObject{
 							this.delayTimestamp());			
 
 						if(this.frame.index.x == 0)	meleeWeapon.offset = {x: 6, y: -4, angle: 225};
-						if(this.frame.index.x == 1) meleeWeapon.offset = {x: -4, y: 1, angle: 180, flip: true};			
-					}
+						if(this.frame.index.x == 1) meleeWeapon.offset = {x: -4, y: 1, angle: 180};
+						break;
 				}
 				break;
 
 			case State.MeleeCombo2:
 
-				if(!meleeWeapon){
-					this.setAnimationFrame(
-						[
-							{x: 3, y: 2, delay: 9},
-							{x: 4, y: 2, delay: 12}
-						],
-						this.delayTimestamp());
+				switch(meleeWeapon.hands){
 
-				}else{
-
-					if(meleeWeapon.hands == 1){
+					// Fists
+					case 0:
+						this.setAnimationFrame(
+							[
+								{x: 3, y: 2, delay: 9},
+								{x: 4, y: 2, delay: 12}
+							],
+							this.delayTimestamp());
+						break;
+				
+					// Single handed (machete)
+					case 1:
 						this.setAnimationFrame(
 							[
 								{x: 1, y: 7, delay: 9},
@@ -277,9 +299,11 @@ export default class Player extends BaseObject{
 							this.delayTimestamp());
 
 						if(this.frame.index.x == 1)	meleeWeapon.offset = {x: -1, y: 1, angle: 225, flip: true, onTop: true};
-						if(this.frame.index.x == 2) meleeWeapon.offset = {x: -6, y: -4, angle: 225};
+						if(this.frame.index.x == 2) meleeWeapon.offset = {x: -5, y: -4, angle: 225};
+						break;
 
-					}else{
+					// Double handed (swords)
+					case 2:
 						this.setAnimationFrame(
 							[
 								{x: 2, y: 8, delay: 9},
@@ -288,24 +312,27 @@ export default class Player extends BaseObject{
 							this.delayTimestamp());	
 
 						if(this.frame.index.x == 2)	meleeWeapon.offset = {x: -4, y: 0, angle: 225, flip: true, onTop: true};
-						if(this.frame.index.x == 3) meleeWeapon.offset = {x: 6, y: -4, angle: 225, flip: true};				
-					}
+						if(this.frame.index.x == 3) meleeWeapon.offset = {x: 6, y: -4, angle: 225, flip: true};	
+						break;
 				}
 				break;
 
 			case State.MeleeCombo3:
 
-				if(!meleeWeapon){
-					this.setAnimationFrame(
-						[
-							{x: 5, y: 2, delay: 9},
-							{x: 6, y: 2, delay: 18}
-						],
-						this.delayTimestamp());
+				switch(meleeWeapon.hands){
 
-				}else{
-
-					if(meleeWeapon.hands == 1){
+					// Fists
+					case 0:
+						this.setAnimationFrame(
+							[
+								{x: 5, y: 2, delay: 9},
+								{x: 6, y: 2, delay: 18}
+							],
+							this.delayTimestamp());
+						break;
+				
+					// Single handed (machete)
+					case 1:
 						this.setAnimationFrame(
 							[
 								{x: 2, y: 7, delay: 9},
@@ -313,10 +340,12 @@ export default class Player extends BaseObject{
 							],
 							this.delayTimestamp());
 
-						if(this.frame.index.x == 2) meleeWeapon.offset = {x: -6, y: -4, angle: 225};
+						if(this.frame.index.x == 2) meleeWeapon.offset = {x: -5, y: -4, angle: 225};
 						if(this.frame.index.x == 3) meleeWeapon.offset = {x: 5, y: 4, angle: 0};
+						break;
 
-					}else{
+					// Double handed (swords)
+					case 2:
 						this.setAnimationFrame(
 							[
 								{x: 4, y: 8, delay: 9},
@@ -325,8 +354,8 @@ export default class Player extends BaseObject{
 							this.delayTimestamp());		
 
 						if(this.frame.index.x == 4)	meleeWeapon.offset = {x: 0, y: -8, angle: 135};
-						if(this.frame.index.x == 5) meleeWeapon.offset = {x: 3, y: 4, angle: 0};					
-					}
+						if(this.frame.index.x == 5) meleeWeapon.offset = {x: 0, y: 4, angle: 0};
+						break;
 				}
 				break;
 
@@ -422,7 +451,7 @@ export default class Player extends BaseObject{
 		};
 
 		// Draw melee over player
-		if(this.checkState(State.Melee) && meleeWeapon && !meleeWeapon.offset.onTop)
+		if(this.checkState(State.Melee) && meleeWeapon && meleeWeapon.offset && !meleeWeapon.offset.onTop)
 			drawMelee();
 
 		// Draw main body
@@ -449,7 +478,7 @@ export default class Player extends BaseObject{
 		sf.ctx.restore();
 
 		// Draw melee under player
-		if(this.checkState(State.Melee) && meleeWeapon && meleeWeapon.offset.onTop)
+		if(this.checkState(State.Melee) && meleeWeapon && meleeWeapon.offset && meleeWeapon.offset.onTop)
 			drawMelee();
 
 		// Draw upper torso when aiming
@@ -602,36 +631,21 @@ export default class Player extends BaseObject{
 
 		switch(action){
 
-			case "light-punch":
-				sf.game.createForce(this, 
-					{
-						x: this.getPosition().x + this.width/2 * this.facingDirection, 
-						y: this.getPosition().y,
-						radius: 5
-					},
-					{
-						x: 0.001 * this.facingDirection, 
-						y: 0,
-						damage: 7
-					});
+			case "melee_1":
+				sf.game.getObjectById(this.inventory[Inventory.Melee]).swing(0);
 				this.movePosition(this.facingDirection * 1.5, 0);
 				sf.data.playAudio(this.sounds.punch);
 				break;
 
-			case "hard-punch":
-				sf.game.createForce(this, 
-					{
-						x: this.getPosition().x + this.width/2 * this.facingDirection, 
-						y: this.getPosition().y,
-						radius: 5
-					},
-					{
-						x: 0.001 * this.facingDirection, 
-						y: -0.001,
-						damage: 7
-					});
+			case "melee_2":
+				sf.game.getObjectById(this.inventory[Inventory.Melee]).swing(1);
 				this.movePosition(this.facingDirection * 1.5, 0);
 				sf.data.playAudio(this.sounds.punch);
+				break;
+
+			case "melee_3":
+				sf.game.getObjectById(this.inventory[Inventory.Melee]).swing(2);
+				this.movePosition(this.facingDirection * 1.5, 0);
 				break;
 
 			case "reset-aim":
@@ -805,7 +819,7 @@ export default class Player extends BaseObject{
 			this.setState(State.MeleeCombo1, 21, 
 				[{
 					delay: 9,
-					action: "light-punch"
+					action: "melee_1"
 				}]);
 
 		// Melee Combo 2
@@ -814,7 +828,7 @@ export default class Player extends BaseObject{
 			this.setState(State.MeleeCombo2, 21, 
 				[{
 					delay: 9,
-					action: "light-punch"
+					action: "melee_2"
 				}]);
 
 		// Melee Combo 3
@@ -823,7 +837,7 @@ export default class Player extends BaseObject{
 			this.setState(State.MeleeCombo3, 24, 
 				[{
 					delay: 9,
-					action: "hard-punch"
+					action: "melee_3"
 				}]);
 
 		// Jump Punching
@@ -914,7 +928,7 @@ export default class Player extends BaseObject{
 
 			switch(obj.getType()){
 
-				case "Sword":
+				case "Melee":
 					this.inventory[Inventory.Melee] = obj.pickup(this);
 					break;
 
@@ -938,10 +952,23 @@ export default class Player extends BaseObject{
 		const throwableWeapon = sf.game.getObjectById(this.inventory[Inventory.Throwable]);
 
 		// Choose which inventory item to use when not holding one or the other
-		if(this.equiped == Inventory.Throwable)
-			var weapon = throwableWeapon;
-		else
-			var weapon = gunWeapon;			
+		let weapon = null;
+
+		if(this.equiped == Inventory.Throwable){
+
+			if(throwableWeapon)
+				weapon = throwableWeapon;
+			else
+				this.equiped = Inventory.Gun;
+		}
+
+		if(this.equiped == Inventory.Gun){
+
+			if(gunWeapon)
+				weapon = gunWeapon;
+			else
+				this.equiped = Inventory.Throwable;
+		}
 
 		if(this.checkState(State.Grounded) && weapon){
 
@@ -983,10 +1010,6 @@ let added = [
 				sf.data.loadAudio("sounds/player/hit_player01.mp3"),
 				sf.data.loadAudio("sounds/player/hit_player02.mp3"),
 				sf.data.loadAudio("sounds/player/hit_player03.mp3")				
-			],
-			punch: [
-				sf.data.loadAudio("sounds/player/punch00.mp3"),
-				sf.data.loadAudio("sounds/player/punch01.mp3"),
 			],
 			roll: sf.data.loadAudio("sounds/player/roll.mp3"),
 			jump: sf.data.loadAudio("sounds/player/jump.mp3")
