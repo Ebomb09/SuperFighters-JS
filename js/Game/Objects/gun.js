@@ -2,6 +2,7 @@ import sf from "../../sf.js";
 import BaseObject from "./base_object.js";
 import Projectile from "./projectile.js";
 import Fire from "./fire.js";
+import Particle from "./particle.js";
 
 const State = {
 	Picked: "picked_up",
@@ -23,6 +24,7 @@ export default class Gun extends BaseObject{
 
 		this.projectile	= this.parent.projectile;
 		this.expel 		= this.parent.expel;
+		this.flash		= this.parent.flash;
 
 		this.timing		= this.parent.timing;
 
@@ -79,6 +81,7 @@ export default class Gun extends BaseObject{
 
 					const projectileAngle = angle + this.getSpread();
 
+					// Create Projectile
 					sf.game.createObject(this.projectile, 
 						{
 							damage: this.damage, 
@@ -92,6 +95,17 @@ export default class Gun extends BaseObject{
 								}
 							}
 						});
+
+					// Create muzle flash
+					if(this.flash){
+						sf.game.createObject(this.flash,
+							{
+								matter:{
+									position: position,
+									angle: projectileAngle
+								}
+							});
+					}
 				}
 
 				// Effect, typically the casing / shell of the gun
@@ -166,6 +180,7 @@ let added = [
 
 		projectile: sf.data.objects.projectile,
 		expel: sf.data.objects.casing_small,
+		flash: sf.data.objects.light_flash,
 
 		sounds: {
 			fire: [
@@ -191,6 +206,7 @@ let added = [
 
 		projectile: sf.data.objects.projectile,
 		expel: sf.data.objects.casing_small,
+		flash: sf.data.objects.light_flash,
 
 		sounds: {
 			fire: [
@@ -213,6 +229,7 @@ let added = [
 
 		projectile: sf.data.objects.projectile,
 		expel: sf.data.objects.casing_small,
+		flash: sf.data.objects.heavy_flash,
 
 		sounds: {
 			fire: 	sf.data.loadAudio("sounds/weapon/magnum.mp3"),
@@ -233,6 +250,7 @@ let added = [
 
 		projectile: sf.data.objects.projectile,
 		expel: sf.data.objects.casing_small,
+		flash: sf.data.objects.rifle_flash,
 
 		sounds: {
 			fire: [
@@ -256,6 +274,7 @@ let added = [
 
 		projectile: sf.data.objects.projectile,
 		expel: sf.data.objects.shell,
+		flash: sf.data.objects.heavy_flash,
 
 		sounds: {
 			fire: [
@@ -279,6 +298,7 @@ let added = [
 
 		projectile: sf.data.objects.projectile,
 		expel: sf.data.objects.casing_large,
+		flash: sf.data.objects.rifle_flash,
 
 		sounds: {
 			fire: [

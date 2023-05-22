@@ -49,7 +49,7 @@ export default class Player extends BaseObject{
 
 		// Held Weapons
 		this.inventory = (this.options.inventory) ? this.options.inventory : [-1, -1, -1, -1];
-		this.equiped = (this.options.equiped) ? (this.options.equiped) : -1;
+		this.equiped = (this.options.equiped) ? (this.options.equiped) : Inventory.Gun;
 
 		// Aiming Properties
 		this.crosshair = (this.options.crosshair) ? this.options.crosshair : {
@@ -358,7 +358,11 @@ export default class Player extends BaseObject{
 
 			case State.Drawing:
 			case State.Aiming:
-				this.frame.index = {x: 0, y: 4};
+
+				if(this.equiped == Inventory.Gun)
+					this.frame.index = {x: 0, y: 4};
+				else
+					this.frame.index = {x: 1, y: 4};
 				break;
 
 			case State.Climbing:
@@ -776,19 +780,23 @@ export default class Player extends BaseObject{
 
 		// Try to fire gun
 		if(this.strictState(State.Aiming)){
+			const weapon = sf.game.getObjectById(this.inventory[Inventory.Gun]);
+
+			// Equip gun
+			if(this.equiped != Inventory.Gun){
+
+				if(weapon)
+					this.equiped = Inventory.Gun;
 
 			// Fire gun and set delay to recoil timing
-			if(this.inventory[Inventory.Gun] != -1){
-				this.equiped = Inventory.Gun;
-
-				const weapon = sf.game.getObjectById(this.inventory[Inventory.Gun]);
+			}else if(weapon){	
 				const recoilTime = weapon.shoot();
 
 				this.setState(State.Shooting, recoilTime,
 					[{
 						delay: recoilTime,
 						action: "reset-aim"
-					}]);
+					}]);		
 			}
 
 		// Melee Combo 1
@@ -844,18 +852,23 @@ export default class Player extends BaseObject{
 
 		// Try to throw
 		if(this.strictState(State.Aiming)){
+			const weapon = sf.game.getObjectById(this.inventory[Inventory.Throwable]);
 
-			if(this.inventory[Inventory.Throwable] != -1){
-				this.equiped = Inventory.Throwable;
+			// Equip throwable
+			if(this.equiped != Inventory.Throwable){
 
-				const weapon = sf.game.getObjectById(this.inventory[Inventory.Throwable]);
+				if(weapon)
+					this.equiped = Inventory.Throwable;
+
+			// Throw projectile item
+			}else if(weapon){
 				const recoilTime = weapon.throw();
 
 				this.setState(State.Shooting, recoilTime,
 					[{
 						delay: recoilTime,
 						action: "reset-aim"
-					}]);
+					}]);				
 			}
 
 		// Kicking
@@ -921,21 +934,20 @@ export default class Player extends BaseObject{
 		if(!this.delayDone())
 			return;
 
-		// Choose which inventory item to use
-		if(this.equiped == -1){
-			if(this.inventory[Inventory.Throwable] != -1)
-				this.equiped = Inventory.Throwable;
-			else
-				this.equiped = Inventory.Gun;			
-		}
+		const gunWeapon = sf.game.getObjectById(this.inventory[Inventory.Gun]);
+		const throwableWeapon = sf.game.getObjectById(this.inventory[Inventory.Throwable]);
 
-		if(this.checkState(State.Grounded) && this.inventory[this.equiped] != -1){
+		// Choose which inventory item to use when not holding one or the other
+		if(this.equiped == Inventory.Throwable)
+			var weapon = throwableWeapon;
+		else
+			var weapon = gunWeapon;			
+
+		if(this.checkState(State.Grounded) && weapon){
 
 			// Not previously aiming then reset crosshair angled
 			if(!this.checkLastState(State.Aiming) && !this.checkState(State.Drawing) && !this.checkLastState(State.Drawing)){
 				this.crosshair.angle = 0;
-
-				const weapon = sf.game.getObjectById(this.inventory[this.equiped]);
 				this.setState(State.Drawing, weapon.pullout());
 
 			}else if(this.checkLastState(State.Aiming) || this.checkLastState(State.Drawing)){

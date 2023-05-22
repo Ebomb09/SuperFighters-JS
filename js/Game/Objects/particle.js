@@ -1,7 +1,7 @@
 import sf from "../../sf.js";
 import BaseObject from "./base_object.js";
 
-class Particle extends BaseObject{
+export default class Particle extends BaseObject{
 
 	constructor(...params){
 		super(...params);
@@ -26,7 +26,7 @@ class Particle extends BaseObject{
 		if(this.fade)
 			sf.ctx.globalAlpha = this.delayPercentNotDone();
 
-		super.draw({angle: 0});
+		super.draw();
 		sf.ctx.restore();
 	}
 };
@@ -162,6 +162,24 @@ let added = [
 			{x: 4, y: 0, delay: 3},
 		],
 		animateRealTime: true,
+		lifeTime: 2,
+		disableGravity: true
+	},
+
+	obj.heavy_flash = {
+		image: sf.data.loadImage("images/effect/muzzle_flash/heavy_flash.png"),
+		lifeTime: 2,
+		disableGravity: true
+	},
+
+	obj.light_flash = {
+		image: sf.data.loadImage("images/effect/muzzle_flash/light_flash.png"),
+		lifeTime: 2,
+		disableGravity: true
+	},
+
+	obj.rifle_flash = {
+		image: sf.data.loadImage("images/effect/muzzle_flash/rifle_flash.png"),
 		lifeTime: 2,
 		disableGravity: true
 	}
