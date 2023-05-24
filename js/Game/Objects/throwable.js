@@ -7,6 +7,7 @@ export default class Throwable extends BaseObject{
 		super(...params);
 
 		this.projectile = this.parent.projectile;
+		this.detonationTime = this.parent.detonationTime;
 
 		this.ammo = this.options.ammo;
 
@@ -38,10 +39,9 @@ export default class Throwable extends BaseObject{
 		return 6;
 	}
 
-	throw(){
+	throw(cooked){
 
 		if(this.ammo > 0){
-
 			const holder = sf.game.getObjectById(this.holderId);
 
 			if(!holder)
@@ -49,6 +49,8 @@ export default class Throwable extends BaseObject{
 
 			sf.game.createObject(this.projectile,
 				{
+					lifeTime: (this.detonationTime) ? this.detonationTime - cooked : undefined,
+
 					matter: {
 						position: holder.getCrosshairPosition(),
 						angle: holder.getCrosshairAngle(),
@@ -77,6 +79,7 @@ let added = [
 
 		ammo: 3,
 		projectile: obj.grenade,
+		detonationTime: 120,
 
 		sounds: {
 			draw: sf.data.loadAudio("sounds/weapon/grenade_draw.mp3")

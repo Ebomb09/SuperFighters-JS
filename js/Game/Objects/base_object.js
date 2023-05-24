@@ -79,7 +79,7 @@ export default class BaseObject{
 		};
 
 		// Shortcut for objects to self destruct
-		if(options.lifeTime && this.state.name == "none"){
+		if(options.lifeTime != undefined && this.state.name == "none"){
 			this.setState("__life_span__", options.lifeTime, 
 				[{
 					delay: options.lifeTime,
@@ -398,8 +398,10 @@ export default class BaseObject{
 		if(this.state.delay > 0){
 			this.state.delay -= 1;
 			this.state.delay = (this.state.delay < 0) ? 0 : this.state.delay;
+		}
 
-			// Run callback once timestamp is met
+		// Run callback once timestamp is met
+		if(this.state.callbacks.length > 0){
 			const timestamp = this.delayTimestamp();
 			const callbacks = this.state.callbacks;
 
@@ -1108,6 +1110,16 @@ let worldObjects = [
 		damageModifier: {
 			melee: 0,
 			collision: 0
+		},
+
+		onkill: (object) => {
+			sf.game.createExplosion(
+				{
+					x: object.getPosition().x,
+					y: object.getPosition().y,
+					radius: 32
+				},
+				0.008);			
 		}
 	},
 

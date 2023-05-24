@@ -21,9 +21,10 @@ const State = {
 	JumpPunching: 	"jumping_attacking_punching",
 	Kicking: 		"grounded_attacking_kicking",
 	JumpKicking: 	"jumping_attacking_kicking",
-	Aiming: 		"grounded_aiming", 
 	Drawing: 		"grounded_drawing",
-	Shooting: 		"grounded_aiming_shooting",
+	Aiming: 		"grounded_aiming", 
+	PrepareThrow: 	"grounded_aiming_prepare_throw",
+	Shooting: 		"grounded_aiming_attacking_shooting",
 	Climbing: 		"climbing"
 };
 
@@ -44,6 +45,7 @@ export default class Player extends BaseObject{
 
 		// Input should be set outside the player object	
 		this.input = {};
+		this.last = (this.options.last) ? this.options.last : {};
 
 		this.team = (this.options.team) ? this.options.team : 0;
 
@@ -54,11 +56,6 @@ export default class Player extends BaseObject{
 		// Aiming Properties
 		this.crosshair = (this.options.crosshair) ? this.options.crosshair : {
 			angle: 0
-		};
-
-		// Track last time for specific actions
-		this.last = (this.options.last) ? this.options.last : {
-			crouch: 0
 		};
 
 		// Collision Group for platforms
@@ -156,14 +153,14 @@ export default class Player extends BaseObject{
 		}
 
 		// Check inputs
-		if(this.input.aim) 				this.aim();
-		if(this.input.down) 			this.moveDown();
-		if(this.input.up) 				this.moveUp();
-		if(this.input.right) 			this.moveRight();
-		if(this.input.left) 			this.moveLeft();
-		if(this.input.secondaryAttack) 	this.secondaryAttack();
-		if(this.input.primaryAttack) 	this.attack();
-		if(this.input.interact) 		this.interact();
+		this.aim();
+		this.moveDown(); 
+		this.moveUp();
+		this.moveRight();
+		this.moveLeft();
+		this.secondaryAttack();
+		this.attack();
+		this.interact();	
 	}
 
 	draw(){
@@ -646,15 +643,35 @@ export default class Player extends BaseObject{
 			case "melee_3":
 				sf.game.getObjectById(this.inventory[Inventory.Melee]).swing(2);
 				this.movePosition(this.facingDirection * 1.5, 0);
+				sf.data.playAudio(this.sounds.punch);
 				break;
 
 			case "reset-aim":
 				this.setState(State.Aiming); 
 				break;
+
+			case "throw-cooked":
+				const weapon = sf.game.getObjectById(this.inventory[Inventory.Throwable]);
+
+				if(weapon)
+					weapon.throw(this.delayTimestamp());
+				break;
 		}
 	}
 
+	getButtonStatus(nowButton, prevButton){
+
+		return {
+			pressed: !prevButton && nowButton,
+			released: prevButton && !nowButton,
+			held: nowButton
+		};
+	}
+
 	moveRight(){
+
+		if(!this.input.right) return;
+
 		this.facingDirection = 1;
 
 		if(!this.onRight() && (this.checkState(State.Jumping) || this.strictState(State.Grounded) || this.strictState(State.Crouching) || this.checkState(State.Climbing))){
@@ -680,6 +697,9 @@ export default class Player extends BaseObject{
 	}
 
 	moveLeft(){
+
+		if(!this.input.left) return;
+
 		this.facingDirection = -1;
 
 		if(!this.onLeft() && (this.checkState(State.Jumping) || this.strictState(State.Grounded) || this.strictState(State.Crouching) || this.checkState(State.Climbing))){
@@ -705,6 +725,8 @@ export default class Player extends BaseObject{
 	}
 
 	moveUp(){
+
+		if(!this.input.up) return;
 
 		if(!this.delayDone() && !this.checkState(State.Aiming) && !this.checkState(State.Rolling))
 			return;
@@ -738,7 +760,9 @@ export default class Player extends BaseObject{
 		}
 	}
 
-	moveDown(){
+	moveDown(buttonHeld){
+
+		if(!this.input.down) return;
 
 		if(!this.delayDone() && !this.checkState(State.Aiming))
 			return;
@@ -789,11 +813,12 @@ export default class Player extends BaseObject{
 
 	attack(){
 
-		if(!this.delayDone() && !this.checkState(State.Attacking))
-			return;
+		// Check input button status
+		const button = this.getButtonStatus(this.input.primaryAttack, this.last.primaryAttack);
+		this.last.primaryAttack = this.input.primaryAttack;
 
 		// Try to fire gun
-		if(this.strictState(State.Aiming)){
+		if(button.pressed && this.strictState(State.Aiming)){
 			const weapon = sf.game.getObjectById(this.inventory[Inventory.Gun]);
 
 			// Equip gun
@@ -814,7 +839,7 @@ export default class Player extends BaseObject{
 			}
 
 		// Melee Combo 1
-		}else if(this.checkState(State.Grounded) && !this.checkState(State.Attacking)){
+		}else if(button.pressed && this.checkState(State.Grounded) && !this.checkState(State.Attacking)){
 
 			this.setState(State.MeleeCombo1, 21, 
 				[{
@@ -823,7 +848,7 @@ export default class Player extends BaseObject{
 				}]);
 
 		// Melee Combo 2
-		}else if(this.checkState(State.MeleeCombo1) && this.delayTimestamp() > 9){
+		}else if(button.pressed && this.checkState(State.MeleeCombo1) && this.delayTimestamp() > 9){
 
 			this.setState(State.MeleeCombo2, 21, 
 				[{
@@ -832,7 +857,7 @@ export default class Player extends BaseObject{
 				}]);
 
 		// Melee Combo 3
-		}else if(this.checkState(State.MeleeCombo2) && this.delayTimestamp() > 9){
+		}else if(button.pressed && this.checkState(State.MeleeCombo2) && this.delayTimestamp() > 9){
 
 			this.setState(State.MeleeCombo3, 24, 
 				[{
@@ -841,7 +866,7 @@ export default class Player extends BaseObject{
 				}]);
 
 		// Jump Punching
-		}else if(this.checkState(State.Jumping) && !this.checkState(State.Attacking)){
+		}else if(button.pressed && this.checkState(State.Jumping) && !this.checkState(State.Attacking)){
 			this.setState(State.JumpPunching);
 
 			sf.game.createForce(this, 
@@ -861,32 +886,50 @@ export default class Player extends BaseObject{
 
 	secondaryAttack(){
 
-		if(!this.delayDone() && !this.checkState(State.Attacking))
-			return;
+		// Check input button status
+		const button = this.getButtonStatus(this.input.secondaryAttack, this.last.secondaryAttack);
+		this.last.secondaryAttack = this.input.secondaryAttack;
 
-		// Try to throw
-		if(this.strictState(State.Aiming)){
+		// Prepare throw / cook
+		if(button.pressed && this.strictState(State.Aiming)){
 			const weapon = sf.game.getObjectById(this.inventory[Inventory.Throwable]);
 
-			// Equip throwable
+			// Equip the throwable item first
 			if(this.equiped != Inventory.Throwable){
 
 				if(weapon)
 					this.equiped = Inventory.Throwable;
 
-			// Throw projectile item
-			}else if(weapon){
-				const recoilTime = weapon.throw();
+			// Then check if it's still valid 
+			}else if(weapon && weapon.ammo > 0){
 
-				this.setState(State.Shooting, recoilTime,
-					[{
-						delay: recoilTime,
-						action: "reset-aim"
-					}]);				
+				// Play the throwable cook start sound effect / same as draw
+				weapon.pullout();
+
+				// If throwable has a cooking time then set the callback to explode if not thrown
+				if(weapon.detonationTime)
+					this.setState(State.PrepareThrow, weapon.detonationTime,
+						[{
+							delay: weapon.detonationTime,
+							action: "throw-cooked"
+						}]);
+
+				// Set state to throw				
+				else
+					this.setState(State.PrepareThrow);
 			}
+				
+		// Commit to throw once released
+		}else if(button.released && this.strictState(State.PrepareThrow)){
+			const weapon = sf.game.getObjectById(this.inventory[Inventory.Throwable]);
+
+			if(weapon)
+				weapon.throw(this.delayTimestamp());
+			
+			this.setState(State.Aiming);
 
 		// Kicking
-		}else if(this.checkState(State.Grounded) && !this.checkState(State.Attacking)){
+		}else if(button.pressed && this.checkState(State.Grounded) && !this.checkState(State.Attacking)){
 			this.setState(State.Kicking, 6);
 
 			sf.game.createForce(this, 
@@ -903,7 +946,7 @@ export default class Player extends BaseObject{
 			sf.data.playAudio(this.sounds.punch);
 
 		// Jump kicking
-		}else if(this.checkState(State.Jumping) && !this.checkState(State.Attacking)){
+		}else if(button.pressed && this.checkState(State.Jumping) && !this.checkState(State.Attacking)){
 			this.setState(State.JumpKicking);
 
 			sf.game.createForce(this, 
@@ -923,27 +966,38 @@ export default class Player extends BaseObject{
 
 	interact(){
 
+		// Check input button status
+		const button = this.getButtonStatus(this.input.interact, this.last.interact);
+		this.last.interact = this.input.interact;
+
 		// Pickup weapons
-		sf.game.getObjectsByAABB(this.getBounds()).forEach((obj) => {
+		if(button.pressed){
 
-			switch(obj.getType()){
+			sf.game.getObjectsByAABB(this.getBounds()).forEach((obj) => {
 
-				case "Melee":
-					this.inventory[Inventory.Melee] = obj.pickup(this);
-					break;
+				switch(obj.getType()){
 
-				case "Gun":
-					this.inventory[Inventory.Gun] = obj.pickup(this);
-					break;
+					case "Melee":
+						this.inventory[Inventory.Melee] = obj.pickup(this);
+						break;
 
-				case "Throwable":
-					this.inventory[Inventory.Throwable] = obj.pickup(this);
-					break;
-			}				
-		});
+					case "Gun":
+						this.inventory[Inventory.Gun] = obj.pickup(this);
+						break;
+
+					case "Throwable":
+						this.inventory[Inventory.Throwable] = obj.pickup(this);
+						break;
+				}				
+			});
+		}
 	}
 
 	aim(){
+
+		// Check input button status
+		const button = this.getButtonStatus(this.input.aim, this.last.aim);
+		this.last.aim = this.input.aim;
 
 		if(!this.delayDone())
 			return;
@@ -970,7 +1024,7 @@ export default class Player extends BaseObject{
 				this.equiped = Inventory.Throwable;
 		}
 
-		if(this.checkState(State.Grounded) && weapon){
+		if(button.held && this.checkState(State.Grounded) && weapon){
 
 			// Not previously aiming then reset crosshair angled
 			if(!this.checkLastState(State.Aiming) && !this.checkState(State.Drawing) && !this.checkLastState(State.Drawing)){
@@ -1012,7 +1066,11 @@ let added = [
 				sf.data.loadAudio("sounds/player/hit_player03.mp3")				
 			],
 			roll: sf.data.loadAudio("sounds/player/roll.mp3"),
-			jump: sf.data.loadAudio("sounds/player/jump.mp3")
+			jump: sf.data.loadAudio("sounds/player/jump.mp3"),
+			punch: [
+				sf.data.loadAudio("sounds/player/punch00.mp3"),
+				sf.data.loadAudio("sounds/player/punch01.mp3"),
+			]
 		}
 	}
 

@@ -2,13 +2,6 @@ import sf from "../../sf.js";
 import BaseObject from "./base_object.js";
 import Particle from "./particle.js";
 
-const sounds = {
-	punch: [
-		sf.data.loadAudio("sounds/player/punch00.mp3"),
-		sf.data.loadAudio("sounds/player/punch01.mp3"),
-	]
-};
-
 export default class Melee extends BaseObject{
 
 	constructor(...params){
@@ -98,8 +91,6 @@ export default class Melee extends BaseObject{
 						}
 					});
 			}
-
-			sf.data.playAudio(sounds.punch);
 		}
 	}
 };

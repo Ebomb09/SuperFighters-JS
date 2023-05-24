@@ -404,7 +404,6 @@ export default class Game{
 
 			if(!player.input) player.input = {};
 
-			const obj = this.getObjectById(player.objectId);
 			const input = player.input;
 
 			// Update local player configured controls
@@ -418,9 +417,9 @@ export default class Game{
 					input.up 				= sf.input.key.held[config.up];
 					input.right 			= sf.input.key.held[config.right];
 					input.left 				= sf.input.key.held[config.left];
-					input.secondaryAttack 	= sf.input.key.pressed[config.secondaryAttack];
-					input.primaryAttack 	= sf.input.key.pressed[config.primaryAttack];
-					input.interact 			= sf.input.key.pressed[config.interact];
+					input.secondaryAttack 	= sf.input.key.held[config.secondaryAttack];
+					input.primaryAttack 	= sf.input.key.held[config.primaryAttack];
+					input.interact 			= sf.input.key.held[config.interact];
 				}
 			}
 		});
