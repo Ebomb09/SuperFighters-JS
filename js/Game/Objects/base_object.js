@@ -211,6 +211,7 @@ export default class BaseObject{
 
 		this.updateFire();
 
+		// Apply gravity
 		if(!this.disableGravity && this.body && !this.getStatic() && !(this.body.inertia == Infinity && this.onGround())){
 			const gravity = sf.game.gravity;
 
@@ -219,6 +220,14 @@ export default class BaseObject{
 					x: gravity.x * this.body.mass * this.gravityScale,
 					y: gravity.y * this.body.mass * this.gravityScale
 	        	});
+		}
+
+		// Round out position
+		if(this.body){
+			this.setPosition(
+				Math.round(this.getPosition().x * 10) / 10,
+				Math.round(this.getPosition().y * 10) / 10
+				);
 		}
 	}
 

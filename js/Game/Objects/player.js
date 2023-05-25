@@ -24,6 +24,7 @@ const State = {
 	Drawing: 		"grounded_drawing",
 	Aiming: 		"grounded_aiming", 
 	PrepareThrow: 	"grounded_aiming_prepare_throw",
+	Throwing: 		"grounded_aiming_attacking_throwing",
 	Shooting: 		"grounded_aiming_attacking_shooting",
 	Climbing: 		"climbing"
 };
@@ -173,7 +174,7 @@ export default class Player extends BaseObject{
 		// Get animation from state
 		switch(this.state.name){
 
-			case State.Grounded:
+			case State.Grounded: {
 				this.setAnimationFrame(
 					[
 						{x: 0, y: 0, delay: 12},
@@ -181,8 +182,9 @@ export default class Player extends BaseObject{
 						{x: 2, y: 0, delay: 12}
 					]);
 				break; 
+			}
 
-			case State.Walking:
+			case State.Walking: {
 				this.setAnimationFrame(
 					[
 						{x: 3, y: 0, delay: 9},
@@ -191,12 +193,14 @@ export default class Player extends BaseObject{
 						{x: 4, y: 0, delay: 9}
 					]);
 				break;
+			}
 
-			case State.Crouching:
+			case State.Crouching: {
 				this.frame.index = {x: 0, y: 1};
 				break;
+			}
 
-			case State.Rolling:
+			case State.Rolling: {
 				this.setAnimationFrame(
 					[
 						{x: 1, y: 1, delay: 9},
@@ -204,20 +208,23 @@ export default class Player extends BaseObject{
 					],
 					this.delayTimestamp());
 				break;
+			}
 
-			case State.Stun:
+			case State.Stun: {
 
 				if(this.getStateEntropy() < 0.5)
 					this.frame.index = {x: 0, y: 3};
 				else
 					this.frame.index = {x: 1, y: 3};
 				break;
+			}
 
-			case State.Jumping:
+			case State.Jumping: {
 				this.frame.index = {x: 4, y: 1};
 				break;
+			}
 
-			case State.Recovering:
+			case State.Recovering: {
 				this.setAnimationFrame(
 					[
 						{x: 6, y: 3, delay: 15},
@@ -225,12 +232,14 @@ export default class Player extends BaseObject{
 					],
 					this.delayTimestamp());
 				break;
+			}
 
-			case State.Kicking:
+			case State.Kicking: {
 				this.frame.index = {x: 0, y: 2};
 				break;
+			}
 
-			case State.MeleeCombo1:
+			case State.MeleeCombo1: {
 
 				switch(meleeWeapon.hands){
 
@@ -271,8 +280,9 @@ export default class Player extends BaseObject{
 						break;
 				}
 				break;
+			}
 
-			case State.MeleeCombo2:
+			case State.MeleeCombo2: {
 
 				switch(meleeWeapon.hands){
 
@@ -313,8 +323,9 @@ export default class Player extends BaseObject{
 						break;
 				}
 				break;
+			}
 
-			case State.MeleeCombo3:
+			case State.MeleeCombo3: {
 
 				switch(meleeWeapon.hands){
 
@@ -355,20 +366,24 @@ export default class Player extends BaseObject{
 						break;
 				}
 				break;
+			}
 
-			case State.JumpPunching:
+			case State.JumpPunching: {
 				this.frame.index = {x: 8, y: 2};
 				break;
+			}
 
-			case State.Kicking:
+			case State.Kicking: {
 				this.frame.index = {x: 0, y: 2};
 				break;
+			}
 
-			case State.JumpKicking:
+			case State.JumpKicking: {
 				this.frame.index = {x: 7, y: 2};
 				break;
+			}
 
-			case State.FreeFalling:
+			case State.FreeFalling: {
 
 				if(this.getStateEntropy() < 0.5)
 					this.setAnimationFrame(
@@ -381,17 +396,24 @@ export default class Player extends BaseObject{
 
 				angle = ((Date.now() / 2) % 360) * Math.PI / 180;
 				break;
+			}
 
 			case State.Drawing:
-			case State.Aiming:
+			case State.Aiming: {
 
 				if(this.equiped == Inventory.Gun)
 					this.frame.index = {x: 0, y: 4};
 				else
 					this.frame.index = {x: 1, y: 4};
 				break;
+			}
 
-			case State.Climbing:
+			case State.Throwing: {
+				this.frame.index = {x: 2, y: 4};
+				break;
+			}
+
+			case State.Climbing: {
 				this.setAnimationFrame(
 					[
 						{x: 1, y: 6, delay: 4},
@@ -402,6 +424,7 @@ export default class Player extends BaseObject{
 					Math.abs(this.getPosition().y));
 
 				break;
+			}
 		}
 
 		// Set draw order of cosmetics
@@ -422,29 +445,27 @@ export default class Player extends BaseObject{
 
 		// Draw weapon when performing melee combo
 		const drawMelee = () => {
-			sf.ctx.save();
-			sf.ctx.translate(this.getPosition().x + meleeWeapon.offset.x * this.facingDirection, this.getPosition().y + meleeWeapon.offset.y);
-			sf.ctx.rotate(meleeWeapon.offset.angle * Math.PI / 180 * this.facingDirection);
-			sf.ctx.scale(this.facingDirection, 1);
 
-			if(meleeWeapon.offset.flip)
-				sf.ctx.scale(1, -1);
+			sf.ctx.drawImageOptions({
 
-			sf.ctx.drawImage(
-				meleeWeapon.image,
+				source: {
+					image: meleeWeapon.image,
+					width: meleeWeapon.frame.width,
+					height: meleeWeapon.frame.height
+				},
 
-				0,
-				0,
-				meleeWeapon.frame.width,
-				meleeWeapon.frame.height,
+				destination: {
+					x: -2,
+					y: -2,
 
-				-2,
-				-2,
-				meleeWeapon.frame.width,
-				meleeWeapon.frame.height
-				);
-
-			sf.ctx.restore();
+					origin: {
+						x: this.getPosition().x + meleeWeapon.offset.x * this.facingDirection,
+						y: this.getPosition().y + meleeWeapon.offset.y
+					},
+					angle: (meleeWeapon.offset.angle * Math.PI / 180 * this.facingDirection),
+					scale: { x: this.facingDirection, y: (meleeWeapon.offset.flip) ? -1 : 1 }
+				}
+			});
 		};
 
 		// Draw melee over player
@@ -452,34 +473,35 @@ export default class Player extends BaseObject{
 			drawMelee();
 
 		// Draw main body
-		sf.ctx.save();
-		sf.ctx.translate(this.getPosition().x, this.getPosition().y);
-		sf.ctx.scale(this.facingDirection, 1);
-		sf.ctx.rotate(angle);
-
 		drawOrder.forEach((image) => {
-			sf.ctx.drawImage(
-				image,
-				this.frame.index.x * this.frame.width,
-				this.frame.index.y * this.frame.height,
-				this.frame.width,
-				this.frame.height,
 
-				-this.frame.width/2,
-				this.height/2 - this.frame.height,
-				this.frame.width,
-				this.frame.height
-				);
+			sf.ctx.drawImageOptions({
+
+				source: {
+					image: image,
+					x: this.frame.index.x * this.frame.width,
+					y: this.frame.index.y * this.frame.height,
+					width: this.frame.width,
+					height: this.frame.height,					
+				},
+
+				destination: {
+					x: -this.frame.width / 2,
+					y: this.height / 2 - this.frame.height,
+
+					origin: this.getPosition(),
+					scale: {x: this.facingDirection},
+					angle: angle
+				}
+			});
 		});
-
-		sf.ctx.restore();
 
 		// Draw melee under player
 		if(this.checkState(State.Melee) && meleeWeapon && meleeWeapon.offset && meleeWeapon.offset.onTop)
 			drawMelee();
 
 		// Draw upper torso when aiming
-		if(this.checkState(State.Aiming) || this.checkState(State.Drawing)){
+		if((this.checkState(State.Aiming) || this.checkState(State.Drawing)) && !this.checkState(State.Throwing)){
 
 			if(this.equiped == Inventory.Gun)
 				var weapon = gunWeapon;
@@ -493,61 +515,64 @@ export default class Player extends BaseObject{
 				recoil = Math.sin(this.delayTimestamp() / this.state.delayMax * Math.PI);
 
 			// Get aiming frame
-			if(this.checkState(State.Drawing)){
+			if(this.checkState(State.Drawing))
 				var aimFrame = {x: 0, y: 5};
-			}else{
+			else
 				var aimFrame = {x: 1, y: 5};
+
+			// Draw weapon
+			if(!this.checkState(State.Drawing)){
+
+				sf.ctx.drawImageOptions({
+
+					source: {
+						image: weapon.image,
+						x: 0,
+						y: 0,
+						width: weapon.frame.width,
+						height: weapon.frame.height
+					},
+
+					destination: {
+						x: (this.frame.width / 2 - weapon.frame.width/2) - recoil,
+						y: -(weapon.frame.height * 3/4),
+
+						origin: {
+							x: this.getPosition().x - this.facingDirection * 2,
+							y: this.getPosition().y - 2,
+						},
+						scale: {y: this.facingDirection},
+						angle: this.getCrosshairAngle()
+					}
+				});
 			}
 
-			// Get position of body
-			const position = this.getPosition();
-			const angle = this.getCrosshairAngle();
-
-			sf.ctx.save();
-			sf.ctx.translate(position.x - this.facingDirection*2, position.y - 2);
-			sf.ctx.scale(1, this.facingDirection);
-			sf.ctx.rotate(angle * this.facingDirection);
-
-				// Draw weapon held
-				sf.ctx.save();
-
-				if(this.checkState(State.Drawing)){
-					sf.ctx.rotate(-Math.PI / 2);
-					sf.ctx.translate(0, weapon.frame.height/2);
-				}
-
-				sf.ctx.drawImage(
-					weapon.image,
-
-					0,
-					0,
-					weapon.frame.width,
-					weapon.frame.height,
-
-					(this.frame.width/2 - weapon.frame.width/2 - 2) - recoil,
-					(-weapon.frame.height * 3/4),
-					weapon.frame.width,
-					weapon.frame.height);
-
-				sf.ctx.restore();
-
-			// Draw torso
+			// Draw upper body
 			drawOrder.forEach((image) => {
-				sf.ctx.drawImage(
-					image,
 
-					this.frame.width * aimFrame.x,
-					this.frame.height * aimFrame.y,
-					this.frame.width,
-					this.frame.height,
+				sf.ctx.drawImageOptions({
 
-					(-this.frame.width/2 + 1) - recoil,
-					(-this.frame.height/2 - 2),
-					this.frame.width,
-					this.frame.height);
+					source: {
+						image: image,
+						x: this.frame.width * aimFrame.x,
+						y: this.frame.height * aimFrame.y,
+						width: this.frame.width,
+						height: this.frame.height
+					},
+
+					destination: {
+						x: -this.frame.width / 2 - recoil + 2,
+						y: this.height / 2 - this.frame.height + 2,
+
+						origin: {
+							x: this.getPosition().x - this.facingDirection * 2,
+							y: this.getPosition().y - 2
+						},
+						scale: {y: this.facingDirection},
+						angle: this.getCrosshairAngle()
+					}
+				});
 			});
-
-			sf.ctx.restore();
 		}
 	}
 
@@ -923,10 +948,18 @@ export default class Player extends BaseObject{
 		}else if(button.released && this.strictState(State.PrepareThrow)){
 			const weapon = sf.game.getObjectById(this.inventory[Inventory.Throwable]);
 
-			if(weapon)
-				weapon.throw(this.delayTimestamp());
-			
-			this.setState(State.Aiming);
+			if(weapon){
+				const throwDelay = weapon.throw(this.delayTimestamp());
+
+				this.setState(State.Throwing, throwDelay,
+					[{
+						delay: throwDelay,
+						action: "reset-aim"
+					}]);
+
+			}else{
+				this.setState(State.Aiming);
+			}
 
 		// Kicking
 		}else if(button.pressed && this.checkState(State.Grounded) && !this.checkState(State.Attacking)){

@@ -93,6 +93,54 @@ const docs = document.getElementById("sf-docs");
 const canvas = document.getElementById("sf-canvas");
 const ctx = canvas.getContext("2d");
 
+ctx.drawImageOptions = (options) => {
+	ctx.save();
+
+	const source = Matter.Common.extend(
+		{
+			image: null,
+			x: 0,
+			y: 0,
+			width: 0,
+			height: 0
+		}, 
+		options.source);
+
+	const destination = Matter.Common.extend(
+		{
+			x: 0,
+			y: 0,
+			width: source.width,
+			height: source.height,
+			origin: {x: 0, y: 0},
+			angle: 0,
+			scale: {x: 1, y: 1}
+		}, 
+		options.destination);
+
+	ctx.translate(destination.origin.x, destination.origin.y);
+	ctx.rotate(destination.angle);
+	ctx.scale(destination.scale.x, destination.scale.y);
+	ctx.translate(destination.x, destination.y);
+
+	ctx.drawImage(
+		source.image,
+
+		source.x, 
+		source.y,
+		source.width, 
+		source.height,
+
+		// Destination
+		0,
+		0,
+		destination.width,
+		destination.height
+		);
+
+	ctx.restore();
+};
+
 const sf = {
 
 	docs: docs,
