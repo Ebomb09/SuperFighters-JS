@@ -46,12 +46,23 @@ export default class Throwable extends BaseObject{
 		const holder = sf.game.getObjectById(this.holderId);
 		const projectile = sf.game.getObjectById(this.projectileId);
 
+		if(!projectile)
+			this.projectileId = -1;
+
 		// Reset cooking projectile to the holders defined position
 		if(holder && projectile){
-			projectile.setPosition(holder.getThrowablePosition().x, holder.getThrowablePosition().y);
-			projectile.setVelocity(0, 0);
-			projectile.setAngle(0);
-			projectile.setAngularVelocity(0);
+
+			// Check if the holder is still prepareing the throw
+			if(holder.checkState("prepare_throw")){
+				projectile.setPosition(holder.getThrowablePosition().x, holder.getThrowablePosition().y);
+				projectile.setVelocity(0, 0);
+				projectile.setAngle(0);
+				projectile.setAngularVelocity(0);
+
+			// If not then no longer need to keep track of
+			}else{
+				this.projectileId = -1;
+			}
 		}		
 	}
 
