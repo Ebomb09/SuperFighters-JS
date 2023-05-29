@@ -116,7 +116,6 @@ export default class Player extends BaseObject{
 				}
 			}
 				
-
 			// Check if any actions are done then reset to grounded
 			if(this.delayDone())
 				this.setState(State.Grounded);
@@ -596,6 +595,13 @@ export default class Player extends BaseObject{
 		return position;
 	}
 
+	getThrowablePosition(){
+		return {
+			x: this.getPosition().x - 8 * this.facingDirection,
+			y: this.getPosition().y - 1
+		};
+	}
+
 	dealDamage(damage, type, threshold){
 
 		// If still trying to get up prevent damage
@@ -673,13 +679,6 @@ export default class Player extends BaseObject{
 
 			case "reset-aim":
 				this.setState(State.Aiming); 
-				break;
-
-			case "throw-cooked":
-				const weapon = sf.game.getObjectById(this.inventory[Inventory.Throwable]);
-
-				if(weapon)
-					weapon.throw(this.delayTimestamp());
 				break;
 		}
 	}
@@ -785,7 +784,7 @@ export default class Player extends BaseObject{
 		}
 	}
 
-	moveDown(buttonHeld){
+	moveDown(){
 
 		if(!this.input.down) return;
 
@@ -929,19 +928,8 @@ export default class Player extends BaseObject{
 			}else if(weapon && weapon.ammo > 0){
 
 				// Play the throwable cook start sound effect / same as draw
-				weapon.pullout();
-
-				// If throwable has a cooking time then set the callback to explode if not thrown
-				if(weapon.detonationTime)
-					this.setState(State.PrepareThrow, weapon.detonationTime,
-						[{
-							delay: weapon.detonationTime,
-							action: "throw-cooked"
-						}]);
-
-				// Set state to throw				
-				else
-					this.setState(State.PrepareThrow);
+				weapon.cook();
+				this.setState(State.PrepareThrow, Infinity);
 			}
 				
 		// Commit to throw once released
@@ -949,7 +937,7 @@ export default class Player extends BaseObject{
 			const weapon = sf.game.getObjectById(this.inventory[Inventory.Throwable]);
 
 			if(weapon){
-				const throwDelay = weapon.throw(this.delayTimestamp());
+				const throwDelay = weapon.throw();
 
 				this.setState(State.Throwing, throwDelay,
 					[{
@@ -1057,7 +1045,7 @@ export default class Player extends BaseObject{
 				this.equiped = Inventory.Throwable;
 		}
 
-		if(button.held && this.checkState(State.Grounded) && weapon){
+		if(button.held && this.checkState(State.Grounded) && !this.checkState(State.Aiming) && weapon){
 
 			// Not previously aiming then reset crosshair angled
 			if(!this.checkLastState(State.Aiming) && !this.checkState(State.Drawing) && !this.checkLastState(State.Drawing)){

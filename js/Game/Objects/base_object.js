@@ -1139,6 +1139,23 @@ let worldObjects = [
 		damageModifier: {
 			melee: 0,
 			collision: 100
+		},
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_glass00.mp3"),
+				sf.data.loadAudio("sounds/bust_glass01.mp3")
+				]
+		},
+
+		onkill: (object) => {
+			sf.game.createFireplosion(
+				{
+					x: object.getPosition().x,
+					y: object.getPosition().y,
+					radius: 2
+				},
+				16);
 		}
 	},
 

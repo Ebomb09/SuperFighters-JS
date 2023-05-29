@@ -12,6 +12,9 @@ const sounds = {
 		sf.data.loadAudio("sounds/explosion02.mp3"),
 		sf.data.loadAudio("sounds/explosion03.mp3")
 		],
+	fireplosion: [
+		sf.data.loadAudio("sounds/fireplosion.mp3")
+		],
 	ambient: [
 		sf.data.loadAudio("sounds/ambient_loop_1.ogg", 0.05, true)
 		]
@@ -837,10 +840,30 @@ export default class Game{
 					matter: {
 						position: relativePos
 					}	
-				})
+				});
 		});
 
 		sf.data.playAudio(sounds.explosion);
+	}
+
+	createFireplosion(circle, count){
+
+		for(let i = 0; i < count; i ++){
+			const angle = (Math.PI*2) / i;
+
+			this.createObject(sf.data.objects.fire, 
+				{
+					matter: {
+						position: circle,
+						velocity: {
+							x: Math.cos(angle) * circle.radius,
+							y: Math.sin(angle) * circle.radius
+						}
+					}
+				});
+		}
+
+		sf.data.playAudio(sounds.fireplosion);
 	}
 
 	createForce(source, circle, force){

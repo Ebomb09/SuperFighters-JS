@@ -12,6 +12,7 @@ export default class Throwable extends BaseObject{
 		this.ammo = this.options.ammo;
 
 		this.holderId = (this.options.holderId) ? this.options.holderId : -1;
+		this.projectileId = (this.options.projectileId) ? this.options.projectileId : -1;
 	}
 
 	serialize(){
@@ -19,6 +20,7 @@ export default class Throwable extends BaseObject{
 
 		serial.ammo = this.ammo;
 		serial.holderId = this.holderId;
+		serial.projectileId = this.projectileId;
 
 		return serial;
 	}
@@ -39,29 +41,55 @@ export default class Throwable extends BaseObject{
 		return 6;
 	}
 
-	throw(cooked){
+	update(){
 
+		const holder = sf.game.getObjectById(this.holderId);
+		const projectile = sf.game.getObjectById(this.projectileId);
+
+		// Reset cooking projectile to the holders defined position
+		if(holder && projectile){
+			projectile.setPosition(holder.getThrowablePosition().x, holder.getThrowablePosition().y);
+			projectile.setVelocity(0, 0);
+			projectile.setAngle(0);
+			projectile.setAngularVelocity(0);
+		}		
+	}
+
+	cook(){
+
+		// Create projectile item and prepare to throw
 		if(this.ammo > 0){
+			this.ammo --;
+			sf.data.playAudio(this.sounds.draw);
+
 			const holder = sf.game.getObjectById(this.holderId);
 
 			if(!holder)
 				return;
 
-			sf.game.createObject(this.projectile,
+			const projectile = sf.game.createObject(this.projectile,
 				{
-					lifeTime: (this.detonationTime) ? this.detonationTime - cooked : undefined,
+					lifeTime: this.detonationTime,
 
 					matter: {
-						position: holder.getCrosshairPosition(),
-						angle: holder.getCrosshairAngle(),
-						velocity: {
-							x: Math.cos(holder.getCrosshairAngle()) * 5,
-							y: Math.sin(holder.getCrosshairAngle()) * 5
-						}
+						position: holder.getThrowablePosition(),
 					}
 				});
 
-			this.ammo --;
+			this.projectileId = projectile.id;
+		}
+	}
+
+	throw(){
+
+		const holder = sf.game.getObjectById(this.holderId);
+		const projectile = sf.game.getObjectById(this.projectileId);
+
+		// Throw to the holders crosshair
+		if(holder && projectile){
+			projectile.setPosition(holder.getCrosshairPosition().x, holder.getCrosshairPosition().y);
+			projectile.setVelocity(Math.cos(holder.getCrosshairAngle()) * 5, Math.sin(holder.getCrosshairAngle()) * 5);
+			this.projectileId = -1;
 		}
 		return 9;
 	}
