@@ -849,7 +849,7 @@ export default class Game{
 	createFireplosion(circle, count){
 
 		for(let i = 0; i < count; i ++){
-			const angle = (Math.PI*2) / i;
+			const angle = (Math.PI*2) * (i / count);
 
 			this.createObject(sf.data.objects.fire, 
 				{
