@@ -804,14 +804,14 @@ export default class Player extends BaseObject{
 			if(!this.checkLastState(State.Crouching)){
 
 				if((sf.game.frameCounter - this.last.crouch) < 15){
-					this.movePosition(0, 2);
 
 					// Update the collisionGroups of the platforms
 					this.collisions.forEach((collision) => {
 						const obj = sf.game.getObjectById(collision.objectId);
+						const index = this.body.platforms.indexOf(obj);
 
-						if(obj.getType() == "Platform")
-							obj.update();
+						if(obj.getType() == "Platform" && index == -1)
+							this.body.platforms.push(obj.body);
 					});
 				}
 				this.last.crouch = sf.game.frameCounter;
@@ -1098,8 +1098,7 @@ let added = [
 ].forEach((item) => {
 	item.type = Player;
 
-	item.category = sf.filters.player;
-	item.mask = sf.filters.object | sf.filters.projectile;
+	item.group = sf.collision.groups.player;
 });
 
 

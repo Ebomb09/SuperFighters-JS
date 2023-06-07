@@ -25,5 +25,6 @@ let added = [
 	item.type = Ladder;
 	item.resizable = true;
 	item.matter = {isStatic: true};
-	item.category = sf.filters.ladder;
+
+	item.group = sf.collision.groups.none;
 });

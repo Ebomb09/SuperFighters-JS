@@ -52,6 +52,5 @@ let added = [
 
 ].forEach((item) => {
 	item.type = Projectile;
-	item.category = sf.filters.projectile;
-	item.mask = sf.filters.object | sf.filters.decoration | sf.filters.player;
+	item.group = sf.collision.groups.projectile;
 });

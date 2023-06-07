@@ -207,6 +207,5 @@ let added = [
 
 ].forEach((item) => {
 	item.type = Particle;
-	item.category = sf.filters.effect;
-	item.mask = 0;
+	item.group = sf.collision.groups.dynamic_inactive;
 });

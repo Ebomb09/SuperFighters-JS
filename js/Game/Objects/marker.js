@@ -70,5 +70,5 @@ let added = [
 	item.matter = {
 		isStatic: true
 	};
-	item.category = sf.filters.marker;
+	item.group = sf.collision.groups.none;
 });

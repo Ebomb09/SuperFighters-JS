@@ -330,8 +330,7 @@ let added = [
 
 ].forEach((item) => {
 	item.type = Gun;
-	item.category = sf.filters.weapon;
-	item.mask = sf.filters.object | sf.filters.platform;
+	item.group = sf.collision.groups.item;
 
 	item.matter = {
 		isStatic: true

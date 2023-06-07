@@ -138,8 +138,7 @@ let added = [
 
 ].forEach((item) => {
 	item.type = Throwable;
-	item.category = sf.filters.weapon;
-	item.mask = sf.filters.object | sf.filters.platform;
+	item.group = sf.collision.groups.dynamic_inactive;
 
 	item.matter = {
 		isStatic: true

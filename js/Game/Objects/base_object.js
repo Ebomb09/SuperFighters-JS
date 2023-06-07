@@ -162,8 +162,11 @@ export default class BaseObject{
 			if(options.disableGravity) this.disableGravity = options.disableGravity;
 
 			// Collision filter is it and mask is what
-			if(options.category !== undefined) this.body.collisionFilter.category = options.category;
-			if(options.mask !== undefined) this.body.collisionFilter.mask = options.mask;
+			if(options.group){
+				this.body.collisionFilter.category 	= (options.group.category) 	? options.group.category 	: 0;
+				this.body.collisionFilter.mask		= (options.group.mask) 		? options.group.mask 		: 0;
+				this.body.collisionFilter.above 	= (options.group.above) 	? options.group.above 		: 0;
+			} 
 		}
 
 		if(this.oncreate)
@@ -173,7 +176,7 @@ export default class BaseObject{
 	serialize(){
 		const serial = {
 			parentKey: this.getParentKey(),
-			id: this.id,
+			id: this.id
 		};
 
 		if(this.customId != "") 						serial.customId 		= this.customId;
@@ -211,24 +214,20 @@ export default class BaseObject{
 
 		this.updateFire();
 
-		// Apply gravity
-		if(!this.disableGravity && this.body && !this.getStatic() && !(this.body.inertia == Infinity && this.onGround())){
-			const gravity = sf.game.gravity;
-
-			Matter.Body.applyForce(this.body, this.body.position, 
-				{
-					x: gravity.x * this.body.mass * this.gravityScale,
-					y: gravity.y * this.body.mass * this.gravityScale
-	        	});
-		}
-
-		// Round out position
 		if(this.body){
-			this.setPosition(
-				Math.round(this.getPosition().x * 10) / 10,
-				Math.round(this.getPosition().y * 10) / 10
-				);
+
+			// Apply gravity
+			if(!this.disableGravity && !this.getStatic() && !(this.body.inertia == Infinity && this.onGround())){
+				const gravity = sf.game.gravity;
+
+				Matter.Body.applyForce(this.body, this.body.position, 
+					{
+						x: gravity.x * this.body.mass * this.gravityScale,
+						y: gravity.y * this.body.mass * this.gravityScale
+		        	});
+			}
 		}
+
 	}
 
 	draw(options){
@@ -465,8 +464,8 @@ export default class BaseObject{
 		this.collisions.push({
 				objectId: source.id,
 
-				// Store penetration vector from this -> object 
-				penetration: (collision.bodyB == this.body) ? collision.penetration : Matter.Vector.neg(collision.penetration)
+				// Store collision angle
+				angle: (collision.bodyB == this.body) ? collision.angleB : collision.angleA
 			});	
 
 		// All force went back into this
@@ -590,26 +589,6 @@ export default class BaseObject{
 		return false;
 	}
 
-	getVectorAngle(vector){
-
-		// Find degree
-		let degree = Math.atan(Math.abs(vector.y) / Math.abs(vector.x)) * 180 / Math.PI;
-
-		if(vector.x < 0){
-
-			if(vector.y > 0)
-				degree = 180 + degree;
-			else
-				degree = 180 - degree;
-		
-		}else{
-			if(vector.y > 0)
-				degree = 360 - degree;
-		}
-
-		return degree;
-	}
-
 	getPosition(){
 		if(this.body) return Matter.Vector.create(this.body.position.x, this.body.position.y);
 		return Matter.Vector.create(0, 0);
@@ -669,9 +648,7 @@ export default class BaseObject{
 		for(let i = 0; i < this.collisions.length; i ++){
 			const collision = this.collisions[i];
 
-			const penAngle = this.getVectorAngle(collision.penetration);
-
-			if(penAngle >= 135 && penAngle <= 225)
+			if(collision.angle >= 135 && collision.angle <= 225)
 				return true;
 		}
 		return false;
@@ -682,9 +659,7 @@ export default class BaseObject{
 		for(let i = 0; i < this.collisions.length; i ++){
 			const collision = this.collisions[i];
 
-			const penAngle = this.getVectorAngle(collision.penetration);
-
-			if((penAngle >= -45 && penAngle <= 45) || (penAngle >= 315 && penAngle <= 405))
+			if((collision.angle >= -45 && collision.angle <= 45) || (collision.angle >= 315 && collision.angle <= 405))
 				return true;
 		}
 		return false;
@@ -695,10 +670,8 @@ export default class BaseObject{
 		for(let i = 0; i < this.collisions.length; i ++){
 			const collision = this.collisions[i];
 
-			const penAngle = this.getVectorAngle(collision.penetration);
-
-			if(penAngle >= 225 && penAngle <= 315)
-				return penAngle;
+			if(collision.angle >= 225 && collision.angle <= 315)
+				return collision.angle;
 		}
 		return false;
 	}
@@ -736,270 +709,118 @@ export default class BaseObject{
 const obj = sf.data.objects;
 
 /*
- *	Decorative Objects
+ *	Static Objects
  */
-let decorativeObjects = [
+const staticObjects = [
 
-	obj.computer_monitor = { 
-		image: sf.data.loadImage("images/computer_monitor.png"), 
-		health: 5,
-
-		sounds: {
-			killed: [
-				sf.data.loadAudio("sounds/bust_computer00.mp3"),
-				sf.data.loadAudio("sounds/bust_computer01.mp3")
-			]
-		},
-
-		onkill: (object) => {
-
-			sf.game.createObject(sf.data.objects.explosion_small, 
-				{
-					matter: {
-						position: object.getPosition()
-					}
-				});
-		}
-	},
-
-	obj.computer_desktop = { 
-		image: sf.data.loadImage("images/computer_desktop.png"), 
-		health: 5,
-
-		sounds: {
-			killed: [
-				sf.data.loadAudio("sounds/bust_computer00.mp3"),
-				sf.data.loadAudio("sounds/bust_computer01.mp3")
-			]
-		},
-
-		onkill: (object) => {
-
-			sf.game.createObject(sf.data.objects.explosion_small, 
-				{
-					matter: {
-						position: object.getPosition()
-					}
-				});
-		} 
-	},
-
-	obj.target = { 
-		image: sf.data.loadImage("images/target.png"), 
-		health: 5, 
-		flammable: true,
+	obj.dirt = { 
+		image: sf.data.loadImage("images/dirt.png"), 
+		frameCount: {x: 2, y: 1},
+		resizable: true, 
 
 		matter: {
 			isStatic: true
-		},
-
-		sounds: {
-			killed: [
-				sf.data.loadAudio("sounds/bust_wood00.mp3"),
-				sf.data.loadAudio("sounds/bust_wood01.mp3")
-			]
-		},
-
-		onkill: (object) => {
-
-			sf.game.createObject(sf.data.objects.target_debris00, 
-				{
-					matter: {
-						position: {
-							x: object.getPosition().x,
-							y: object.getPosition().y - 5
-						},
-						velocity: object.getVelocity()
-					}
-				});
-			sf.game.createObject(sf.data.objects.target_debris01, 
-				{
-					matter: {
-						position: object.getPosition(),
-						velocity: object.getVelocity()
-					}
-				});
-			sf.game.createObject(sf.data.objects.target_debris02, 
-				{
-					matter: {
-						position: {
-							x: object.getPosition().x,
-							y: object.getPosition().y + 5
-						},
-						velocity: object.getVelocity()
-					}
-				});
 		}
 	},
 
-	obj.target_debris00 = { 
-		image: sf.data.loadImage("images/target_debris00.png"), 
-		health: 5, 
-		flammable: true,
-
-		sounds: {
-			killed: [
-				sf.data.loadAudio("sounds/bust_wood00.mp3"),
-				sf.data.loadAudio("sounds/bust_wood01.mp3")
-			]
-		},
-	},
-
-	obj.target_debris01 = { 
-		image: sf.data.loadImage("images/target_debris01.png"), 
-		health: 5, 
-		flammable: true,
-
-		sounds: {
-			killed: [
-				sf.data.loadAudio("sounds/bust_wood00.mp3"),
-				sf.data.loadAudio("sounds/bust_wood01.mp3")
-			]
-		},
-	},
-
-	obj.target_debris02 = { 
-		image: sf.data.loadImage("images/target_debris02.png"), 
-		health: 5, 
-		flammable: true,
-
-		sounds: {
-			killed: [
-				sf.data.loadAudio("sounds/bust_wood00.mp3"),
-				sf.data.loadAudio("sounds/bust_wood01.mp3")
-			]
-		},
-	},
-
-	obj.table_chair = { 
-		image: sf.data.loadImage("images/table_chair.png")
-	},
-
-	obj.beachball = { 
-		image: sf.data.loadImage("images/beachball.png"), 
-		health: 25, 
-		shape: "circle",
-
-		gravityScale: 1/4,
+	obj.concrete = { 
+		image: sf.data.loadImage("images/concrete.png"), 
+		frameCount: {x: 3, y: 3}, 
+		resizable: true, 
 
 		matter: {
-			restitution: 1,
-			frictionAir: 0
-		},
-
-		onkill: (object) => {
-
-			sf.game.createObject(sf.data.objects.beachball_debris, 
-				{
-					matter: {
-						position: object.getPosition(),
-						velocity: object.getVelocity()
-					}
-				});
+			isStatic: true
 		}
 	},
 
-	obj.beachball_debris = { 
-		image: sf.data.loadImage("images/beachball_debris.png"), 
-		health: 10
-	},
+	obj.concrete_stair00 = { 
+		image: sf.data.loadImage("images/concrete_stair00.png"), 
+		shape: "tl-br", 
+		resizable: true,
 
-	obj.paper =	{ 
-		image: sf.data.loadImage("images/paper.png"), 
-		frameCount: {x: 2, y: 1}, 
-		health: 5,
-		flammable: true,
-	},
-
-	obj.crate_debris00 = {
-		image: sf.data.loadImage("images/crate_debris00.png"),
-		health: 25,
-		flammable: true,
-
-		sounds: {
-			killed: [
-				sf.data.loadAudio("sounds/bust_wood00.mp3"),
-				sf.data.loadAudio("sounds/bust_wood01.mp3")
-			]
-		},
-	},
-
-	obj.crate_debris01 = {
-		image: sf.data.loadImage("images/crate_debris01.png"),
-		health: 25,
-		flammable: true,
-
-		sounds: {
-			killed: [
-				sf.data.loadAudio("sounds/bust_wood00.mp3"),
-				sf.data.loadAudio("sounds/bust_wood01.mp3")
-			]
-		},
-	},
-
-	obj.crate_debris02 = {
-		image: sf.data.loadImage("images/crate_debris02.png"),
-		health: 25,
-		flammable: true,
-
-		sounds: {
-			killed: [
-				sf.data.loadAudio("sounds/bust_wood00.mp3"),
-				sf.data.loadAudio("sounds/bust_wood01.mp3")
-			]
-		},
-	},
-
-	obj.table_debris00 = { 
-		image: sf.data.loadImage("images/table_debris00.png"), 
-		health: 15,
-		flammable: true,
-
-		sounds: {
-			killed: [
-				sf.data.loadAudio("sounds/bust_wood00.mp3"),
-				sf.data.loadAudio("sounds/bust_wood01.mp3")
-			]
+		matter: {
+			isStatic: true
 		}
 	},
 
-	obj.table_debris01 = { 
-		image: sf.data.loadImage("images/table_debris01.png"), 
-		health: 15,
-		flammable: true,
+	obj.concrete_stair01 = { 
+		image: sf.data.loadImage("images/concrete_stair01.png"), 
+		shape: "tr-bl", 
+		resizable: true, 
 
-		sounds: {
-			killed: [
-				sf.data.loadAudio("sounds/bust_wood00.mp3"),
-				sf.data.loadAudio("sounds/bust_wood01.mp3")
-			]
+		matter: {
+			isStatic: true
 		}
 	},
 
-	obj.table_debris02 = { 
-		image: sf.data.loadImage("images/table_debris02.png"), 
-		health: 15,
-		flammable: true,
+	obj.concrete_slope00 = { 
+		image: sf.data.loadImage("images/concrete_slope00.png"), 
+		shape: "tl-br", 
+		resizable: true,
 
-		sounds: {
-			killed: [
-				sf.data.loadAudio("sounds/bust_wood00.mp3"),
-				sf.data.loadAudio("sounds/bust_wood01.mp3")
-			]
+		matter: {
+			isStatic: true
 		}
 	},
+
+	obj.concrete_slope01 = { 
+		image: sf.data.loadImage("images/concrete_slope01.png"), 
+		shape: "tr-bl", 
+		resizable: true, 
+		
+		matter: {
+			isStatic: true
+		}
+	},
+
+	obj.brick = { 
+		image: sf.data.loadImage("images/brick.png"), 
+		frameCount: {x: 3, y: 1}, 
+		resizable: true, 
+
+		matter: {
+			isStatic: true
+		}
+	},
+
+	obj.block = { 
+		image: sf.data.loadImage("images/block.png"), 
+		resizable: true, 
+
+		matter: {
+			isStatic: true
+		}
+	},
+
+	obj.girder = {
+		image: sf.data.loadImage("images/girder.png"), 
+		frameCount: {x: 3, y: 1}, 
+		resizable: true, 
+
+		matter: {
+			isStatic: true
+		}
+	},
+
+	obj.metal = { 
+		image: sf.data.loadImage("images/metal.png"), 
+		frameCount: {x: 3, y: 1}, 
+		resizable: true, 
+
+		matter: {
+			isStatic: true
+		}
+	}
 
 ].forEach((item) => {
 	item.type = BaseObject;
-	item.category = sf.filters.decoration;
-	item.mask = sf.filters.object | sf.filters.projectile | sf.filters.platform;
+	item.group = sf.collision.groups.static;
 });
 
-
 /*
- *	World Objects
+ * Dynamic Active Objects
  */
-let worldObjects = [
+const dynamicActiveObjects = [
 
 	obj.crate =	{ 
 		image: sf.data.loadImage("images/crate.png"), 
@@ -1259,109 +1080,278 @@ let worldObjects = [
 
 	obj.pool_table = { 
 		image: sf.data.loadImage("images/pool_table.png")
-	},
-
-	obj.dirt = { 
-		image: sf.data.loadImage("images/dirt.png"), 
-		frameCount: {x: 2, y: 1},
-		resizable: true, 
-
-		matter: {
-			isStatic: true
-		}
-	},
-
-	obj.concrete = { 
-		image: sf.data.loadImage("images/concrete.png"), 
-		frameCount: {x: 3, y: 3}, 
-		resizable: true, 
-
-		matter: {
-			isStatic: true
-		}
-	},
-
-	obj.concrete_stair00 = { 
-		image: sf.data.loadImage("images/concrete_stair00.png"), 
-		shape: "tl-br", 
-		resizable: true,
-
-		matter: {
-			isStatic: true
-		}
-	},
-
-	obj.concrete_stair01 = { 
-		image: sf.data.loadImage("images/concrete_stair01.png"), 
-		shape: "tr-bl", 
-		resizable: true, 
-
-		matter: {
-			isStatic: true
-		}
-	},
-
-	obj.concrete_slope00 = { 
-		image: sf.data.loadImage("images/concrete_slope00.png"), 
-		shape: "tl-br", 
-		resizable: true,
-
-		matter: {
-			isStatic: true
-		}
-	},
-
-	obj.concrete_slope01 = { 
-		image: sf.data.loadImage("images/concrete_slope01.png"), 
-		shape: "tr-bl", 
-		resizable: true, 
-		
-		matter: {
-			isStatic: true
-		}
-	},
-
-	obj.brick = { 
-		image: sf.data.loadImage("images/brick.png"), 
-		frameCount: {x: 3, y: 1}, 
-		resizable: true, 
-
-		matter: {
-			isStatic: true
-		}
-	},
-
-	obj.block = { 
-		image: sf.data.loadImage("images/block.png"), 
-		resizable: true, 
-
-		matter: {
-			isStatic: true
-		}
-	},
-
-	obj.grider = {
-		image: sf.data.loadImage("images/girder.png"), 
-		frameCount: {x: 3, y: 1}, 
-		resizable: true, 
-
-		matter: {
-			isStatic: true
-		}
-	},
-
-	obj.metal = { 
-		image: sf.data.loadImage("images/metal.png"), 
-		frameCount: {x: 3, y: 1}, 
-		resizable: true, 
-
-		matter: {
-			isStatic: true
-		}
 	}
 
 ].forEach((item) => {
 	item.type = BaseObject;
-	item.category = sf.filters.object;
-	item.mask = sf.filters.object | sf.filters.player | sf.filters.weapon | sf.filters.projectile | sf.filters.platform | sf.filters.decoration;
+	item.group = sf.collision.groups.dynamic_active;
+});
+
+/*
+ *	Dynamic Inactive Objects
+ */
+const dynamicInactiveObjects = [
+
+	obj.computer_monitor = { 
+		image: sf.data.loadImage("images/computer_monitor.png"), 
+		health: 5,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_computer00.mp3"),
+				sf.data.loadAudio("sounds/bust_computer01.mp3")
+			]
+		},
+
+		onkill: (object) => {
+
+			sf.game.createObject(sf.data.objects.explosion_small, 
+				{
+					matter: {
+						position: object.getPosition()
+					}
+				});
+		}
+	},
+
+	obj.computer_desktop = { 
+		image: sf.data.loadImage("images/computer_desktop.png"), 
+		health: 5,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_computer00.mp3"),
+				sf.data.loadAudio("sounds/bust_computer01.mp3")
+			]
+		},
+
+		onkill: (object) => {
+
+			sf.game.createObject(sf.data.objects.explosion_small, 
+				{
+					matter: {
+						position: object.getPosition()
+					}
+				});
+		} 
+	},
+
+	obj.target = { 
+		image: sf.data.loadImage("images/target.png"), 
+		health: 5, 
+		flammable: true,
+
+		matter: {
+			isStatic: true
+		},
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		},
+
+		onkill: (object) => {
+
+			sf.game.createObject(sf.data.objects.target_debris00, 
+				{
+					matter: {
+						position: {
+							x: object.getPosition().x,
+							y: object.getPosition().y - 5
+						},
+						velocity: object.getVelocity()
+					}
+				});
+			sf.game.createObject(sf.data.objects.target_debris01, 
+				{
+					matter: {
+						position: object.getPosition(),
+						velocity: object.getVelocity()
+					}
+				});
+			sf.game.createObject(sf.data.objects.target_debris02, 
+				{
+					matter: {
+						position: {
+							x: object.getPosition().x,
+							y: object.getPosition().y + 5
+						},
+						velocity: object.getVelocity()
+					}
+				});
+		}
+	},
+
+	obj.table_chair = { 
+		image: sf.data.loadImage("images/table_chair.png")
+	},
+
+	obj.beachball = { 
+		image: sf.data.loadImage("images/beachball.png"), 
+		health: 25, 
+		shape: "circle",
+
+		gravityScale: 1/4,
+
+		matter: {
+			restitution: 1,
+			frictionAir: 0
+		},
+
+		onkill: (object) => {
+
+			sf.game.createObject(sf.data.objects.beachball_debris, 
+				{
+					matter: {
+						position: object.getPosition(),
+						velocity: object.getVelocity()
+					}
+				});
+		}
+	},
+
+	obj.paper =	{ 
+		image: sf.data.loadImage("images/paper.png"), 
+		frameCount: {x: 2, y: 1}, 
+		health: 5,
+		flammable: true,
+	}
+
+].forEach((item) => {
+	item.type = BaseObject;
+	item.group = sf.collision.groups.dynamic_inactive;
+});
+
+/*
+ *	Debris Objects
+ */
+const debrisObjects = [
+
+	obj.target_debris00 = { 
+		image: sf.data.loadImage("images/target_debris00.png"), 
+		health: 5, 
+		flammable: true,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		},
+	},
+
+	obj.target_debris01 = { 
+		image: sf.data.loadImage("images/target_debris01.png"), 
+		health: 5, 
+		flammable: true,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		},
+	},
+
+	obj.target_debris02 = { 
+		image: sf.data.loadImage("images/target_debris02.png"), 
+		health: 5, 
+		flammable: true,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		},
+	},
+
+	obj.beachball_debris = { 
+		image: sf.data.loadImage("images/beachball_debris.png"), 
+		health: 10
+	},
+
+	obj.crate_debris00 = {
+		image: sf.data.loadImage("images/crate_debris00.png"),
+		health: 25,
+		flammable: true,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		},
+	},
+
+	obj.crate_debris01 = {
+		image: sf.data.loadImage("images/crate_debris01.png"),
+		health: 25,
+		flammable: true,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		},
+	},
+
+	obj.crate_debris02 = {
+		image: sf.data.loadImage("images/crate_debris02.png"),
+		health: 25,
+		flammable: true,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		},
+	},
+
+	obj.table_debris00 = { 
+		image: sf.data.loadImage("images/table_debris00.png"), 
+		health: 15,
+		flammable: true,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		}
+	},
+
+	obj.table_debris01 = { 
+		image: sf.data.loadImage("images/table_debris01.png"), 
+		health: 15,
+		flammable: true,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		}
+	},
+
+	obj.table_debris02 = { 
+		image: sf.data.loadImage("images/table_debris02.png"), 
+		health: 15,
+		flammable: true,
+
+		sounds: {
+			killed: [
+				sf.data.loadAudio("sounds/bust_wood00.mp3"),
+				sf.data.loadAudio("sounds/bust_wood01.mp3")
+			]
+		}
+	},
+
+].forEach((item) => {
+	item.type = BaseObject;
+	item.group = sf.collision.groups.debris;
 });

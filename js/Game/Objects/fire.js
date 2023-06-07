@@ -50,8 +50,7 @@ let added = [
 
 ].forEach((item) => {
 	item.type = Fire;
-	item.category = sf.filters.decoration;
-	item.mask = sf.filters.object | sf.filters.platform;
+	item.group = sf.collision.groups.dynamic_inactive;
 
 	item.matter = {
 		inertia: Infinity, 

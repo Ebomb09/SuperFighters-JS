@@ -150,7 +150,7 @@ export default class Game{
 			this.objects = [];
 
 			// Collision Handlers
-			this.detector = Matter.Detector.create();
+			this.detector = this.engine.detector;
 		}
 		
 		// Parse the buffer contents
@@ -444,7 +444,7 @@ export default class Game{
 			});
 
 			// Get all weapon parent objects
-			const weaponKeys = Object.keys(sf.data.objects).filter(key => sf.data.objects[key].category & sf.filters.weapon);
+			const weaponKeys = Object.keys(sf.data.objects).filter(key => sf.data.objects[key].group == sf.collision.groups.item);
 
 			weaponKeys.sort((a, b) => { 
 				if(this.random() < 0.5)	return 1; 
@@ -696,24 +696,8 @@ export default class Game{
 		sf.ctx.translate(-this.getCameraRealPosition().x, -this.getCameraRealPosition().y);
 
 		// Set draw order
-		const order = [
-			sf.filters.background,
-			/*sf.filters.marker,*/
-			sf.filters.ladder,
-			sf.filters.platform,
-			sf.filters.decoration,
-			sf.filters.object,
-			sf.filters.player,
-			sf.filters.weapon,
-			sf.filters.projectile,
-			sf.filters.effect
-			];
-
-		order.forEach((filter) => {
-
-			this.objects.filter(obj => obj.body && obj.body.collisionFilter.category == filter).forEach((obj) => {
-				obj.draw();
-			});
+		this.objects.forEach((obj) => {
+			obj.draw();
 		});
 
 		sf.ctx.restore();
