@@ -2,7 +2,7 @@ import sf from "../../sf.js";
 import BaseObject from "./base_object.js";
 import Projectile from "./projectile.js";
 import Fire from "./fire.js";
-import Particle from "./particle.js";
+import Effect from "./effect.js";
 
 const State = {
 	Picked: "picked_up",

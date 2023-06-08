@@ -1,6 +1,6 @@
 import sf from "../../sf.js";
 import BaseObject from "./base_object.js";
-import Particle from "./particle.js";
+import Effect from "./effect.js";
 
 export default class Melee extends BaseObject{
 
