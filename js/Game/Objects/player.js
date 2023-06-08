@@ -602,14 +602,14 @@ export default class Player extends BaseObject{
 		};
 	}
 
-	dealDamage(damage, type, threshold){
+	dealDamage(damage){
 
 		// If still trying to get up prevent damage
 		if(this.checkState(State.Recovering))
 			return;
 
 		// Check if damage is actually dealt
-		if(!super.dealDamage(damage, type, threshold))
+		if(!super.dealDamage(damage))
 			return;
 
 		// Create blood effects
@@ -635,23 +635,31 @@ export default class Player extends BaseObject{
 		}
 
 		// Melee cause slight stun
-		if(type == "melee"){
+		switch(damage.type){
 
-			if(!this.checkState(State.FreeFalling))
-				this.setState(State.Stun, 9);
+			case "melee":
 
-		}else if(type == "projectile" && damage > 10){
-			this.setState(State.FreeFalling);
+				if(!this.checkState(State.FreeFalling))
+					this.setState(State.Stun, 9);
+				break;
 
-		}else if(type == "explosion"){
-			this.setState(State.FreeFalling);
+			case "projectile":
 
-		}else if(type == "collision"){
+				if(damage.hp > 10)
+					this.setState(State.FreeFalling);
+				break;
 
-			if(damage < 6 && !this.checkState(State.FreeFalling))
-				this.setState(State.Stun, 9);
-			else
-				this.setState(State.FreeFalling, 9);
+			case "explosion":
+				this.setState(State.FreeFalling);
+				break;
+
+			case "collision":
+
+				if(damage.hp < 6 && !this.checkState(State.FreeFalling))
+					this.setState(State.Stun, 9);
+				else
+					this.setState(State.FreeFalling, 9);
+				break;
 		}
 	}
 
@@ -893,16 +901,17 @@ export default class Player extends BaseObject{
 		}else if(button.pressed && this.checkState(State.Jumping) && !this.checkState(State.Attacking)){
 			this.setState(State.JumpPunching);
 
-			sf.game.createForce(this, 
-				{
+			sf.game.createHitbox(this, 
+				[{
 					x: this.getPosition().x + this.width/2 * this.facingDirection, 
 					y: this.getPosition().y,
-					radius: 3
-				},
+					width: 3,
+					height: 3
+				}],
 				{
 					x: 0.001 * this.facingDirection, 
 					y: 0,
-					damage: 5
+					damage: {hp: 5, type: "melee"}
 				});
 			sf.data.playAudio(this.sounds.punch);
 		}
@@ -953,16 +962,17 @@ export default class Player extends BaseObject{
 		}else if(button.pressed && this.checkState(State.Grounded) && !this.checkState(State.Attacking)){
 			this.setState(State.Kicking, 6);
 
-			sf.game.createForce(this, 
-				{
+			sf.game.createHitbox(this, 
+				[{
 					x: this.getPosition().x + this.width/2 * this.facingDirection, 
 					y: this.getPosition().y + this.height/2,
-					radius: 5
-				},
+					width: 5,
+					height: 5
+				}],
 				{
 					x: 0.001 * this.facingDirection, 
 					y: 0,
-					damage: 1
+					damage: {hp: 1, type: "melee"}
 				});
 			sf.data.playAudio(this.sounds.punch);
 
@@ -970,16 +980,17 @@ export default class Player extends BaseObject{
 		}else if(button.pressed && this.checkState(State.Jumping) && !this.checkState(State.Attacking)){
 			this.setState(State.JumpKicking);
 
-			sf.game.createForce(this, 
-				{
+			sf.game.createHitbox(this, 
+				[{
 					x: this.getPosition().x + this.width/2 * this.facingDirection, 
 					y: this.getPosition().y + this.height/2,
-					radius: 5
-				},
+					width: 5,
+					height: 5
+				}],
 				{
 					x: 0.001 * this.facingDirection, 
 					y: -0.001,
-					damage: 1
+					damage: {hp: 1, type: "melee"}
 				});
 			sf.data.playAudio(this.sounds.punch);
 		}
@@ -1079,6 +1090,11 @@ let added = [
 				sf.data.loadAudio("sounds/player/hit_player01.mp3"),
 				sf.data.loadAudio("sounds/player/hit_player02.mp3"),
 				sf.data.loadAudio("sounds/player/hit_player03.mp3")				
+			],
+			damage_cut: [
+				sf.data.loadAudio("sounds/player/cut_player00.mp3"),
+				sf.data.loadAudio("sounds/player/cut_player01.mp3"),
+				sf.data.loadAudio("sounds/player/cut_player02.mp3")
 			],
 			damage_collision: [
 				sf.data.loadAudio("sounds/player/hit_player00.mp3"),

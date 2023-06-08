@@ -800,7 +800,7 @@ export default class Game{
 
 			Matter.Body.applyForce(obj.body, circle, force);
 
-			obj.dealDamage(distanceMultiplier * circle.radius, "explosion");
+			obj.dealDamage({hp: distanceMultiplier * circle.radius, type: "explosion"});
 		});
 
 		// Create multiple visual explosions
@@ -873,7 +873,7 @@ export default class Game{
 
 	createHitbox(source, hitboxes, force){
 
-		let objects = [];
+		const objects = [];
 
 		// Collision check body
 		hitboxes.forEach((hitbox) => {
@@ -884,17 +884,18 @@ export default class Game{
 			collisions.forEach((collision) => {
 				const obj = this.getObjectByBody(collision.bodyA);
 
-				if(obj && objects.indexOf(obj) == -1)
+				if(obj && source != obj && objects.indexOf(obj) == -1){
 					objects.push(obj);
+
+					if(collision.supports.length > 1)
+						this.createObject(sf.data.objects.hit, {matter: { position: {x: collision.supports[0].x, y: collision.supports[0].y} }});
+				}
 			});
 		})
 
 		objects.forEach((object) => {
-
-			if(object != source){
-				Matter.Body.applyForce(object.body, object.getPosition(), force);
-				object.dealDamage(force.damage, "melee");
-			}
+			Matter.Body.applyForce(object.body, object.getPosition(), force);
+			object.dealDamage(force.damage);
 		});
 	}
 

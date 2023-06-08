@@ -6928,14 +6928,14 @@ var Bounds = __webpack_require__(1);
 
             if (bodyA.isStatic || bodyB.isStatic)
                 positionImpulse *= 2;
-            
-            if (!(bodyA.isStatic || bodyA.isSleeping)) {
+
+            if (!(bodyA.isStatic || bodyA.isSleeping || collision.dontImpulseA)) {
                 contactShare = positionDampen / bodyA.totalContacts;
                 bodyA.positionImpulse.x += normal.x * positionImpulse * contactShare;
                 bodyA.positionImpulse.y += normal.y * positionImpulse * contactShare;
             }
 
-            if (!(bodyB.isStatic || bodyB.isSleeping)) {
+            if (!(bodyB.isStatic || bodyB.isSleeping || collision.dontImpulseB)) {
                 contactShare = positionDampen / bodyB.totalContacts;
                 bodyB.positionImpulse.x -= normal.x * positionImpulse * contactShare;
                 bodyB.positionImpulse.y -= normal.y * positionImpulse * contactShare;
@@ -7028,7 +7028,7 @@ var Bounds = __webpack_require__(1);
                         impulseY = normal.y * normalImpulse + tangent.y * tangentImpulse;
                     
                     // apply impulse from contact
-                    if (!(bodyA.isStatic || bodyA.isSleeping)) {
+                    if (!(bodyA.isStatic || bodyA.isSleeping || collision.dontImpulseA)) {
                         bodyA.positionPrev.x += impulseX * bodyA.inverseMass;
                         bodyA.positionPrev.y += impulseY * bodyA.inverseMass;
                         bodyA.anglePrev += bodyA.inverseInertia * (
@@ -7037,7 +7037,7 @@ var Bounds = __webpack_require__(1);
                         );
                     }
     
-                    if (!(bodyB.isStatic || bodyB.isSleeping)) {
+                    if (!(bodyB.isStatic || bodyB.isSleeping || collision.dontImpulseB)) {
                         bodyB.positionPrev.x -= impulseX * bodyB.inverseMass;
                         bodyB.positionPrev.y -= impulseY * bodyB.inverseMass;
                         bodyB.anglePrev -= bodyB.inverseInertia * (
@@ -7182,13 +7182,13 @@ var Bounds = __webpack_require__(1);
                     impulseY = normalY * normalImpulse + tangentY * tangentImpulse;
                 
                 // apply impulse from contact
-                if (!(bodyA.isStatic || bodyA.isSleeping)) {
+                if (!(bodyA.isStatic || bodyA.isSleeping || collision.dontImpulseA)) {
                     bodyA.positionPrev.x += impulseX * bodyA.inverseMass;
                     bodyA.positionPrev.y += impulseY * bodyA.inverseMass;
                     bodyA.anglePrev += (offsetAX * impulseY - offsetAY * impulseX) * bodyA.inverseInertia;
                 }
 
-                if (!(bodyB.isStatic || bodyB.isSleeping)) {
+                if (!(bodyB.isStatic || bodyB.isSleeping || collision.dontImpulseB)) {
                     bodyB.positionPrev.x -= impulseX * bodyB.inverseMass;
                     bodyB.positionPrev.y -= impulseY * bodyB.inverseMass;
                     bodyB.anglePrev -= (offsetBX * impulseY - offsetBY * impulseX) * bodyB.inverseInertia;

@@ -114,9 +114,12 @@ Matter.Vector.getAngle = (vector) =>{
 Matter.Detector._canCollide = Matter.Detector.canCollide;
 Matter.Detector.canCollide = (filterA, filterB) => {
 
-    if ((filterA.above & filterB.category)!==0 || (filterB.above & filterA.category)!==0)
+    if ((filterA.above & filterB.category)!==0 && (filterB.mask & filterA.category)!==0)
         return true;
-    
+
+    if ((filterB.above & filterA.category)!==0 && (filterA.mask & filterB.category)!==0)
+        return true;
+   
     return Matter.Detector._canCollide(filterA, filterB);
 }
 
@@ -132,27 +135,27 @@ Matter.Collision.collides = (bodyA, bodyB, pairs) => {
 		const filterA = bodyA.collisionFilter;
 		const filterB = bodyB.collisionFilter;
 
-		if ((filterA.above & filterB.category)!==0){
-			var platform = bodyA;
-			var above = bodyB;
-		}
-
-		if ((filterB.above & filterA.category)!==0){
+		if ((filterA.above & filterB.category)!==0 && (filterB.mask & filterA.category)!==0){
 			var platform = bodyB;
 			var above = bodyA;
 		}
 
+		if ((filterB.above & filterA.category)!==0 && (filterA.mask & filterB.category)!==0){
+			var platform = bodyA;
+			var above = bodyB;
+		}
+
 		if(above && platform){
 
-		if(!above.platforms)
-			above.platforms = [];
+			if(!above.platforms)
+				above.platforms = [];
 
 			const index = above.platforms.indexOf(platform);
 
 			// Going up
-			if(above.velocity.y-platform.velocity.y < -1){
+			if(above.velocity.y-platform.velocity.y < 0){
 
-				if(index == -1)
+				if(index == -1 && above.position.y > platform.position.y)
 					above.platforms.push(platform);
 				
 				return null;
@@ -344,38 +347,42 @@ sf.collision.groups = {
 
 	platform: {
 		category: 	sf.collision.categories.platform,
-		above: 		sf.collision.categories.full
+		mask: 		sf.collision.categories.full
 	},
 
 	player: {
 		category: 	sf.collision.categories.player,
-		mask: 		sf.collision.categories.static | sf.collision.categories.dynamic_active
+		mask: 		sf.collision.categories.static | sf.collision.categories.dynamic_active | sf.collision.categories.projectile,
+		above: 		sf.collision.categories.platform
 	},
 
 	dynamic_active: {
 		category: 	sf.collision.categories.dynamic_active,
-		mask: 		sf.collision.categories.full & ~(sf.collision.categories.dynamic_inactive),
-		above: 		sf.collision.categories.dynamic_inactive
+		mask: 		sf.collision.categories.full & ~(sf.collision.categories.platform),
+		above: 		sf.collision.categories.platform
 	},
 
 	dynamic_inactive: {
 		category: 	sf.collision.categories.dynamic_inactive,
-		mask: 		sf.collision.categories.static
+		mask: 		sf.collision.categories.static,
+		above: 		sf.collision.categories.dynamic_active | sf.collision.categories.platform
 	},
 
 	debris: {
 		category: 	sf.collision.categories.debris,
-		mask: 		sf.collision.categories.static | sf.collision.categories.dynamic_active		
+		mask: 		sf.collision.categories.static,
+		above: 		sf.collision.categories.dynamic_active | sf.collision.categories.platform
 	},
 
 	item: {
 		category: 	sf.collision.categories.item,
-		mask: 		sf.collision.categories.static | sf.collision.categories.platform			
+		mask: 		sf.collision.categories.static,
+		above: 		sf.collision.categories.platform	
 	},
 
 	projectile: {
 		category: 	sf.collision.categories.projectile,
-		mask: 		sf.collision.categories.static | sf.collision.categories.dynamic_active	| sf.collision.categories.player | sf.collision.categories.projectile	
+		mask: 		sf.collision.categories.static | sf.collision.categories.dynamic_active	| sf.collision.categories.player	
 	},
 
 	full: {

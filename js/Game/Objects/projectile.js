@@ -33,7 +33,7 @@ export default class Projectile extends BaseObject{
 	}
 
 	addCollision(source, collision){
-		source.dealDamage(this.damage, "projectile");
+		source.dealDamage({hp: this.damage, type: "projectile"});
 		sf.game.createObject(sf.data.objects.hit, {matter: { position: this.getPosition() }});
 		this.kill();
 	}

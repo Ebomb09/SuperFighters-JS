@@ -73,7 +73,7 @@ export default class Melee extends BaseObject{
 				{
 					x: 0.001 * holder.facingDirection, 
 					y: (combo == 2) ? -0.001 : 0,
-					damage: this.damage
+					damage: this.damage,
 				});
 
 			// Swing effect
@@ -106,7 +106,7 @@ let added = [
 		image: sf.data.loadImage("images/player.png"),
 		hands: 0,
 
-		damage: 7,
+		damage: {hp: 7, type: "melee"},
 		hitbox: [
 			[
 				{x: 8, y: -3, width: 6, height: 5}
@@ -126,7 +126,7 @@ let added = [
 
 		effect: sf.data.objects.sword_swing,
 
-		damage: 10,
+		damage: {hp: 10, type: "melee", sound: "cut"},
 		hitbox: [
 			[
 				{x: 0, y: 0, width: 39, height: 12}
@@ -152,7 +152,7 @@ let added = [
 
 		effect: sf.data.objects.axe_swing,
 
-		damage: 10,
+		damage: {hp: 10, type: "melee", sound: "cut"},
 		hitbox: [
 			[
 				{x: 0, y: 0, width: 31, height: 12}
@@ -178,7 +178,7 @@ let added = [
 
 		effect: sf.data.objects.machete_swing,
 
-		damage: 10,
+		damage: {hp: 10, type: "melee", sound: "cut"},
 		hitbox: [
 			[
 				{x: 1, y: 1, width: 19, height: 9}

@@ -1,7 +1,7 @@
 import sf from "../../sf.js";
 import BaseObject from "./base_object.js";
 
-export default class Particle extends BaseObject{
+export default class Effect extends BaseObject{
 
 	constructor(...params){
 		super(...params);
@@ -33,7 +33,7 @@ export default class Particle extends BaseObject{
 
 
 /*
-	Create data definitions for all Particle objects
+	Create data definitions for all Effect objects
 */
 const obj = sf.data.objects;
 
@@ -49,7 +49,9 @@ let added = [
 			{x: 1, y: 1, delay: 3}
 		],
 
-		disableGravity: true
+		disableGravity: true,
+
+		group: sf.collision.groups.none
 	},
 
 	obj.explosion_small = { 
@@ -62,7 +64,9 @@ let added = [
 			{x: 2, y: 1, delay: 3}
 		],
 
-		disableGravity: true
+		disableGravity: true,
+
+		group: sf.collision.groups.none
 	},
 
 	obj.explosion_large = { 
@@ -75,7 +79,9 @@ let added = [
 			{x: 3, y: 1, delay: 3}
 		],
 
-		disableGravity: true
+		disableGravity: true,
+
+		group: sf.collision.groups.none
 	},
 
 	obj.electric = {
@@ -89,7 +95,9 @@ let added = [
 			{x: 2, y: 0, delay: 3},	
 		],
 
-		disableGravity: true	
+		disableGravity: true,
+
+		group: sf.collision.groups.none
 	},
 
 	obj.spark = {
@@ -105,7 +113,9 @@ let added = [
 			{x: 4, y: 0, delay: 3},	
 		],
 
-		disableGravity: true
+		disableGravity: true,
+
+		group: sf.collision.groups.none
 	},
 
 	obj.blood_small = {
@@ -114,7 +124,9 @@ let added = [
 		frameIndex: {x: 0, y: 0},
 
 		lifeTime: 30,
-		fade: true
+		fade: true,
+
+		group: sf.collision.groups.dynamic_inactive
 	},
 
 	obj.blood_large = {
@@ -123,32 +135,42 @@ let added = [
 		frameIndex: {x: 1, y: 0},
 
 		lifeTime: 30,
-		fade: true
+		fade: true,
+
+		group: sf.collision.groups.dynamic_inactive
 	},
 
 	obj.casing_small = {
 		image: sf.data.loadImage("images/effect/casing_small.png"), 
 		lifeTime: 30,
-		fade: true
+		fade: true,
+
+		group: sf.collision.groups.dynamic_inactive
 	},
 
 	obj.casing_large = {
 		image: sf.data.loadImage("images/effect/casing_large.png"), 
 		lifeTime: 30,
-		fade: true
+		fade: true,
+
+		group: sf.collision.groups.dynamic_inactive
 	},
 
 	obj.shell = {
 		image: sf.data.loadImage("images/effect/shell.png"), 
 		lifeTime: 30,
-		fade: true
+		fade: true,
+
+		group: sf.collision.groups.dynamic_inactive
 	},
 
 	obj.smoke = {
 		image: sf.data.loadImage("images/effect/smoke.png"),
 		lifeTime: 30,
 		fade: true,
-		disableGravity: true
+		disableGravity: true,
+
+		group: sf.collision.groups.dynamic_inactive
 	},
 
 	obj.burn = {
@@ -163,7 +185,9 @@ let added = [
 		],
 		animateRealTime: true,
 		lifeTime: 2,
-		disableGravity: true
+		disableGravity: true,
+
+		group: sf.collision.groups.none
 	},
 
 	obj.heavy_flash = {
@@ -175,37 +199,46 @@ let added = [
 	obj.light_flash = {
 		image: sf.data.loadImage("images/effect/muzzle_flash/light_flash.png"),
 		lifeTime: 2,
-		disableGravity: true
+		disableGravity: true,
+
+		group: sf.collision.groups.none
 	},
 
 	obj.rifle_flash = {
 		image: sf.data.loadImage("images/effect/muzzle_flash/rifle_flash.png"),
 		lifeTime: 2,
-		disableGravity: true
+		disableGravity: true,
+
+		group: sf.collision.groups.none
 	},
 
 	obj.axe_swing = {
 		image: sf.data.loadImage("images/effect/axe_swing.png"),
 		frameCount: {x: 3, y: 1},
 		lifeTime: 2,
-		disableGravity: true
+		disableGravity: true,
+
+		group: sf.collision.groups.none
 	},
 
 	obj.sword_swing = {
 		image: sf.data.loadImage("images/effect/sword_swing.png"),
 		frameCount: {x: 3, y: 1},
 		lifeTime: 2,
-		disableGravity: true
+		disableGravity: true,
+
+		group: sf.collision.groups.none
 	},
 
 	obj.machete_swing = {
 		image: sf.data.loadImage("images/effect/machete_swing.png"),
 		frameCount: {x: 3, y: 1},
 		lifeTime: 2,
-		disableGravity: true
+		disableGravity: true,
+
+		group: sf.collision.groups.none
 	}
 
 ].forEach((item) => {
-	item.type = Particle;
-	item.group = sf.collision.groups.dynamic_inactive;
+	item.type = Effect;
 });

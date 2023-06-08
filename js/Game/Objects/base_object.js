@@ -2,7 +2,7 @@ import sf from "../../sf.js";
 
 const Default = {
 	sounds: {
-		damage_melee: sf.data.loadAudio("sounds/hit_generic.mp3")
+		hit_generic: sf.data.loadAudio("sounds/hit_generic.mp3")
 	}
 };
 
@@ -320,7 +320,7 @@ export default class BaseObject{
 				
 
 				if(this.fire > 100){
-					this.dealDamage(1, "fire");
+					this.dealDamage({hp: 1, type: "fire"});
 
 					sf.game.createObject(sf.data.objects.burn,
 						{
@@ -487,10 +487,10 @@ export default class BaseObject{
 			};
 		}
 
-		const damage = Math.round(6 * Math.sqrt(Math.pow(forceVector.x, 2) + Math.pow(forceVector.y, 2)));	
+		const hp = Math.round(6 * Math.sqrt(Math.pow(forceVector.x, 2) + Math.pow(forceVector.y, 2)));	
 
-		// Deal damage within a threshold of 6 (ie: time to hit freefall)	
-		source.dealDamage(damage, "collision", 6);
+		// Deal hp damage within a threshold of 6 (ie: time to hit freefall)	
+		source.dealDamage({hp: hp, type: "collision", threshold: 6});
 	}
 
 	removeCollision(objectId){
@@ -559,26 +559,27 @@ export default class BaseObject{
 		sf.data.playAudio(this.sounds.killed);
 	}
 
-	dealDamage(damage, type, threshold){
+	dealDamage(damage){
 
-		// Get type of damage
-		if(!type) type = "default";
+		// Get the type of damage and sound effect
+		const type = (damage.type) ?  damage.type : "default";
+		const sound = (damage.sound) ? damage.sound : damage.type;
 
-		// Get threshold
-		if(!threshold) threshold = 0;
+		// Get the threshold limit of damage
+		const threshold = (damage.threshold) ? damage.threshold : 0;
 
-		// Find damage after modifier is applied
-		damage *= this.damageModifier[type];
+		// Calculate the hp affect of the damage
+		const hp = damage.hp * this.damageModifier[type];
 
 		// Deal damage if above threshold
-		if(this.health != -1 && damage > threshold){
+		if(this.health != -1 && hp > threshold){
 
-			if(this.sounds[`damage_${type}`])
-				sf.data.playAudio(this.sounds[`damage_${type}`]);
+			if(this.sounds[`damage_${sound}`])
+				sf.data.playAudio(this.sounds[`damage_${sound}`]);
 			else
-				sf.data.playAudio(Default.sounds[`damage_${type}`]);
+				sf.data.playAudio(Default.sounds["hit_generic"]);
 
-			this.health -= Math.round(damage);
+			this.health -= Math.round(hp);
 
 			if(this.health < 0){
 				sf.data.playAudio(this.sounds.kill);
