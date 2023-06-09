@@ -103,7 +103,7 @@ const obj = sf.data.objects;
 let added = [
 
 	obj.fists = {
-		image: sf.data.loadImage("images/player.png"),
+		image: sf.data.loadImage("images/weapon/fists.png"),
 		hands: 0,
 
 		damage: {hp: 7, type: "melee"},

@@ -92,24 +92,24 @@ function setCookie(key, value){
 // Update Matter to handle SuperFighters Deluxe above bits
 Matter.Vector.getAngle = (vector) =>{
 
+	const x = vector.x;
+	const y = vector.y;
+
 	// Find degree
-	let degree = Math.atan(Math.abs(vector.y) / Math.abs(vector.x)) * 180 / Math.PI;
+	let degree = Math.atan(Math.abs(y) / Math.abs(x)) * 180 / Math.PI;
 
-	if(vector.x < 0){
+	if(x < 0){
 
-		if(-vector.y > 0)
+		if(y > 0)
 			degree = 180 + degree;
 		else
 			degree = 180 - degree;
-	
 	}else{
-		if(-vector.y > 0)
+		if(y > 0)
 			degree = 360 - degree;
 	}
-
 	return degree;
 }
-
 
 Matter.Detector._canCollide = Matter.Detector.canCollide;
 Matter.Detector.canCollide = (filterA, filterB) => {
@@ -129,8 +129,8 @@ Matter.Collision.collides = (bodyA, bodyB, pairs) => {
 	const collision = Matter.Collision._collides(bodyA, bodyB, pairs);
 
 	if(collision){
-		collision.angleA = Matter.Vector.getAngle(collision.normal);
-		collision.angleB = Matter.Vector.getAngle(Matter.Vector.neg(collision.normal));
+		collision.angleB = Matter.Vector.getAngle(collision.normal);
+		collision.angleA = Matter.Vector.getAngle(Matter.Vector.neg(collision.normal));
 
 		const filterA = bodyA.collisionFilter;
 		const filterB = bodyB.collisionFilter;
@@ -311,10 +311,20 @@ sf.data = {
 	playAudio: playAudio,
 	mute: false,
 
-	materials: {},
 	sounds: {},
 	objects: {},
 	apparel: {}
+};
+
+sf.materials = {
+	dirt: 		{friction: 0.1, restitution: 0.0},
+	concrete: 	{friction: 0.5, restitution: 0.2},
+	metal: 		{friction: 0.5, restitution: 0.1},
+	stone: 		{friction: 0.5, restitution: 0.2},
+	glass: 		{friction: 0.5, restitution: 0.2},
+	wood: 		{friction: 1.0, restitution: 0.2},
+	paper: 		{friction: 0.5, restitution: 0.2},
+	flesh: 		{friction: 1.0, restitution: 0.2}
 };
 
 // Psuedo compatibility with Super Fighters Deluxe collision filters
@@ -377,7 +387,7 @@ sf.collision.groups = {
 	item: {
 		category: 	sf.collision.categories.item,
 		mask: 		sf.collision.categories.static,
-		above: 		sf.collision.categories.platform	
+		above: 		sf.collision.categories.dynamic_active | sf.collision.categories.platform	
 	},
 
 	projectile: {

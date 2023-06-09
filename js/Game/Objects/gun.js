@@ -95,21 +95,24 @@ export default class Gun extends BaseObject{
 								}
 							}
 						});
+				}
 
-					// Create muzle flash
-					if(this.flash){
-						sf.game.createObject(this.flash,
-							{
-								matter:{
-									position: position,
-									angle: projectileAngle
-								}
-							});
-					}
+				// Create muzzle flash
+				if(this.flash){
+					sf.game.createObject(this.flash,
+						{
+							matter:{
+								position: {
+									x: position.x + Math.cos(angle) * (this.frame.width/4),
+									y: position.y + Math.sin(angle) * (this.frame.width/4)
+								},
+								angle: angle
+							}
+						});
 				}
 
 				// Effect, typically the casing / shell of the gun
-				if(this.expel)
+				if(this.expel){
 					sf.game.createObject(this.expel, 
 						{
 							matter:{
@@ -121,6 +124,7 @@ export default class Gun extends BaseObject{
 								}
 							}
 						});
+				}
 
 				sf.data.playAudio(this.sounds.fire);
 				break;

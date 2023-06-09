@@ -2,7 +2,7 @@ import sf from "../../sf.js";
 
 const Default = {
 	sounds: {
-		hit_generic: sf.data.loadAudio("sounds/hit_generic.mp3")
+		damage_melee: sf.data.loadAudio("sounds/hit_generic.mp3"),
 	}
 };
 
@@ -15,6 +15,7 @@ export default class BaseObject{
 		 */
 		const options = {};
 
+		// Set directly the option values unless it is a matter var, which should only be copied
 		params.forEach((param) => {
 			
 			const keys = Object.keys(param);
@@ -30,6 +31,9 @@ export default class BaseObject{
 					options[key] = param[key];
 			});
 		});
+
+		// Apply material default to the options object
+		Object.assign(options.matter, options.material);
 
 		this.options = options;
 		this.parent = options.parent;
@@ -574,10 +578,17 @@ export default class BaseObject{
 		// Deal damage if above threshold
 		if(this.health != -1 && hp > threshold){
 
+			// Play specific damage sound
 			if(this.sounds[`damage_${sound}`])
 				sf.data.playAudio(this.sounds[`damage_${sound}`]);
+
+			//Play default damage type sound
+			else if(this.sounds[`damage_${type}`])
+				sf.data.playAudio(this.sounds[`damage_${type}`]);
+
+			//Play default sound defined
 			else
-				sf.data.playAudio(Default.sounds["hit_generic"]);
+				sf.data.playAudio(Default.sounds[`damage_${type}`]);
 
 			this.health -= Math.round(hp);
 
@@ -719,6 +730,8 @@ const staticObjects = [
 		frameCount: {x: 2, y: 1},
 		resizable: true, 
 
+		material: sf.materials.dirt,
+
 		matter: {
 			isStatic: true
 		}
@@ -729,6 +742,8 @@ const staticObjects = [
 		frameCount: {x: 3, y: 3}, 
 		resizable: true, 
 
+		material: sf.materials.concrete,
+
 		matter: {
 			isStatic: true
 		}
@@ -737,7 +752,8 @@ const staticObjects = [
 	obj.concrete_stair00 = { 
 		image: sf.data.loadImage("images/concrete_stair00.png"), 
 		shape: "tl-br", 
-		resizable: true,
+
+		material: sf.materials.concrete,
 
 		matter: {
 			isStatic: true
@@ -747,7 +763,8 @@ const staticObjects = [
 	obj.concrete_stair01 = { 
 		image: sf.data.loadImage("images/concrete_stair01.png"), 
 		shape: "tr-bl", 
-		resizable: true, 
+
+		material: sf.materials.concrete,
 
 		matter: {
 			isStatic: true
@@ -757,17 +774,19 @@ const staticObjects = [
 	obj.concrete_slope00 = { 
 		image: sf.data.loadImage("images/concrete_slope00.png"), 
 		shape: "tl-br", 
-		resizable: true,
+
+		material: sf.materials.concrete,
 
 		matter: {
 			isStatic: true
 		}
 	},
 
-	obj.concrete_slope01 = { 
+	obj.concrete_slope01 = {
 		image: sf.data.loadImage("images/concrete_slope01.png"), 
 		shape: "tr-bl", 
-		resizable: true, 
+
+		material: sf.materials.concrete,
 		
 		matter: {
 			isStatic: true
@@ -779,6 +798,8 @@ const staticObjects = [
 		frameCount: {x: 3, y: 1}, 
 		resizable: true, 
 
+		material: sf.materials.stone,
+
 		matter: {
 			isStatic: true
 		}
@@ -787,6 +808,8 @@ const staticObjects = [
 	obj.block = { 
 		image: sf.data.loadImage("images/block.png"), 
 		resizable: true, 
+
+		material: sf.materials.concrete,
 
 		matter: {
 			isStatic: true
@@ -798,6 +821,8 @@ const staticObjects = [
 		frameCount: {x: 3, y: 1}, 
 		resizable: true, 
 
+		material: sf.materials.metal,
+
 		matter: {
 			isStatic: true
 		}
@@ -807,6 +832,8 @@ const staticObjects = [
 		image: sf.data.loadImage("images/metal.png"), 
 		frameCount: {x: 3, y: 1}, 
 		resizable: true, 
+
+		material: sf.materials.metal,
 
 		matter: {
 			isStatic: true
@@ -827,6 +854,8 @@ const dynamicActiveObjects = [
 		image: sf.data.loadImage("images/crate.png"), 
 		health: 50,
 		flammable: true,
+
+		material: sf.materials.wood,
 
 		sounds: {
 			killed: [
@@ -868,17 +897,22 @@ const dynamicActiveObjects = [
 	},
 
 	obj.crate_hanging =	{ 
-		image: sf.data.loadImage("images/crate_hanging.png") 
+		image: sf.data.loadImage("images/crate_hanging.png"),
+
+		material: sf.materials.wood
 	},
 
 	obj.barrel = { 
-		image: sf.data.loadImage("images/barrel.png")
+		image: sf.data.loadImage("images/barrel.png"),
+		material: sf.materials.metal
 	},
 
 	obj.explosive_barrel = {
 		image: sf.data.loadImage("images/explosive_barrel.png"), 
 		frameIndex: {x: 0, y: 0},
 		frameCount: {x: 2, y: 1},
+
+		material: sf.materials.metal,
 
 		health: 1,
 		flammable: true,
@@ -917,7 +951,10 @@ const dynamicActiveObjects = [
 		frameIndex: {x: 1, y: 0},
 		frameCount: {x: 2, y: 1},
 
+		material: sf.materials.metal,
+
 		health: 1,
+		flammable: true,
 		damageModifier: {
 			melee: 0,
 			collision: 100
@@ -936,6 +973,8 @@ const dynamicActiveObjects = [
 
 	obj.grenade = {
 		image: sf.data.loadImage("images/grenade.png"), 
+
+		material: sf.materials.metal,
 
 		health: 1,
 		damageModifier: {

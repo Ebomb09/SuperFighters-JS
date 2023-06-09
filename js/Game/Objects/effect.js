@@ -49,8 +49,9 @@ let added = [
 			{x: 1, y: 1, delay: 3}
 		],
 
-		disableGravity: true,
-
+		matter: {
+			isStatic: true
+		},
 		group: sf.collision.groups.none
 	},
 
@@ -64,8 +65,9 @@ let added = [
 			{x: 2, y: 1, delay: 3}
 		],
 
-		disableGravity: true,
-
+		matter: {
+			isStatic: true
+		},
 		group: sf.collision.groups.none
 	},
 
@@ -79,8 +81,9 @@ let added = [
 			{x: 3, y: 1, delay: 3}
 		],
 
-		disableGravity: true,
-
+		matter: {
+			isStatic: true
+		},
 		group: sf.collision.groups.none
 	},
 
@@ -95,8 +98,9 @@ let added = [
 			{x: 2, y: 0, delay: 3},	
 		],
 
-		disableGravity: true,
-
+		matter: {
+			isStatic: true
+		},
 		group: sf.collision.groups.none
 	},
 
@@ -113,8 +117,9 @@ let added = [
 			{x: 4, y: 0, delay: 3},	
 		],
 
-		disableGravity: true,
-
+		matter: {
+			isStatic: true
+		},
 		group: sf.collision.groups.none
 	},
 
@@ -126,7 +131,7 @@ let added = [
 		lifeTime: 30,
 		fade: true,
 
-		group: sf.collision.groups.dynamic_inactive
+		group: sf.collision.groups.debris
 	},
 
 	obj.blood_large = {
@@ -137,7 +142,7 @@ let added = [
 		lifeTime: 30,
 		fade: true,
 
-		group: sf.collision.groups.dynamic_inactive
+		group: sf.collision.groups.debris
 	},
 
 	obj.casing_small = {
@@ -193,22 +198,30 @@ let added = [
 	obj.heavy_flash = {
 		image: sf.data.loadImage("images/effect/muzzle_flash/heavy_flash.png"),
 		lifeTime: 2,
-		disableGravity: true
+
+		matter: {
+			isStatic: true
+		},
+		group: sf.collision.groups.none
 	},
 
 	obj.light_flash = {
 		image: sf.data.loadImage("images/effect/muzzle_flash/light_flash.png"),
 		lifeTime: 2,
-		disableGravity: true,
 
+		matter: {
+			isStatic: true
+		},
 		group: sf.collision.groups.none
 	},
 
 	obj.rifle_flash = {
 		image: sf.data.loadImage("images/effect/muzzle_flash/rifle_flash.png"),
 		lifeTime: 2,
-		disableGravity: true,
 
+		matter: {
+			isStatic: true
+		},
 		group: sf.collision.groups.none
 	},
 
@@ -216,8 +229,10 @@ let added = [
 		image: sf.data.loadImage("images/effect/axe_swing.png"),
 		frameCount: {x: 3, y: 1},
 		lifeTime: 2,
-		disableGravity: true,
 
+		matter: {
+			isStatic: true
+		},
 		group: sf.collision.groups.none
 	},
 
@@ -225,8 +240,10 @@ let added = [
 		image: sf.data.loadImage("images/effect/sword_swing.png"),
 		frameCount: {x: 3, y: 1},
 		lifeTime: 2,
-		disableGravity: true,
 
+		matter: {
+			isStatic: true
+		},
 		group: sf.collision.groups.none
 	},
 
@@ -234,8 +251,10 @@ let added = [
 		image: sf.data.loadImage("images/effect/machete_swing.png"),
 		frameCount: {x: 3, y: 1},
 		lifeTime: 2,
-		disableGravity: true,
-
+		
+		matter: {
+			isStatic: true
+		},
 		group: sf.collision.groups.none
 	}
 
