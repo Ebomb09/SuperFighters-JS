@@ -102,19 +102,8 @@ export default class Player extends BaseObject{
 				this.setState(State.Recovering, 30);
 
 			// Check Rolling
-			if(this.checkState(State.Rolling)){
-
-				if(this.facingDirection == 1){
-
-					const angle = (this.onGround() + 90) * Math.PI/180;
-					this.movePosition(Math.cos(angle), -Math.sin(angle));
-
-				}else if(this.facingDirection == -1){
-
-					const angle = (this.onGround() - 90) * Math.PI/180;
-					this.movePosition(Math.cos(angle), -Math.sin(angle));
-				}
-			}
+			if(this.checkState(State.Rolling))
+				this.moveHorizontal(this.facingDirection);
 				
 			// Check if any actions are done then reset to grounded
 			if(this.delayDone())
@@ -669,19 +658,19 @@ export default class Player extends BaseObject{
 
 			case "melee_1":
 				sf.game.getObjectById(this.inventory[Inventory.Melee]).swing(0);
-				this.movePosition(this.facingDirection * 1.5, 0);
+				this.moveHorizontal(this.facingDirection * 1.5);
 				sf.data.playAudio(this.sounds.punch);
 				break;
 
 			case "melee_2":
 				sf.game.getObjectById(this.inventory[Inventory.Melee]).swing(1);
-				this.movePosition(this.facingDirection * 1.5, 0);
+				this.moveHorizontal(this.facingDirection * 1.5);
 				sf.data.playAudio(this.sounds.punch);
 				break;
 
 			case "melee_3":
 				sf.game.getObjectById(this.inventory[Inventory.Melee]).swing(2);
-				this.movePosition(this.facingDirection * 1.5, 0);
+				this.moveHorizontal(this.facingDirection * 1.5);
 				sf.data.playAudio(this.sounds.punch);
 				break;
 
@@ -700,6 +689,18 @@ export default class Player extends BaseObject{
 		};
 	}
 
+	moveHorizontal(scale){
+
+		// Calculate based on the ground angle
+		if(this.onGround() !== false){
+			const angle = (this.onGround() + 90) * Math.PI/180;
+			this.movePosition(Math.cos(angle) * scale, -Math.sin(angle) * scale);		
+
+		}else{
+			this.movePosition(scale, 0);
+		}
+	}
+
 	moveRight(){
 
 		if(!this.input.right) return;
@@ -714,13 +715,7 @@ export default class Player extends BaseObject{
 				sf.data.playAudio(this.sounds.roll);
 
 			}else{
-
-				if(this.onGround()){
-					const angle = (this.onGround() + 90) * Math.PI/180;
-					this.movePosition(Math.cos(angle), -Math.sin(angle));
-				}else{
-					this.movePosition(1, 0);
-				}
+				this.moveHorizontal(1);
 
 				if(this.checkState(State.Grounded))
 					this.setState(State.Walking);
@@ -742,13 +737,7 @@ export default class Player extends BaseObject{
 				sf.data.playAudio(this.sounds.roll);
 
 			}else{
-
-				if(this.onGround()){
-					const angle = (this.onGround() - 90) * Math.PI/180;
-					this.movePosition(Math.cos(angle), -Math.sin(angle));
-				}else{
-					this.movePosition(-1, 0);
-				}
+				this.moveHorizontal(-1);
 
 				if(this.checkState(State.Grounded))
 					this.setState(State.Walking);
