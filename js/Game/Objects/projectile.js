@@ -15,6 +15,12 @@ export default class Projectile extends BaseObject{
 		return serial;
 	}
 
+	update(){
+		super.update();
+
+		this.frame.index.x = sf.game.frameCounter % this.frame.count.x;
+	}
+
 	draw(){
 
 		const speed = Math.sqrt(Math.pow(this.getVelocity().x, 2) + Math.pow(this.getVelocity().y, 2));
@@ -48,6 +54,22 @@ let added = [
 	
 	obj.projectile = { 
 		image: sf.data.loadImage("images/projectile.png")
+	},
+
+	obj.rocket = {
+		image: sf.data.loadImage("images/rocket.png"),
+		frameCount: {x: 4, y: 1},
+
+		onkill: (object) => {
+
+			sf.game.createExplosion(
+				{
+					x: object.getPosition().x,
+					y: object.getPosition().y,
+					radius: 32
+				},
+				0.008);
+		}
 	}
 
 ].forEach((item) => {

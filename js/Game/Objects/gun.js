@@ -330,6 +330,24 @@ let added = [
 			empty: 		sf.data.loadAudio("sounds/weapon/light_outofammo.mp3"),
 			draw: 		sf.data.loadAudio("sounds/weapon/heavy_draw.mp3")				
 		}
+	},
+
+	obj.bazooka = {
+		image: sf.data.loadImage("images/weapon/bazooka.png"),
+
+		ammo: 3,
+		speed: 4,
+		timing: 30,
+		spread: 5,
+
+		projectile: sf.data.objects.rocket,
+		flash: sf.data.objects.heavy_flash,
+
+		sounds: {
+			fire: 	sf.data.loadAudio("sounds/weapon/bazooka.mp3"), 
+			empty: 	sf.data.loadAudio("sounds/weapon/heavy_draw.mp3"), 
+			draw: 	sf.data.loadAudio("sounds/weapon/bazooka_aim.mp3")
+		}
 	}
 
 ].forEach((item) => {
