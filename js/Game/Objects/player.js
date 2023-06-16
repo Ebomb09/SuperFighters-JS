@@ -47,6 +47,7 @@ export default class Player extends BaseObject{
 		// Input should be set outside the player object	
 		this.input = {};
 		this.last = (this.options.last) ? this.options.last : {};
+		this.walkingSpeed = 1;
 
 		this.team = (this.options.team) ? this.options.team : 0;
 
@@ -72,6 +73,7 @@ export default class Player extends BaseObject{
 		serial.crosshair 	= this.crosshair;
 		serial.profile		= this.profile;
 		serial.last			= this.last;
+		serial.walkingSpeed = this.walkingSpeed;
 
 		return serial;
 	}
@@ -142,14 +144,14 @@ export default class Player extends BaseObject{
 		}
 
 		// Check inputs
-		this.aim();
-		this.moveDown(); 
-		this.moveUp();
-		this.moveRight();
-		this.moveLeft();
-		this.secondaryAttack();
-		this.attack();
-		this.interact();	
+		this.aim(this.getButtonStatus("aim"));
+		this.moveDown(this.getButtonStatus("down")); 
+		this.moveUp(this.getButtonStatus("up"));
+		this.moveRight(this.getButtonStatus("right"));
+		this.moveLeft(this.getButtonStatus("left"));
+		this.secondaryAttack(this.getButtonStatus("secondaryAttack"));
+		this.attack(this.getButtonStatus("primaryAttack"));
+		this.interact(this.getButtonStatus("interact"));	
 	}
 
 	draw(){
@@ -179,6 +181,17 @@ export default class Player extends BaseObject{
 						{x: 4, y: 0, delay: 9},
 						{x: 5, y: 0, delay: 9},
 						{x: 4, y: 0, delay: 9}
+					]);
+				break;
+			}
+
+			case State.Running: {
+				this.setAnimationFrame(
+					[
+						{x: 6, y: 0, delay: 4},
+						{x: 4, y: 0, delay: 4},
+						{x: 7, y: 0, delay: 4},
+						{x: 4, y: 0, delay: 4}
 					]);
 				break;
 			}
@@ -680,13 +693,21 @@ export default class Player extends BaseObject{
 		}
 	}
 
-	getButtonStatus(nowButton, prevButton){
+	getButtonStatus(key){
 
-		return {
+		const nowButton = this.input[key];
+		const prevButton = this.last[key];
+
+		const button = {
 			pressed: !prevButton && nowButton,
 			released: prevButton && !nowButton,
 			held: nowButton
 		};
+
+		// Update the last button input
+		this.last[key] = this.input[key];
+
+		return button;
 	}
 
 	moveHorizontal(scale){
@@ -701,9 +722,10 @@ export default class Player extends BaseObject{
 		}
 	}
 
-	moveRight(){
+	moveRight(button){
 
-		if(!this.input.right) return;
+		if(!button.held)
+			return;
 
 		this.facingDirection = 1;
 
@@ -715,17 +737,32 @@ export default class Player extends BaseObject{
 				sf.data.playAudio(this.sounds.roll);
 
 			}else{
-				this.moveHorizontal(1);
+
+				// Check if double tap for run
+				if(button.pressed){
+
+					if(sf.game.frameCounter - this.last.run < 16)
+						this.walkingSpeed = 2;
+					else
+						this.walkingSpeed = 1;
+		
+					this.last.run = sf.game.frameCounter;
+				}
+				this.moveHorizontal(this.walkingSpeed);
 
 				if(this.checkState(State.Grounded))
-					this.setState(State.Walking);
+					if(this.walkingSpeed <= 1)
+						this.setState(State.Walking);
+					else
+						this.setState(State.Running);
 			}
 		}
 	}
 
-	moveLeft(){
+	moveLeft(button){
 
-		if(!this.input.left) return;
+		if(!button.held)
+			return;
 
 		this.facingDirection = -1;
 
@@ -737,17 +774,32 @@ export default class Player extends BaseObject{
 				sf.data.playAudio(this.sounds.roll);
 
 			}else{
-				this.moveHorizontal(-1);
+
+				// Check if double tap for run
+				if(button.pressed){
+
+					if(sf.game.frameCounter - this.last.run < 16)
+						this.walkingSpeed = 2;
+					else
+						this.walkingSpeed = 1;
+		
+					this.last.run = sf.game.frameCounter;
+				}
+				this.moveHorizontal(-this.walkingSpeed);
 
 				if(this.checkState(State.Grounded))
-					this.setState(State.Walking);
+					if(this.walkingSpeed <= 1)
+						this.setState(State.Walking);
+					else
+						this.setState(State.Running);
 			}
 		}
 	}
 
-	moveUp(){
+	moveUp(button){
 
-		if(!this.input.up) return;
+		if(!button.held)
+			return;
 
 		if(!this.delayDone() && !this.checkState(State.Aiming) && !this.checkState(State.Rolling))
 			return;
@@ -781,9 +833,10 @@ export default class Player extends BaseObject{
 		}
 	}
 
-	moveDown(){
+	moveDown(button){
 
-		if(!this.input.down) return;
+		if(!button.held)
+			return;
 
 		if(!this.delayDone() && !this.checkState(State.Aiming))
 			return;
@@ -800,7 +853,7 @@ export default class Player extends BaseObject{
 			// Not previously crouching
 			if(!this.checkLastState(State.Crouching)){
 
-				if((sf.game.frameCounter - this.last.crouch) < 15){
+				if((sf.game.frameCounter - this.last.crouch) < 16){
 
 					// Update the collisionGroups of the platforms
 					this.collisions.forEach((collision) => {
@@ -832,11 +885,7 @@ export default class Player extends BaseObject{
 		}
 	}
 
-	attack(){
-
-		// Check input button status
-		const button = this.getButtonStatus(this.input.primaryAttack, this.last.primaryAttack);
-		this.last.primaryAttack = this.input.primaryAttack;
+	attack(button){
 
 		// Try to fire gun
 		if(button.pressed && this.strictState(State.Aiming)){
@@ -906,11 +955,7 @@ export default class Player extends BaseObject{
 		}
 	}
 
-	secondaryAttack(){
-
-		// Check input button status
-		const button = this.getButtonStatus(this.input.secondaryAttack, this.last.secondaryAttack);
-		this.last.secondaryAttack = this.input.secondaryAttack;
+	secondaryAttack(button){
 
 		// Prepare throw / cook
 		if(button.pressed && this.strictState(State.Aiming)){
@@ -985,11 +1030,7 @@ export default class Player extends BaseObject{
 		}
 	}
 
-	interact(){
-
-		// Check input button status
-		const button = this.getButtonStatus(this.input.interact, this.last.interact);
-		this.last.interact = this.input.interact;
+	interact(button){
 
 		// Pickup weapons
 		if(button.pressed){
@@ -1014,11 +1055,7 @@ export default class Player extends BaseObject{
 		}
 	}
 
-	aim(){
-
-		// Check input button status
-		const button = this.getButtonStatus(this.input.aim, this.last.aim);
-		this.last.aim = this.input.aim;
+	aim(button){
 
 		if(!this.delayDone())
 			return;
