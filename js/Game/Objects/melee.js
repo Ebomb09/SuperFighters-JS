@@ -117,7 +117,7 @@ let added = [
 			[
 				{x: 8, y: -3, width: 6, height: 5},
 			],
-		],
+		]
 	},
 
 	obj.sword = { 
@@ -143,6 +143,10 @@ let added = [
 
 		sounds: {
 			draw: sf.data.loadAudio("sounds/weapon/katana.mp3")
+		},
+
+		editor: {
+			enabled: true
 		}
 	},
 
@@ -169,7 +173,11 @@ let added = [
 
 		sounds: {
 			draw: sf.data.loadAudio("sounds/weapon/katana.mp3")
-		}		
+		},
+
+		editor: {
+			enabled: true
+		}	
 	},
 
 	obj.machete = {
@@ -194,7 +202,11 @@ let added = [
 
 		sounds: {
 			draw: sf.data.loadAudio("sounds/weapon/katana.mp3")
-		}		
+		},
+
+		editor: {
+			enabled: true
+		}
 	}
 
 ].forEach((item) => {

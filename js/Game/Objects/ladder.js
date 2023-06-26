@@ -23,8 +23,15 @@ let added = [
 
 ].forEach((item) => {
 	item.type = Ladder;
-	item.resizable = true;
 	item.matter = {isStatic: true};
 
 	item.group = sf.collision.groups.none;
+
+	item.editor = {
+		enabled: true,
+
+		resizable: {
+			height: true
+		}
+	};
 });

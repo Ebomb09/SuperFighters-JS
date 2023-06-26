@@ -128,18 +128,23 @@ export default class Editor extends Game{
 		this.selection.display = document.createElement("div");
 
 		// Objects
-		let objects = document.createElement("div");
+		const objects = document.createElement("div");
 
 		Object.keys(sf.data.objects).forEach((key) => {
+			const parent = sf.data.objects[key];
+
+			if(!parent.editor || !parent.editor.enabled)
+				return;
+			
 			const button = document.createElement("button");
 			button.className = "listing";
 
-			button.append(this.createImage(sf.data.objects[key]));
+			button.append(this.createImage(parent));
 			button.append(key);
 
 			button.addEventListener("click", () => {
 				
-				this.createObject(sf.data.objects[key], {
+				this.createObject(parent, {
 						matter:{
 							position: {
 								x: this.camera.x, 
@@ -242,13 +247,13 @@ export default class Editor extends Game{
 						mode = Mode.Move;
 
 						// Check if in resize bounds
-						if(this.selection.objects.length == 1 && obj.parent.resizable){
+						if(this.selection.objects.length == 1 && obj.getResizable()){
 
-							if(this.selection.start.y > obj.getBounds().max.y - 2){
+							if(obj.getResizableHeight() && this.selection.start.y > obj.getBounds().max.y - 2){
 								mode = Mode.ResizeY;
 							}
 
-							if(this.selection.start.x > obj.getBounds().max.x - 2){
+							if(obj.getResizableWidth() && this.selection.start.x > obj.getBounds().max.x - 2){
 
 								if(mode == Mode.ResizeY)
 									mode = Mode.Resize;
@@ -435,7 +440,7 @@ export default class Editor extends Game{
 		});
 
 		// Get object AABBs
-		let bounds = [];
+		const bounds = [];
 
 		this.selection.objects.forEach((obj) => {
 
@@ -444,7 +449,7 @@ export default class Editor extends Game{
 
 			bounds.push(obj.getBounds().min, obj.getBounds().max);
 
-			// Draw the selected bodies
+			// Highlight the selected bodies area
 			sf.ctx.beginPath();
 
 			let start = obj.body.vertices.at(-1);
@@ -459,7 +464,7 @@ export default class Editor extends Game{
 			sf.ctx.fill();
 		});
 
-		let region = Matter.Bounds.create(bounds);
+		const region = Matter.Bounds.create(bounds);
 
 		// Draw the Selected Boundary
 		sf.ctx.beginPath();
@@ -470,8 +475,8 @@ export default class Editor extends Game{
 		// Draw the selection boundary
 		switch(this.selection.mode){
 
-			case Mode.Select:
-				let region = Matter.Bounds.create([this.selection.start, this.getMousePosition()]);
+			case Mode.Select: {
+				const region = Matter.Bounds.create([this.selection.start, this.getMousePosition()]);
 
 				// Draw the Selected Boundary
 				sf.ctx.beginPath();
@@ -481,31 +486,38 @@ export default class Editor extends Game{
 				sf.ctx.strokeStyle = "rgb(0, 120, 215)";
 				sf.ctx.stroke();
 				break;
+			}
 		}
 
 		// Draw the resizer boxes
-		if(this.selection.objects.length == 1 && this.selection.objects[0].parent.resizable){
-			let obj = this.selection.objects[0];
-			let width = obj.getBounds().max.x - obj.getBounds().min.x;
-			let height = obj.getBounds().max.y - obj.getBounds().min.y;
+		if(this.selection.objects.length == 1){
+			const obj = this.selection.objects[0];
+			const width = obj.getBounds().max.x - obj.getBounds().min.x;
+			const height = obj.getBounds().max.y - obj.getBounds().min.y;
 
-			sf.ctx.beginPath();
-			sf.ctx.rect(obj.getBounds().min.x + width / 2 - 1, obj.getBounds().min.y + height - 1, 2, 2);
-			sf.ctx.strokeStyle = "white";
-			sf.ctx.lineWidth = 0.5;
-			sf.ctx.stroke();
+			if(obj.getResizableWidth()){
+				sf.ctx.beginPath();
+				sf.ctx.rect(obj.getBounds().min.x + width - 1, obj.getBounds().min.y + height / 2 - 1, 2, 2);
+				sf.ctx.strokeStyle = "white";
+				sf.ctx.lineWidth = 0.5;
+				sf.ctx.stroke();
+			}
 
-			sf.ctx.beginPath();
-			sf.ctx.rect(obj.getBounds().min.x + width - 1, obj.getBounds().min.y + height / 2 - 1, 2, 2);
-			sf.ctx.strokeStyle = "white";
-			sf.ctx.lineWidth = 0.5;
-			sf.ctx.stroke();
+			if(obj.getResizableHeight()){
+				sf.ctx.beginPath();
+				sf.ctx.rect(obj.getBounds().min.x + width / 2 - 1, obj.getBounds().min.y + height - 1, 2, 2);
+				sf.ctx.strokeStyle = "white";
+				sf.ctx.lineWidth = 0.5;
+				sf.ctx.stroke();
+			}
 
-			sf.ctx.beginPath();
-			sf.ctx.rect(obj.getBounds().min.x + width - 1, obj.getBounds().min.y + height - 1, 2, 2);
-			sf.ctx.strokeStyle = "white";
-			sf.ctx.lineWidth = 0.5;
-			sf.ctx.stroke();
+			if(obj.getResizableWidth() && obj.getResizableHeight()){
+				sf.ctx.beginPath();
+				sf.ctx.rect(obj.getBounds().min.x + width - 1, obj.getBounds().min.y + height - 1, 2, 2);
+				sf.ctx.strokeStyle = "white";
+				sf.ctx.lineWidth = 0.5;
+				sf.ctx.stroke();
+			}
 		}
 
 		sf.ctx.restore();
@@ -519,6 +531,7 @@ export default class Editor extends Game{
 	updateDisplay(){
 		this.selection.display.innerHTML = "";
 
+		// Show display of objects highlighted
 		if(this.selection.objects.length > 1){
 
 			this.selection.objects.forEach((obj) => {
@@ -535,103 +548,143 @@ export default class Editor extends Game{
 				this.selection.display.append(button);
 			});
 
+		// Show modifiable properties of a single object selected
 		}else if(this.selection.objects.length == 1){
 
 			const obj = this.selection.objects[0];
 
-			// X Position
-			const x = this.createInput("x", obj.getPosition().x);
-			x.addEventListener("input", (event) => {
-				let x = parseInt(event.target.value);
-				let y = this.selection.objects[0].getPosition().y;
+			// Check what parameters are given as options
+			if(obj.parent.editor){
 
-				if(!isNaN(x))
-					Matter.Body.setPosition(obj.body, {x: x, y: y});
-			});
-			this.selection.display.append(x);
+				// Default object modifiers
+				const defaults = [];
 
-			// Y Position
-			const y = this.createInput("y", obj.getPosition().y);
-			y.addEventListener("input", (event) => {
-				let x = obj.getPosition().x;
-				let y = parseInt(event.target.value);
+				defaults.push(
+					{
+						name: "Id",
+						type: "view",
+						get: (obj) => {return obj.id}
+					},
+					{ 
+						name: "Custom Id", 
+						type: "string", 	
+						get: (obj) => {return obj.customId}, 		
+						post: (obj, id) => {obj.customId = id}
+					},
+					{ 
+						name: "X", 		
+						type: "number", 	
+						get: (obj) => {return obj.getPosition().x}, 		
+						post: (obj, x) => {Matter.Body.setPosition(obj.body, x, obj.position.y)}
+					},
+					{ 
+						name: "Y", 		
+						type: "number", 	
+						get: (obj) => {return obj.getPosition().y}, 		
+						post: (obj, y) => {Matter.Body.setPosition(obj.body, obj.position.x, y)}
+					}
+				)
 
-				if(!isNaN(y))
-					Matter.Body.setPosition(obj.body, {x: x, y: y});
-			});
-			this.selection.display.append(y);
+				if(obj.parent.editor.resizable){
+					const resizable = obj.parent.editor.resizable;
 
-			// Width and Height
-			if(obj.parent.resizable){
-				const w = this.createInput("width", obj.tiling.width);
-				w.addEventListener("input", (event) => {
-					let w = parseInt(event.target.value);
+					if(resizable.width)
+						defaults.push(
+							{
+								name: "Width", 
+								type: "number", 
+								get: (obj) => {return obj.tiling.width},
+								post: (obj, w) => { obj.resetTiling(w, obj.tiling.height)}
+							}
+						);
 
-					if(!isNaN(w) && w >= 1)
-						obj.resetTiling(w, obj.tiling.height);
+					if(resizable.height)
+						defaults.push(
+							{
+								name: "Height", 
+								type: "number", 
+								get: (obj) => {return obj.tiling.height},
+								post: (obj, h) => {obj.resetTiling(obj.tiling.width, h)}
+							}
+						);
+				}
+				
+				defaults.push(
+					{ 
+						name: "Angle", 	
+						type: "number", 	
+						get: (obj) => {return obj.getAngle()}, 		
+						post: (obj, angle) => {Matter.Body.setAngle(obj.body, angle * Math.PI / 180)}
+					},
+					{ 
+						name: "Static", 	
+						type: "boolean", 	
+						get: (obj) => {return obj.getStatic()}, 	
+						post: (obj, isStatic) => {Matter.Body.setStatic(obj.body, isStatic)}
+					}
+				);
+
+				// Per object properties
+				const properties = defaults.concat(obj.parent.editor.properties);
+
+				// Add inputs to the display
+				properties.forEach((property) => {
+
+					if(!property)
+						return;
+
+					const name 		= property.name;
+					const type		= property.type;
+					const get 		= property.get;
+					const post 		= property.post;
+
+					switch(property.type){
+
+						case "view": {
+							const text = this.createText(`${name}: ${get(obj)}`);
+							this.selection.display.append(text);
+							break;
+						}
+
+						case "string": {
+							const input = this.createInput(name, get(obj));
+
+							input.addEventListener("input", (event) => {
+								const string = event.target.value;
+								post(obj, string);
+							});
+
+							this.selection.display.append(input);
+							break;
+						}
+
+						case "number": {
+							const input = this.createInput(name, get(obj));
+
+							input.addEventListener("input", (event) => {
+								const number = parseInt(event.target.value);
+
+								if(!isNaN(number))
+									post(obj, number);
+							});
+
+							this.selection.display.append(input);
+							break;
+						}
+
+						case "boolean": {
+							const input = this.createCheckbox(name, get(obj));
+
+							input.addEventListener("input", (event) => {
+								const checked = event.target.checked;
+								post(obj, checked);
+							});
+
+							this.selection.display.append(input);
+							break;
+						}
+					}
 				});
-
-
-				const h = this.createInput("height", obj.tiling.height);
-				h.addEventListener("input", (event) => {
-					let h = parseInt(event.target.value);
-
-					if(!isNaN(h) && h >= 1)
-						obj.resetTiling(obj.tiling.width, h);
-				});	
-
-				this.selection.display.append(w, h);
-			}
-
-			// Angle in degrees
-			const angle = this.createInput("angle", obj.body.angle * 180 / Math.PI);
-			angle.addEventListener("input", (event) => {
-				let angle = parseInt(event.target.value);
-
-				if(!isNaN(angle))
-					Matter.Body.setAngle(obj.body, angle * Math.PI / 180);
-			});	
-			this.selection.display.append(angle);
-
-			// Static
-			const isStatic = this.createCheckbox("static", obj.body.isStatic);
-			isStatic.addEventListener("input", (event) => {
-				Matter.Body.setStatic(obj.body, event.target.checked);
-			});	
-			this.selection.display.append(isStatic);
-			this.selection.display.append(this.createSubDivider());
-
-			// Body Id
-			const id = this.createText(`id: ${obj.id}`);
-			this.selection.display.append(id);
-
-			// Text custom Id
-			const customId = this.createInput("customId", obj.customId);
-			customId.addEventListener("input", (event) => {
-				obj.customId = event.target.value;
-			});		
-			this.selection.display.append(customId);
-
-			if(obj.targetAId != undefined && obj.targetBId != undefined){
-
-				// Markers target object
-				const targetAId = this.createInput("targetAId", obj.targetAId);
-				targetAId.addEventListener("input", (event) => {
-					let targetAId = parseInt(event.target.value);
-
-					if(!isNaN(targetAId))
-						obj.targetAId = targetAId;
-				});		
-				this.selection.display.append(targetAId);
-
-				const targetBId = this.createInput("targetBId", obj.targetBId);
-				targetBId.addEventListener("input", (event) => {
-					let targetBId = parseInt(event.target.value);
-
-					if(!isNaN(targetBId))
-						obj.targetBId = targetBId;
-				});		
-				this.selection.display.append(targetBId);
 			}
 
 			this.selection.display.append(this.createSubDivider());
@@ -670,13 +723,13 @@ export default class Editor extends Game{
 	}
 
 	createSubDivider(){
-		let hr = document.createElement("hr");
+		const hr = document.createElement("hr");
 		hr.style = "border: 1px dotted black";
 		return hr
 	}
 
 	createText(text){
-		let span = document.createElement("span");
+		const span = document.createElement("span");
 		span.innerText = text;
 		return span;
 	}

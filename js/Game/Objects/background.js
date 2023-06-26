@@ -19,7 +19,15 @@ let added = [
 
 ].forEach((item) => {
 	item.type = Background;
-	item.resizable = true;
 	item.matter = {isStatic: true, inertia: Infinity};
-	item.category = sf.filters.background;
+	item.group = sf.filters.none;
+
+	item.editor = {
+		enabled: true,
+
+		properties: [
+			{name: "Width", accessor: "tiling.width", type: "number"},
+			{name: "Height", accessor: "tiling.width", type: "number"}
+		]
+	};
 });

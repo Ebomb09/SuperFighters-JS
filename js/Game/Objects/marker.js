@@ -48,11 +48,19 @@ const obj = sf.data.objects;
 let added = [
 
 	obj.player_spawn = { 
-		image: sf.data.loadImage("images/marker/player_spawn.png")
+		image: sf.data.loadImage("images/marker/player_spawn.png"),
+
+		editor: {
+			enabled: true
+		}
 	},
 
 	obj.weapon_spawn = {
-		image: sf.data.loadImage("images/marker/weapon_spawn.png")
+		image: sf.data.loadImage("images/marker/weapon_spawn.png"),
+
+		editor: {
+			enabled: true
+		}
 	},
 
 	obj.distance_marker = {
@@ -61,6 +69,25 @@ let added = [
 		oncreate: (object) => {
 			object.targetAId = (object.options.targetAId) ? object.options.targetAId : -1;
 			object.targetBId = (object.options.targetBId) ? object.options.targetBId : -1;
+		},
+
+		editor: {
+			enabled: true,
+
+			properties: [
+				{
+					name: "target A Id",
+					type: "number",
+					get: (obj) => {return obj.targetAId},
+					post: (obj, id) => {obj.targetAId = id}			
+				},
+				{
+					name: "target B Id",
+					type: "number",
+					get: (obj) => {return obj.targetBId},
+					post: (obj, id) => {obj.targetBId = id}			
+				}
+			]
 		}
 	}
 

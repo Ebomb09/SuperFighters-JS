@@ -14,14 +14,22 @@ export default class Platform extends BaseObject{
 const obj = sf.data.objects;
 
 let added = [
+
 	obj.platform = { 
 		image: sf.data.loadImage("images/platform.png"), 
 		frameCount: {x: 3, y: 1}
-	},
+	}
 
 ].forEach((item) => {
 	item.type = Platform;
-	item.resizable = true;
 	item.matter = {isStatic: true};
 	item.group = sf.collision.groups.platform;
+
+	item.editor = {
+		enabled: true,
+
+		resizable: {
+			width: true
+		}
+	};
 });

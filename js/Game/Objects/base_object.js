@@ -515,7 +515,7 @@ export default class BaseObject{
 		this.width = this.frame.width * this.tiling.width;
 		this.height = this.frame.height * this.tiling.height;
 
-		let body = Matter.Bodies.rectangle(
+		const body = Matter.Bodies.rectangle(
 			this.getPosition().x, 
 			this.getPosition().y, 
 			this.width, 
@@ -525,6 +525,18 @@ export default class BaseObject{
 		this.body.vertices = body.vertices;
 		this.body.bounds.min = body.bounds.min;
 		this.body.bounds.max = body.bounds.max;
+	}
+
+	getResizable(){
+		return this.getResizableWidth() || this.getResizableHeight();
+	}
+
+	getResizableWidth(){
+		return this.parent.editor && this.parent.editor.resizable && this.parent.editor.resizable.width;
+	}
+
+	getResizableHeight(){
+		return this.parent.editor && this.parent.editor.resizable && this.parent.editor.resizable.height;
 	}
 
 	kill(){
@@ -728,24 +740,40 @@ const staticObjects = [
 	obj.dirt = { 
 		image: sf.data.loadImage("images/dirt.png"), 
 		frameCount: {x: 2, y: 1},
-		resizable: true, 
 
 		material: sf.materials.dirt,
 
 		matter: {
 			isStatic: true
+		},
+
+		editor: {
+			enabled: true,
+
+			resizable: {
+				width: true,
+				height: true
+			}
 		}
 	},
 
 	obj.concrete = { 
 		image: sf.data.loadImage("images/concrete.png"), 
 		frameCount: {x: 3, y: 3}, 
-		resizable: true, 
 
 		material: sf.materials.concrete,
 
 		matter: {
 			isStatic: true
+		},
+
+		editor: {
+			enabled: true,
+
+			resizable: {
+				width: true,
+				height: true
+			}
 		}
 	},
 
@@ -757,6 +785,10 @@ const staticObjects = [
 
 		matter: {
 			isStatic: true
+		},
+
+		editor: {
+			enabled: true,
 		}
 	},
 
@@ -768,6 +800,10 @@ const staticObjects = [
 
 		matter: {
 			isStatic: true
+		},
+
+		editor: {
+			enabled: true,
 		}
 	},
 
@@ -779,6 +815,10 @@ const staticObjects = [
 
 		matter: {
 			isStatic: true
+		},
+
+		editor: {
+			enabled: true,
 		}
 	},
 
@@ -790,53 +830,89 @@ const staticObjects = [
 		
 		matter: {
 			isStatic: true
+		},
+
+		editor: {
+			enabled: true,
 		}
 	},
 
 	obj.brick = { 
 		image: sf.data.loadImage("images/brick.png"), 
-		frameCount: {x: 3, y: 1}, 
-		resizable: true, 
+		frameCount: {x: 3, y: 1},  
 
 		material: sf.materials.stone,
 
 		matter: {
 			isStatic: true
+		},
+
+		editor: {
+			enabled: true,
+
+			resizable: {
+				width: true,
+				height: true
+			}
 		}
 	},
 
 	obj.block = { 
 		image: sf.data.loadImage("images/block.png"), 
-		resizable: true, 
 
 		material: sf.materials.concrete,
 
 		matter: {
 			isStatic: true
+		},
+
+		editor: {
+			enabled: true,
+
+			resizable: {
+				width: true,
+				height: true
+			}
 		}
 	},
 
 	obj.girder = {
 		image: sf.data.loadImage("images/girder.png"), 
 		frameCount: {x: 3, y: 1}, 
-		resizable: true, 
 
 		material: sf.materials.metal,
 
 		matter: {
 			isStatic: true
+		},
+
+		editor: {
+			enabled: true,
+
+			resizable: {
+				width: true,
+				height: true
+			}
 		}
 	},
 
 	obj.metal = { 
 		image: sf.data.loadImage("images/metal.png"), 
 		frameCount: {x: 3, y: 1}, 
-		resizable: true, 
 
 		material: sf.materials.metal,
 
 		matter: {
 			isStatic: true
+		},
+
+		editor: {
+			enabled: true,
+
+			resizable: {
+				width: true,
+				height: true
+			}
 		}
 	}
 
@@ -1125,6 +1201,10 @@ const dynamicActiveObjects = [
 ].forEach((item) => {
 	item.type = BaseObject;
 	item.group = sf.collision.groups.dynamic_active;
+
+	item.editor = {
+		enabled: true
+	};
 });
 
 /*
@@ -1262,6 +1342,10 @@ const dynamicInactiveObjects = [
 ].forEach((item) => {
 	item.type = BaseObject;
 	item.group = sf.collision.groups.dynamic_inactive;
+
+	item.editor = {
+		enabled: true
+	};
 });
 
 /*
@@ -1394,4 +1478,8 @@ const debrisObjects = [
 ].forEach((item) => {
 	item.type = BaseObject;
 	item.group = sf.collision.groups.debris;
+
+	item.editor = {
+		enabled: true
+	};
 });

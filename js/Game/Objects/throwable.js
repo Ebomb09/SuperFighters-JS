@@ -143,4 +143,17 @@ let added = [
 	item.matter = {
 		isStatic: true
 	};
+
+	item.editor = {
+		enabled: true,
+		
+		properties: [
+			{
+				name: "Ammo", 
+				type: "number", 
+				get: (obj) => {return obj.ammo},
+				post: (obj, ammo) => {obj.ammo = ammo}
+			}
+		]
+	};
 });
