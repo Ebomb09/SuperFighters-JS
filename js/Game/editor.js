@@ -20,7 +20,6 @@ export default class Editor extends Game{
 
 		this.selection = {
 			mode: Mode.None,
-			display: null,
 			objects: [],
 			objectsVar: [],
 			copy: "",
@@ -34,101 +33,108 @@ export default class Editor extends Game{
 		this.cameraCopy = {};
 		this.debug = true;
 
-		sf.docs.innerHTML = "";
+		// Create the documents body
+		this.body = sf.docs;
+		this.body.innerHTML = "";
+
+		this.section = {};
 
 		// Editor Control
-		let controls = document.createElement("div");
+		this.section.controls = this.createDiv();
 
 		// Map name
-		const mapname = this.createInput("Map Name", this.mapName);
-		mapname.addEventListener("input", (event) => {
-			this.mapName = event.target.value;
-		});
-		controls.append(mapname, this.createSubDivider());
+		const mapName = this.createInput("Map Name", this.mapName, 
+			(event) => {
+				this.mapName = event.target.value;
+			}
+		);
+		this.section.controls.append(mapName);
 
 		// Load map
-		const load = document.createElement("button");
-		load.append("📁 Load");
-		load.addEventListener("click", () => {
-			let name = prompt();
+		const load = this.createButton("📁 Load",
+			(event) => {
+				let name = prompt();
 
-			fetch("maps/"+name+".sfm").then((response) => {
-				return response.text();
-			}).then((data) => {
-				this.loadMap(data);
-			});
-		});
-		controls.append(load);
+				fetch("maps/"+name+".sfm").then((response) => {
+					return response.text();
+				}).then((data) => {
+					this.loadMap(data);
+				});
+			}
+		);
+		this.section.controls.append(load);
 
 		// Save map
-		const save = document.createElement("button");
-		save.append("💾 Save");
-		save.addEventListener("click", () => {
-			let a = document.createElement("a");
-			a.href = "data:text/sf-map;charset=utf-8,"+encodeURIComponent(this.saveMap());
-			a.download = `${this.mapName}.sfm`;
-			a.click();
-		});
-		controls.append(save, this.createSubDivider());
+		const save = this.createButton("💾 Save",
+			(event) => {
+				let a = document.createElement("a");
+				a.href = "data:text/sf-map;charset=utf-8,"+encodeURIComponent(this.saveMap());
+				a.download = `${this.mapName}.sfm`;
+				a.click();
+			}
+		);
+		this.section.controls.append(save, this.createSubDivider());
 
 		// Play map
-		const play = document.createElement("button");
-		play.append("▶ Play");
-		play.addEventListener("click", () => {
+		const play = this.createButton("▶ Play", 
+			(event) => {
 
-			if(!this.live){
-				this.mapCopy = this.saveMap();
-				this.cameraCopy = {
-					x: this.camera.x,
-					y: this.camera.y,
-					zoom: this.camera.zoom
-				};
-				this.createPlayers();
-				this.live = true;
+				if(!this.live){
+					this.mapCopy = this.saveMap();
+					this.cameraCopy = {
+						x: this.camera.x,
+						y: this.camera.y,
+						zoom: this.camera.zoom
+					};
+					this.createPlayers();
+					this.live = true;
+				}
 			}
-		});
-		controls.append(play);
+		);
+		this.section.controls.append(play);
 
 		// Stop map
-		const stop = document.createElement("button");
-		stop.append("⏹ Stop");
-		stop.addEventListener("click", () => {
+		const stop = this.createButton("⏹ Stop",
+			(event) => {
 
-			if(this.live){
-				this.loadMap(this.mapCopy);
-				this.camera = this.cameraCopy;
-				this.live = false;
+				if(this.live){
+					this.loadMap(this.mapCopy);
+					this.camera = this.cameraCopy;
+					this.live = false;
+				}
 			}
-		});
-		controls.append(stop, this.createSubDivider());
+		);
+		this.section.controls.append(stop, this.createSubDivider());
 
 		// Editor grid clamp
-		const grid = this.createInput("clamp grid", this.selection.grid.x);
-		grid.addEventListener("input", (event) => {
-			let val = parseInt(event.target.value);
+		const grid = this.createInput("Clamp Grid", this.selection.grid.x,
+			(event) => {
+				const val = parseInt(event.target.value);
 
-			if(val > 0){
-				this.selection.grid.x = val;
-				this.selection.grid.y = val;
+				if(val > 0){
+					this.selection.grid.x = val;
+					this.selection.grid.y = val;
+				}
 			}
-		});
-		controls.append(grid);
+		);
+		this.section.controls.append(grid);
 
 		// Editor angle clamp
-		const angle = this.createInput("clamp angle", this.selection.grid.angle);
-		angle.addEventListener("input", (event) => {
-			let val = parseInt(event.target.value);
+		const angle = this.createInput("Clamp Angle", this.selection.grid.angle,
+			(event) => {
+				const val = parseInt(event.target.value);
 
-			if(val > 0)
-				this.selection.grid.angle = val;
-		});
-		controls.append(angle);
+				if(val > 0)
+					this.selection.grid.angle = val;
+			}
+		);
+		this.section.controls.append(angle);
 
 		// Selection Control
-		this.selection.display = document.createElement("div");
+		this.section.selected = this.createDiv();
 
 		// Objects
-		const objects = document.createElement("div");
+		this.section.objects = this.createDiv();
 
 		Object.keys(sf.data.objects).forEach((key) => {
 			const parent = sf.data.objects[key];
@@ -136,39 +142,38 @@ export default class Editor extends Game{
 			if(!parent.editor || !parent.editor.enabled)
 				return;
 			
-			const button = document.createElement("button");
+			const button = this.createButton("", 
+				(event) => {
+					this.createObject(parent, {
+							matter:{
+								position: {
+									x: this.camera.x, 
+									y: this.camera.y
+								}
+							}
+						});
+				}
+			);
 			button.className = "listing";
 
 			button.append(this.createImage(parent));
 			button.append(key);
 
-			button.addEventListener("click", () => {
-				
-				this.createObject(parent, {
-						matter:{
-							position: {
-								x: this.camera.x, 
-								y: this.camera.y
-							}
-						}
-					});
-			});
-
-			objects.append(button);
+			this.section.objects.append(button);
 		});
 
 		// Append documents
-		sf.docs.append(
+		this.body.append(
 			this.createTitle("Controls"),
-			controls,
+			this.section.controls,
 			this.createDivider(),
 
 			this.createTitle("Selected"),
-			this.selection.display,
+			this.section.selected,
 			this.createDivider(),
 
 			this.createTitle("Objects"),
-			objects
+			this.section.objects
 			);
 	}
 
@@ -194,7 +199,7 @@ export default class Editor extends Game{
 						);
 				});
 
-				this.updateDisplay();
+				this.updateSelectedDisplay();
 			
 			}catch(error){
 				console.log(error);
@@ -226,7 +231,7 @@ export default class Editor extends Game{
 				obj.kill();
 			});
 			this.selection.objects = [];
-			this.updateDisplay();
+			this.updateSelectedDisplay();
 		}
 
 		// Mode starters
@@ -380,7 +385,7 @@ export default class Editor extends Game{
 							this.selection.objects = [this.selection.objects.at(-1)];
 					break;
 			}
-			this.updateDisplay();
+			this.updateSelectedDisplay();
 			this.selection.mode = Mode.None;
 		}
 
@@ -528,8 +533,8 @@ export default class Editor extends Game{
 		sf.ctx.fillText(`X: ${Math.round(this.camera.x)} Y: ${Math.round(this.camera.y)}, Zoom: ${Math.round(this.camera.zoom)}`, 0, sf.canvas.height);
 	}
 
-	updateDisplay(){
-		this.selection.display.innerHTML = "";
+	updateSelectedDisplay(){
+		this.section.selected.innerHTML = "";
 
 		// Show display of objects highlighted
 		if(this.selection.objects.length > 1){
@@ -543,9 +548,9 @@ export default class Editor extends Game{
 
 				button.addEventListener("click", () => {
 					this.selection.objects = [obj];
-					this.updateDisplay();
+					this.updateSelectedDisplay();
 				});
-				this.selection.display.append(button);
+				this.section.selected.append(button);
 			});
 
 		// Show modifiable properties of a single object selected
@@ -642,7 +647,7 @@ export default class Editor extends Game{
 
 						case "view": {
 							const text = this.createText(`${name}: ${get(obj)}`);
-							this.selection.display.append(text);
+							this.section.selected.append(text);
 							break;
 						}
 
@@ -654,7 +659,7 @@ export default class Editor extends Game{
 								post(obj, string);
 							});
 
-							this.selection.display.append(input);
+							this.section.selected.append(input);
 							break;
 						}
 
@@ -668,7 +673,7 @@ export default class Editor extends Game{
 									post(obj, number);
 							});
 
-							this.selection.display.append(input);
+							this.section.selected.append(input);
 							break;
 						}
 
@@ -680,14 +685,14 @@ export default class Editor extends Game{
 								post(obj, checked);
 							});
 
-							this.selection.display.append(input);
+							this.section.selected.append(input);
 							break;
 						}
 					}
 				});
 			}
 
-			this.selection.display.append(this.createSubDivider());
+			this.section.selected.append(this.createSubDivider());
 
 			// Frame Index
 			if(!obj.parent.animated){
@@ -707,19 +712,23 @@ export default class Editor extends Game{
 						button.addEventListener("click", () => {
 							obj.frame.index.x = w;
 							obj.frame.index.y = h;
-							this.updateDisplay();
+							this.updateSelectedDisplay();
 						});
 
 						frames.append(button);
 					}
 				}
-				this.selection.display.append(frames);
+				this.section.selected.append(frames);
 			}
 		}
 	}
 
 	createDivider(){
 		return document.createElement("hr");
+	}
+
+	createDiv(){
+		return document.createElement("div");
 	}
 
 	createSubDivider(){
@@ -740,7 +749,16 @@ export default class Editor extends Game{
 		return title;
 	}
 
-	createInput(name, value){
+	createButton(text, callback){
+		const button = document.createElement("button");
+		button.innerText = text;
+
+		button.addEventListener("click", callback);
+
+		return button;
+	}
+
+	createInput(name, value, callback){
 		const div = document.createElement("div");
 		div.style = `
 			display: flex;
@@ -757,17 +775,21 @@ export default class Editor extends Game{
 		input.id = name;
 		input.value = value;
 
+		input.addEventListener("input", callback);
+
 		div.append(label, input);
 
 		return div;
 	}
 
-	createCheckbox(name, value){
+	createCheckbox(name, value, callback){
 		const div = this.createInput(name);
 
 		const input = div.querySelector("input");
 		input.type = "checkbox";
 		input.checked = value;
+
+		input.addEventListener("input", callback);
 
 		return div;
 	}

@@ -53,10 +53,10 @@ export default class Game{
 		};
 
 		// Assign players
-		this.max_players 	= (options.max_players) ? options.max_players : 1;
-		this.players 		= [];
-		this.rollbackPlayers = [];
-		this.rollbackState = null;
+		this.max_players 		= (options.max_players) ? options.max_players : 1;
+		this.players 			= [];
+		this.rollbackPlayers 	= [];
+		this.rollbackState 		= null;
 
 		const local_players	= (options.local_players) ? options.local_players : 0;
 
