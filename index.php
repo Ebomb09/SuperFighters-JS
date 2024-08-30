@@ -3,6 +3,7 @@
 
 <head>
 	<link rel="stylesheet" href="css/index.css">
+	<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
 </head>
 
 <body>
